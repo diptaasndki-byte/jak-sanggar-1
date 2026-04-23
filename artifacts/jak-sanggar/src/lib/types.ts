@@ -1,0 +1,272 @@
+export type Role = "kurator" | "admin" | "sanggar" | "pelatih" | "seniman" | "juri";
+
+export type JenisKesenian = "Tari" | "Musik" | "Teater" | "Rupa" | "Sastra";
+export type Bank = "BCA" | "Mandiri" | "DKI" | "BRI" | "BNI" | "BSI" | "CIMB";
+export type Legalitas = "Yayasan" | "PT" | "CV" | "Non-Badan Hukum";
+
+export interface Rekening {
+  bank: Bank;
+  nomor: string;
+  atasNama: string;
+}
+
+export interface BaseUser {
+  id: string;
+  role: Role;
+  username: string;
+  password: string;
+  email?: string;
+  noHp?: string;
+  createdAt: number;
+}
+
+export interface KuratorUser extends BaseUser { role: "kurator"; }
+
+export interface AdminPermissions {
+  kelolaBerita: boolean;
+  kelolaBanner: boolean;
+  kelolaSlider: boolean;
+  kelolaJamPembinaan: boolean;
+}
+export interface AdminUser extends BaseUser {
+  role: "admin";
+  nama: string;
+  permissions: AdminPermissions;
+}
+
+export interface SanggarUser extends BaseUser {
+  role: "sanggar";
+  namaSanggar: string;
+  namaKetua: string;
+  legalitas: Legalitas;
+  namaBadanHukum?: string;
+  jenisKesenian: JenisKesenian[];
+  alamat: string;
+  lat?: number;
+  lng?: number;
+  rekening: Rekening;
+  saldo: number;
+  editCount: number;
+  editPeriodStart: number;
+}
+
+export interface PelatihUser extends BaseUser {
+  role: "pelatih";
+  nama: string;
+  usia: number;
+  pendidikan: string;
+  jenisKesenian: JenisKesenian;
+  sanggarId?: string;
+  status: "pending" | "aktif" | "ditolak" | "keluar";
+  rekening: Rekening;
+  honorPerSesi: number;
+}
+
+export interface SenimanUser extends BaseUser {
+  role: "seniman";
+  nama: string;
+  usia: number;
+  pendidikan: string;
+  profesi?: string;
+  jenisKesenian: JenisKesenian;
+  sanggarId?: string;
+  status: "pending" | "aktif" | "ditolak" | "keluar";
+  rekening: Rekening;
+}
+
+export interface JuriUser extends BaseUser {
+  role: "juri";
+  nama: string;
+  keahlian: string;
+}
+
+export type AnyUser =
+  | KuratorUser | AdminUser | SanggarUser | PelatihUser | SenimanUser | JuriUser;
+
+export interface News {
+  id: string;
+  judul: string;
+  isi: string;
+  imageUrl?: string;
+  createdAt: number;
+  authorId: string;
+}
+
+export interface Banner {
+  id: string;
+  teks: string;
+  start: number;
+  end: number;
+  active: boolean;
+}
+
+export interface SliderImage {
+  id: string;
+  imageUrl: string;
+  caption: string;
+}
+
+export interface Latihan {
+  id: string;
+  sanggarId: string;
+  tanggal: string; // YYYY-MM-DD
+  jam: string;     // HH:mm
+  tempat: string;
+  kurikulum: string;
+  ciriAdat: string;
+  pelatihId?: string;
+  laporan?: {
+    fotoDataUrl: string;
+    timestamp: number;
+    lat: number;
+    lng: number;
+  };
+}
+
+export interface AbsensiPelatih {
+  id: string;
+  latihanId: string;
+  pelatihId: string;
+  hadirAt: number;
+}
+
+export interface Iuran {
+  id: string;
+  sanggarId: string;
+  senimanId: string;
+  judul: string;
+  nominal: number;
+  buktiDataUrl?: string;
+  status: "pending" | "lunas" | "ditolak";
+  createdAt: number;
+  validatedAt?: number;
+}
+
+export interface PengajuanHonor {
+  id: string;
+  sanggarId: string;
+  pelatihId: string;
+  jumlahSesi: number;
+  honorPerSesi: number;
+  total: number;
+  status: "pending" | "disetujui" | "ditolak";
+  buktiTransferDataUrl?: string;
+  createdAt: number;
+  paidAt?: number;
+}
+
+export interface DistribusiHonor {
+  id: string;
+  sanggarId: string;
+  penerimaId: string;
+  penerimaRole: "pelatih" | "seniman";
+  judulJob: string;
+  nominal: number;
+  buktiTransferDataUrl?: string;
+  konfirmasi: boolean;
+  createdAt: number;
+}
+
+export interface TransaksiManual {
+  id: string;
+  sanggarId: string;
+  jenis: "pemasukan" | "pengeluaran";
+  tanggal: string;
+  kategori: string;
+  nominal: number;
+  sumberAtauTujuan: string;
+  keterangan: string;
+  buktiDataUrl?: string;
+  createdAt: number;
+}
+
+export interface KasEntry {
+  id: string;
+  sanggarId: string;
+  tanggal: number;
+  keterangan: string;
+  debit: number;
+  kredit: number;
+  saldo: number;
+  refType: string;
+  refId: string;
+}
+
+export interface SubVariabel { id: string; nama: string; bobot: number; }
+export interface Variabel { id: string; nama: string; bobot: number; subVariabel: SubVariabel[]; }
+export interface Indikator { id: string; nama: string; bobot: number; variabel: Variabel[]; }
+
+export interface KurasiMatrix {
+  indikator: Indikator[];
+  updatedAt: number;
+}
+
+export interface PenugasanJuri {
+  id: string;
+  juriId: string;
+  sanggarId: string;
+  periode: string;
+  createdAt: number;
+}
+
+export interface KurasiSubmission {
+  id: string;
+  sanggarId: string;
+  tahap1: Record<string, string>;
+  tahap2VideoName?: string;
+  scores: Record<string, Record<string, number>>; // juriId -> variabelId -> nilai 0..100
+  finalized: Record<string, number>; // juriId -> timestamp
+  createdAt: number;
+}
+
+export interface Sertifikat {
+  id: string;
+  pemilikId: string;
+  pemilikNama: string;
+  jenis: string; // "Sertifikasi Profesi: ..." or "Kurasi"
+  predikat?: string;
+  nilai?: number;
+  issuedAt: number;
+  sanggarId?: string;
+}
+
+export interface ActivityLog {
+  id: string;
+  actorId: string;
+  actorRole: Role | "guest";
+  action: string;
+  meta?: Record<string, unknown>;
+  ts: number;
+}
+
+export interface JamPembinaan {
+  pagiMax: string; // "08:00"
+  siangStart: string;
+  siangEnd: string;
+  pulangStart: string;
+  pulangEnd: string;
+}
+
+export interface AbsensiPembinaan {
+  id: string;
+  pesertaId: string;
+  slot: "pagi" | "siang" | "pulang";
+  ts: number;
+  fotoDataUrl?: string;
+  validatedByAdminId?: string;
+}
+
+export interface PendaftaranPembinaan {
+  id: string;
+  sanggarId: string;
+  delegasiId: string;
+  setuju: boolean;
+  barcode: string;
+  createdAt: number;
+}
+
+export interface AppearanceSettings {
+  primaryHsl: string;
+  accentHsl: string;
+  dark: boolean;
+}

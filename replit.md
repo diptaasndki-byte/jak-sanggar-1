@@ -1,27 +1,42 @@
-# Workspace
+# Jak Sanggar
 
-## Overview
+Aplikasi web Bahasa Indonesia untuk mengelola sanggar kesenian Jakarta secara terpadu — meliputi keanggotaan, latihan, buku kas, pembinaan, dan kurasi sanggar.
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+## Artefak
+- `artifacts/jak-sanggar` — React + Vite, frontend-only, persistensi `localStorage` (key `jaksanggar_v1`), routing wouter, UI shadcn, ikon lucide-react.
 
-## Stack
+## Peran Pengguna (6)
+1. Kurator (super admin, kredensial tetap `Penguasa jak1` / `ayamayaman`)
+2. Admin staff (hak akses dapat di-toggle Kurator)
+3. Sanggar (registrasi mandiri)
+4. Pelatih (registrasi mandiri, harus diterima Sanggar)
+5. Seniman (registrasi mandiri, harus diterima Sanggar)
+6. Juri (dibuat Kurator)
 
-- **Monorepo tool**: pnpm workspaces
-- **Node.js version**: 24
-- **Package manager**: pnpm
-- **TypeScript version**: 5.9
-- **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
+## Kredensial Demo
+- Kurator: `Penguasa jak1` / `ayamayaman`
+- Sanggar: `betawi.merah` / `sanggar123`
+- Pelatih: `pelatih.iwan` / `pelatih123`
+- Seniman: `ayu.tari` / `seniman123`
+- Juri: `juri1` / `juri123`
+- Admin: `admin1` / `admin123`
 
-## Key Commands
+## Struktur
+- `src/lib/{types,store,auth}.ts(x)` — model data, DB lokal, AuthProvider
+- `src/components/layout/{AppShell,PageHeader,BackButton}.tsx`
+- `src/pages/{auth,sanggar,pelatih,seniman,juri,admin,kurator}/`
+- `src/App.tsx` — semua route + Guard per peran
 
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- `pnpm --filter @workspace/api-server run dev` — run API server locally
+## Fitur Utama
+- Dasbor per peran dengan sidebar khas tema (maroon/gold + ornamen batik).
+- Sanggar: profil (lock edit 2x/bulan), keanggotaan (3 tab + mutasi/promosi/dismiss-PDF), latihan (kalender + GPS kamera + PDF laporan), buku kas (validasi iuran & honor + ekspor CSV/PDF + bagi hasil job), pembinaan (kartu registrasi pseudo-barcode + absensi 3 slot + sertifikasi), kurasi (3 tahap + sertifikat printable), regenerasi (timeline + ekspor PDF).
+- Pelatih: daftar latih, pengajuan honor, e-slip, honor proyek, sertifikat.
+- Seniman: tagihan (upload bukti), riwayat, honor komersial, sertifikat.
+- Juri: penilaian dengan NA live + final-lock.
+- Admin: berita, banner, slider (sesuai izin Kurator).
+- Kurator: akun, matriks kurasi (template/inject CSV), penugasan juri, manajemen staff, pengaturan tampilan & jam pembinaan, password ekspor sistem.
 
-See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+## Konvensi
+- Seluruh teks Bahasa Indonesia, tanpa emoji.
+- BackButton tampil di setiap halaman selain dasbor utama.
+- Format Rp via `Intl.NumberFormat("id-ID")`.
