@@ -1,16 +1,18 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 export function AnimatedCounter({
   value,
   duration = 1100,
-  format = (n) => n.toLocaleString("id-ID"),
+  format,
   className,
+  style,
   decimals = 0,
 }: {
   value: number;
   duration?: number;
   format?: (n: number) => string;
   className?: string;
+  style?: CSSProperties;
   decimals?: number;
 }) {
   const [display, setDisplay] = useState(0);
@@ -36,5 +38,11 @@ export function AnimatedCounter({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, duration, decimals]);
 
-  return <span className={className}>{format(display)}</span>;
+  const fmt = format ?? ((n: number) =>
+    decimals > 0
+      ? n.toLocaleString("id-ID", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+      : n.toLocaleString("id-ID")
+  );
+
+  return <span className={className} style={style}>{fmt(display)}</span>;
 }

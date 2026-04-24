@@ -6,25 +6,31 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sparkles, Eye, EyeOff, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { GoldDustField, OndelOndelSilhouette, PucukRebungDivider } from "@/components/betawi/Ornaments";
+import { GoldDustField, OndelOndelSilhouette, PucukRebungDivider, TumpalSpinner } from "@/components/betawi/Ornaments";
 
 export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
+  const [busy, setBusy] = useState(false);
   const { login } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const u = login(username.trim(), password);
-    if (!u) {
-      toast({ title: "Gagal masuk", description: "Username atau password tidak cocok.", variant: "destructive" });
-      return;
-    }
-    toast({ title: `Selamat datang, ${(u as any).nama || (u as any).namaSanggar || u.username}` });
-    navigate(`/${u.role}`);
+    if (busy) return;
+    setBusy(true);
+    setTimeout(() => {
+      const u = login(username.trim(), password);
+      if (!u) {
+        setBusy(false);
+        toast({ title: "Gagal masuk", description: "Username atau password tidak cocok.", variant: "destructive" });
+        return;
+      }
+      toast({ title: `Selamat datang, ${(u as any).nama || (u as any).namaSanggar || u.username}` });
+      navigate(`/${u.role}`);
+    }, 380);
   };
 
   return (
@@ -151,9 +157,9 @@ export default function Login() {
                   </button>
                 </div>
               </div>
-              <Button type="submit" className="w-full btn-gold border-0 h-11 text-sm font-semibold tracking-wide" data-testid="button-login">
-                <Lock className="h-4 w-4" />
-                Masuk Aman
+              <Button type="submit" disabled={busy} className="w-full btn-gold border-0 h-11 text-sm font-semibold tracking-wide" data-testid="button-login">
+                {busy ? <TumpalSpinner size={18} /> : <Lock className="h-4 w-4" />}
+                {busy ? "Memverifikasi..." : "Masuk Aman"}
               </Button>
             </form>
 

@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
 import type { SanggarUser } from "@/lib/types";
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid, AreaChart, Area } from "recharts";
+import { XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid, ComposedChart, Bar, Line } from "recharts";
 import { Users, CalendarDays, Wallet, Award, Bell, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { AnimatedCounter } from "@/components/system/AnimatedCounter";
 import { PucukRebungDivider, BatikCorner } from "@/components/betawi/Ornaments";
@@ -18,7 +18,7 @@ export default function SanggarHome() {
 
   const members = db.users.filter(u => (u.role === "seniman" || u.role === "pelatih") && (u as any).sanggarId === sg.id && (u as any).status === "aktif");
   const kas = db.kas.filter(k => k.sanggarId === sg.id).sort((a, b) => a.tanggal - b.tanggal);
-  const chartData = kas.map(k => ({ tgl: fmtDate(k.tanggal), saldo: k.saldo / 1000, debit: k.debit / 1000, kredit: -k.kredit / 1000 }));
+  const chartData = kas.map(k => ({ tgl: fmtDate(k.tanggal), saldo: k.saldo / 1000, masuk: k.debit / 1000, keluar: k.kredit / 1000 }));
   const pendingReq = db.users.filter(u => (u.role === "seniman" || u.role === "pelatih") && (u as any).sanggarId === sg.id && (u as any).status === "pending").length;
   const pendingIuran = db.iuran.filter(i => i.sanggarId === sg.id && i.status === "pending" && i.buktiDataUrl).length;
   const pendingHonor = db.pengajuanHonor.filter(h => h.sanggarId === sg.id && h.status === "pending").length;
@@ -117,9 +117,9 @@ export default function SanggarHome() {
               <p className="text-xs text-muted-foreground">Riwayat saldo (dalam ribu Rupiah)</p>
             </div>
             <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[hsl(var(--chart-1))]" />Saldo</span>
-              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[hsl(var(--chart-3))]" />Pemasukan</span>
-              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[hsl(var(--chart-4))]" />Pengeluaran</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-6 rounded-sm" style={{ background: "linear-gradient(90deg, hsl(42 75% 55%), hsl(38 60% 42%))", boxShadow: "0 0 6px hsl(42 75% 55% / 0.5)" }} />Saldo</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm" style={{ background: "linear-gradient(180deg, hsl(145 55% 50%), hsl(145 55% 38%))" }} />Pemasukan</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm" style={{ background: "linear-gradient(180deg, hsl(8 65% 55%), hsl(8 60% 42%))" }} />Pengeluaran</span>
             </div>
           </div>
           <div className="h-64 mt-4">
@@ -127,28 +127,46 @@ export default function SanggarHome() {
               <div className="h-full grid place-items-center text-sm text-muted-foreground">Belum ada transaksi.</div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData}>
+                <ComposedChart data={chartData} barGap={2}>
                   <defs>
-                    <linearGradient id="saldoFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity={0.32} />
-                      <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity={0} />
+                    <linearGradient id="masukBar" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="hsl(145 55% 50%)" stopOpacity={0.95} />
+                      <stop offset="100%" stopColor="hsl(145 55% 38%)" stopOpacity={0.7} />
+                    </linearGradient>
+                    <linearGradient id="keluarBar" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="hsl(8 65% 55%)" stopOpacity={0.92} />
+                      <stop offset="100%" stopColor="hsl(8 60% 42%)" stopOpacity={0.65} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="tgl" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} />
                   <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} />
                   <Tooltip
+                    cursor={{ fill: "hsl(var(--accent) / 0.07)" }}
                     contentStyle={{
                       background: "hsl(var(--popover) / 0.92)",
-                      border: "1px solid hsl(var(--accent) / 0.3)",
+                      border: "1px solid hsl(var(--accent) / 0.35)",
                       borderRadius: 12,
-                      backdropFilter: "blur(12px)",
-                      boxShadow: "0 10px 30px -8px hsl(222 50% 10% / 0.25)",
+                      backdropFilter: "blur(14px)",
+                      boxShadow: "0 14px 32px -10px hsl(222 50% 10% / 0.35), 0 0 0 1px hsl(42 60% 50% / 0.08)",
+                      padding: "8px 12px",
                     }}
-                    labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 600, fontSize: 11 }}
+                    labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 600, fontSize: 11, marginBottom: 4 }}
+                    itemStyle={{ fontSize: 12 }}
+                    formatter={(value: number, name: string) => [`${value.toLocaleString("id-ID")} rb`, name === "masuk" ? "Pemasukan" : name === "keluar" ? "Pengeluaran" : "Saldo"]}
                   />
-                  <Area type="monotone" dataKey="saldo" stroke="hsl(var(--chart-1))" strokeWidth={2.5} fill="url(#saldoFill)" />
-                </AreaChart>
+                  <Bar dataKey="masuk" fill="url(#masukBar)" radius={[5, 5, 0, 0]} maxBarSize={28} />
+                  <Bar dataKey="keluar" fill="url(#keluarBar)" radius={[5, 5, 0, 0]} maxBarSize={28} />
+                  <Line
+                    type="monotone"
+                    dataKey="saldo"
+                    stroke="hsl(42 75% 55%)"
+                    strokeWidth={2.5}
+                    dot={{ r: 3, fill: "hsl(42 80% 60%)", stroke: "hsl(38 60% 38%)", strokeWidth: 1 }}
+                    activeDot={{ r: 5, fill: "hsl(42 85% 65%)", stroke: "hsl(38 60% 38%)" }}
+                    style={{ filter: "drop-shadow(0 0 6px hsl(42 75% 55% / 0.5))" }}
+                  />
+                </ComposedChart>
               </ResponsiveContainer>
             )}
           </div>

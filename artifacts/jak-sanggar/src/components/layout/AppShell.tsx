@@ -150,7 +150,35 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
               <div className="font-serif text-base truncate">Jak Sanggar · {labels[user.role]}</div>
             </div>
 
-            <div className="hidden md:block text-sm text-muted-foreground">
+            {/* Central compact nav (desktop only) — shows top 5 nav items with gold underline on active */}
+            <nav className="hidden lg:flex items-center gap-0.5">
+              {nav.slice(0, 5).map(n => {
+                const active = loc === n.href || (n.href !== `/${user.role}` && loc.startsWith(n.href));
+                return (
+                  <Link
+                    key={n.href}
+                    href={n.href}
+                    className={`relative px-3 py-1.5 text-[13px] rounded-md transition-colors ${
+                      active ? "text-foreground" : "text-foreground/65 hover:text-foreground hover:bg-muted/60"
+                    }`}
+                    data-testid={`topnav-${n.href.replace(/\//g, "-")}`}
+                  >
+                    {n.label}
+                    {active && (
+                      <span
+                        className="absolute left-2.5 right-2.5 -bottom-[2px] h-[3px] rounded-full"
+                        style={{
+                          background: "linear-gradient(90deg, hsl(38 60% 42%), hsl(42 80% 60%), hsl(38 60% 42%))",
+                          boxShadow: "0 0 10px hsl(42 75% 55% / 0.6)",
+                        }}
+                      />
+                    )}
+                  </Link>
+                );
+              })}
+            </nav>
+
+            <div className="hidden md:block lg:hidden text-sm text-muted-foreground">
               <span className="font-serif italic">"Budaya Naik Kelas, Digital Tanpa Batas"</span>
             </div>
 
