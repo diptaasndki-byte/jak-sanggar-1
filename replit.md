@@ -27,8 +27,22 @@ Aplikasi web Bahasa Indonesia untuk mengelola sanggar kesenian Jakarta secara te
 - `src/pages/{auth,sanggar,pelatih,seniman,juri,admin,kurator}/`
 - `src/App.tsx` — semua route + Guard per peran
 
+## Identitas Visual (Redesign Apr 2026)
+- Tagline: **"Budaya Naik Kelas, Digital Tanpa Batas."** (tampil di hero login + header dasbor).
+- Palet utama: **Navy (#1d2c4f) + Emas (#cf9a36) + Cream (#f6efe3) + Brick-red (destructive)**, dengan tiga mode tema:
+  1. `light` — cream + navy + emas (default, cocok cetak)
+  2. `dark` — navy gelap + emas hangat
+  3. `luxury` — navy paling pekat + glow emas premium (CSS class `.luxury` di-toggle bersama `.dark`)
+- Mode tema disimpan di `db.appearance.theme` (fallback ke `dark` boolean lama untuk backward-compat). Tombol cycle ada di header AppShell; picker visual ada di Pengaturan Tampilan Kurator.
+- Ornamen Betawi: `src/components/betawi/Ornaments.tsx` — `TumpalSpinner`, `PucukRebungDivider`, `OndelOndelSilhouette`, `GoldDustField`, `BatikCorner`. Watermark batik global via util `betawi-watermark`.
+- Utility kunci di `src/index.css`: `glass`, `premium-card` (rounded-2xl + hover lift + gold border), `btn-gold` (gradien emas), `gold-glow`, `tumpal-divider`, `page-enter` (fade-up tiap navigasi), `gold-dust-particle`.
+- Komponen `AnimatedCounter` (`src/components/system/AnimatedCounter.tsx`) untuk angka KPI / Saldo / Nilai Akhir Kurasi.
+- Login: split layout (3:2) — kiri panel navy dengan tagline emas + ondel silhouette + butiran emas; kanan glass card.
+- SanggarHome: hero card navy-emas, saldo besar (animated counter), 4 KPI cards (Saldo Kas accent emas), grafik kas Area, slider berita auto-rotate.
+- Kurasi: panel Nilai Akhir tampil sebagai sertifikat-look navy-emas dengan animated counter dan badge predikat.
+
 ## Fitur Utama
-- Dasbor per peran dengan sidebar khas tema (maroon/gold + ornamen batik).
+- Dasbor per peran dengan sidebar navy + active gold-bar dan watermark batik halus.
 - Sanggar: profil (lock edit 2x/bulan), keanggotaan (3 tab + mutasi/promosi/dismiss-PDF), latihan (kalender + GPS kamera + PDF laporan), buku kas (validasi iuran & honor + ekspor CSV/PDF + bagi hasil job), pembinaan (kartu registrasi pseudo-barcode + absensi 3 slot + sertifikasi), kurasi (3 tahap + sertifikat printable), regenerasi (timeline + ekspor PDF).
 - Pelatih: daftar latih, pengajuan honor, e-slip, honor proyek, sertifikat.
 - Seniman: tagihan (upload bukti), riwayat, honor komersial, sertifikat.

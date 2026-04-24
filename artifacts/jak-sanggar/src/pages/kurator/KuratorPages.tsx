@@ -295,43 +295,81 @@ function NewAccountForm({ onSubmit, kind }: { onSubmit: (nama: string, username:
 }
 
 const SWATCHES: { name: string; primary: string; accent: string }[] = [
+  { name: "Navy Emas (Default)", primary: "220 55% 18%", accent: "42 65% 53%" },
   { name: "Maroon Klasik", primary: "4 70% 38%", accent: "41 75% 50%" },
   { name: "Hijau Daun", primary: "145 50% 30%", accent: "41 75% 50%" },
   { name: "Biru Lautan", primary: "215 60% 35%", accent: "41 75% 55%" },
   { name: "Ungu Sastra", primary: "275 45% 38%", accent: "41 75% 55%" },
 ];
 
+const THEMES: { id: "light" | "dark" | "luxury"; name: string; desc: string; preview: string }[] = [
+  { id: "light", name: "Terang", desc: "Cream + navy + emas. Cocok pemakaian siang & cetak.", preview: "linear-gradient(135deg, hsl(38 35% 96%) 0%, hsl(220 30% 90%) 100%)" },
+  { id: "dark", name: "Gelap", desc: "Navy gelap + emas hangat. Nyaman di mata.", preview: "linear-gradient(135deg, hsl(222 38% 10%) 0%, hsl(222 50% 18%) 100%)" },
+  { id: "luxury", name: "Dark Luxury", desc: "Navy paling pekat + glow emas premium.", preview: "linear-gradient(135deg, hsl(224 60% 5%) 0%, hsl(268 40% 14%) 60%, hsl(42 55% 25%) 100%)" },
+];
+
 export function KuratorAppearance() {
   const db = useDb();
   const { toast } = useToast();
   const ap = db.appearance;
+  const currentTheme = ap.theme ?? (ap.dark ? "dark" : "light");
   const apply = (primary: string, accent: string) => {
     save(d => { d.appearance.primaryHsl = primary; d.appearance.accentHsl = accent; });
     document.documentElement.style.setProperty("--primary", primary);
     document.documentElement.style.setProperty("--accent", accent);
-    toast({ title: "Tema diperbarui" });
+    toast({ title: "Skema warna diperbarui" });
   };
-  const toggleDark = (v: boolean) => {
-    save(d => { d.appearance.dark = v; });
-    document.documentElement.classList.toggle("dark", v);
+  const setTheme = (t: "light" | "dark" | "luxury") => {
+    save(d => { d.appearance.theme = t; d.appearance.dark = t !== "light"; });
+    const root = document.documentElement;
+    root.classList.toggle("dark", t !== "light");
+    root.classList.toggle("luxury", t === "luxury");
+    toast({ title: `Tema: ${t === "light" ? "Terang" : t === "dark" ? "Gelap" : "Dark Luxury"}` });
   };
   return (
     <div>
       <PageHeader title="Pengaturan Tampilan" subtitle="Kustomisasi tema warna dan mode aplikasi." />
+
       <Card className="p-5 mb-6">
-        <h3 className="font-serif text-lg flex items-center gap-2"><Palette className="h-5 w-5" />Skema Warna</h3>
-        <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {SWATCHES.map(s => (
-            <button key={s.name} onClick={() => apply(s.primary, s.accent)} className={`text-left rounded-lg border p-3 hover-elevate active-elevate-2 ${ap.primaryHsl === s.primary ? "ring-2 ring-primary" : ""}`}>
-              <div className="flex gap-1.5"><div className="h-8 flex-1 rounded" style={{ background: `hsl(${s.primary})` }} /><div className="h-8 flex-1 rounded" style={{ background: `hsl(${s.accent})` }} /></div>
-              <div className="text-sm mt-2 font-medium">{s.name}</div>
+        <h3 className="font-serif text-lg flex items-center gap-2"><Palette className="h-5 w-5" />Mode Tampilan</h3>
+        <p className="text-sm text-muted-foreground mt-1">Pilih atmosfer yang paling nyaman. Berlaku untuk semua pengguna.</p>
+        <div className="mt-4 grid sm:grid-cols-3 gap-3">
+          {THEMES.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setTheme(t.id)}
+              className={`text-left rounded-2xl border p-3 transition-all ${
+                currentTheme === t.id
+                  ? "border-accent ring-2 ring-accent/40"
+                  : "border-border hover:border-accent/50 hover:-translate-y-0.5"
+              }`}
+            >
+              <div
+                className="h-20 w-full rounded-xl mb-3 relative overflow-hidden"
+                style={{ background: t.preview, border: "1px solid hsl(var(--border))" }}
+              >
+                <div className="absolute inset-x-3 top-3 h-2 rounded-full" style={{ background: "hsl(42 75% 60%)" }} />
+                <div className="absolute left-3 right-1/2 bottom-3 h-1.5 rounded-full bg-white/40" />
+                <div className="absolute right-3 left-2/3 bottom-3 h-1.5 rounded-full bg-white/20" />
+              </div>
+              <div className="text-sm font-medium">{t.name}</div>
+              <div className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{t.desc}</div>
             </button>
           ))}
         </div>
       </Card>
+
       <Card className="p-5">
-        <div className="flex items-center justify-between"><div><div className="font-medium">Mode Gelap</div><div className="text-sm text-muted-foreground">Tema gelap untuk semua pengguna.</div></div>
-          <Switch checked={ap.dark} onCheckedChange={toggleDark} /></div>
+        <h3 className="font-serif text-lg flex items-center gap-2"><Palette className="h-5 w-5" />Aksen Warna</h3>
+        <p className="text-sm text-muted-foreground mt-1">Atur warna primer & aksen secara opsional. Gunakan default <b>Navy Emas</b> untuk identitas Jak Sanggar.</p>
+        <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          {SWATCHES.map(s => (
+            <button key={s.name} onClick={() => apply(s.primary, s.accent)} className={`text-left rounded-xl border p-3 transition hover:-translate-y-0.5 ${ap.primaryHsl === s.primary ? "ring-2 ring-accent border-accent" : "hover:border-accent/40"}`}>
+              <div className="flex gap-1.5"><div className="h-9 flex-1 rounded-md" style={{ background: `hsl(${s.primary})` }} /><div className="h-9 flex-1 rounded-md" style={{ background: `hsl(${s.accent})` }} /></div>
+              <div className="text-sm mt-2 font-medium">{s.name}</div>
+            </button>
+          ))}
+        </div>
       </Card>
     </div>
   );

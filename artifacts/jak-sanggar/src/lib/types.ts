@@ -290,8 +290,11 @@ export interface PendaftaranPembinaan {
   createdAt: number;
 }
 
+export type ThemeMode = "light" | "dark" | "luxury";
+
 export interface AppearanceSettings {
   primaryHsl: string;
   accentHsl: string;
   dark: boolean;
+  theme?: ThemeMode;
 }

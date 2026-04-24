@@ -4,9 +4,9 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
-import { Sparkles, Eye, EyeOff } from "lucide-react";
+import { Sparkles, Eye, EyeOff, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { GoldDustField, OndelOndelSilhouette, PucukRebungDivider } from "@/components/betawi/Ornaments";
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -28,75 +28,161 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-5 bg-background">
-      <div className="hidden lg:flex lg:col-span-3 relative overflow-hidden bg-sidebar text-sidebar-foreground p-12 flex-col justify-between">
-        <div className="absolute inset-0 batik-pattern opacity-60" />
+    <div
+      className="min-h-screen grid lg:grid-cols-5 relative overflow-hidden"
+      style={{
+        background: "radial-gradient(ellipse at top left, hsl(38 35% 96%) 0%, hsl(220 25% 92%) 100%)",
+      }}
+    >
+      {/* LEFT: Hero panel */}
+      <div
+        className="hidden lg:flex lg:col-span-3 relative overflow-hidden text-sidebar-foreground p-10 xl:p-14 flex-col justify-between"
+        style={{
+          background: "linear-gradient(135deg, hsl(222 60% 8%) 0%, hsl(222 55% 14%) 50%, hsl(268 40% 18%) 100%)",
+        }}
+      >
+        {/* Batik watermark */}
+        <div
+          className="absolute inset-0 opacity-[0.08] pointer-events-none"
+          style={{
+            backgroundImage: "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'><g fill='none' stroke='%23d4a64e' stroke-width='0.8'><path d='M30 130 L60 70 L90 130 Z'/><path d='M70 130 L100 70 L130 130 Z'/><circle cx='80' cy='50' r='4'/><circle cx='80' cy='50' r='12'/><path d='M70 20 L80 8 L90 20 L80 32 Z'/><path d='M0 80 L20 60 L40 80 L20 100 Z'/><path d='M120 80 L140 60 L160 80 L140 100 Z'/></g></svg>\")",
+            backgroundSize: "260px 260px",
+          }}
+        />
+
+        {/* Gold dust */}
+        <GoldDustField count={32} />
+
+        {/* Ondel-ondel silhouette in corner */}
+        <div className="absolute -right-6 -bottom-10 opacity-[0.09] pointer-events-none">
+          <OndelOndelSilhouette className="w-72 h-[440px]" color="hsl(42 75% 65%)" />
+        </div>
+
         <div className="relative">
-          <div className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-lg bg-sidebar-primary text-sidebar-primary-foreground grid place-items-center">
-              <Sparkles className="h-6 w-6" />
+          <div className="flex items-center gap-3.5">
+            <div
+              className="h-12 w-12 rounded-xl grid place-items-center"
+              style={{
+                background: "linear-gradient(135deg, hsl(42 80% 60%) 0%, hsl(38 65% 42%) 100%)",
+                boxShadow: "0 0 30px hsl(42 75% 50% / 0.55), 0 1px 0 hsl(42 90% 80%) inset",
+              }}
+            >
+              <Sparkles className="h-6 w-6" style={{ color: "hsl(222 60% 10%)" }} />
             </div>
             <div>
-              <div className="font-serif text-2xl">Jak Sanggar</div>
-              <div className="text-xs uppercase tracking-widest text-sidebar-foreground/60">Sistem Manajemen Kesenian Jakarta</div>
+              <div className="font-serif text-2xl tracking-tight">Jak Sanggar</div>
+              <div className="text-[10px] uppercase tracking-[0.28em] text-amber-100/55 mt-0.5">Sistem Manajemen Kesenian Jakarta</div>
             </div>
           </div>
         </div>
-        <div className="relative max-w-lg">
-          <h2 className="font-serif text-4xl xl:text-5xl leading-tight text-sidebar-foreground">
-            Satu pintu untuk seluruh sanggar, pelatih, dan seniman di Jakarta.
+
+        <div className="relative max-w-xl">
+          <div className="text-amber-200/60 text-[11px] uppercase tracking-[0.32em] mb-3">— Tagline Resmi —</div>
+          <h2
+            className="font-serif text-4xl xl:text-[58px] leading-[1.05] gold-glow"
+            style={{
+              background: "linear-gradient(180deg, hsl(42 80% 80%) 0%, hsl(42 70% 55%) 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+            }}
+          >
+            Budaya Naik Kelas,<br />
+            <span className="italic">Digital Tanpa Batas.</span>
           </h2>
-          <p className="mt-5 text-sidebar-foreground/75">
-            Kelola anggota, jadwal latihan, buku kas, hingga kurasi sanggar dalam satu sistem yang terpercaya.
+          <div className="mt-6 max-w-md">
+            <PucukRebungDivider className="opacity-70" />
+          </div>
+          <p className="mt-6 text-amber-50/80 text-base leading-relaxed max-w-md">
+            Satu pintu untuk seluruh sanggar, pelatih, dan seniman di Jakarta —
+            kelola anggota, jadwal latihan, buku kas, hingga kurasi sanggar dalam satu sistem yang terpercaya.
           </p>
         </div>
-        <div className="relative text-xs text-sidebar-foreground/60">
-          © {new Date().getFullYear()} Jak Sanggar · Pemerintah Provinsi DKI Jakarta
+
+        <div className="relative flex items-center justify-between text-xs text-amber-100/45">
+          <div>© {new Date().getFullYear()} Jak Sanggar · Pemerintah Provinsi DKI Jakarta</div>
+          <div className="hidden xl:flex items-center gap-2 uppercase tracking-[0.18em]">
+            <span className="h-1 w-1 rounded-full bg-amber-300/60" />
+            Edisi Premium
+          </div>
         </div>
       </div>
 
-      <div className="lg:col-span-2 flex items-center justify-center p-6 sm:p-10">
-        <Card className="w-full max-w-md p-8">
-          <div className="lg:hidden mb-6 flex items-center gap-2.5">
-            <div className="h-9 w-9 rounded-md bg-primary text-primary-foreground grid place-items-center">
-              <Sparkles className="h-5 w-5" />
+      {/* RIGHT: Form */}
+      <div className="lg:col-span-2 flex items-center justify-center p-6 sm:p-10 relative">
+        <div
+          className="absolute inset-0 opacity-30 pointer-events-none lg:hidden"
+          style={{
+            background: "linear-gradient(180deg, hsl(222 50% 12%) 0%, transparent 70%)",
+          }}
+        />
+        <div className="relative w-full max-w-md">
+          <div
+            className="glass rounded-2xl p-8 shadow-2xl"
+            style={{
+              boxShadow: "0 25px 50px -10px hsl(222 60% 10% / 0.25), 0 0 0 1px hsl(42 60% 50% / 0.18), 0 0 60px hsl(42 75% 50% / 0.08)",
+            }}
+          >
+            <div className="lg:hidden mb-5 flex items-center gap-2.5">
+              <div className="h-9 w-9 rounded-md grid place-items-center btn-gold">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <div className="font-serif text-xl">Jak Sanggar</div>
             </div>
-            <div className="font-serif text-xl">Jak Sanggar</div>
-          </div>
-          <h1 className="font-serif text-2xl">Masuk ke Akun Anda</h1>
-          <p className="text-sm text-muted-foreground mt-1">Gunakan kredensial yang terdaftar untuk melanjutkan.</p>
 
-          <form onSubmit={onSubmit} className="mt-6 space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="u">Username / Email</Label>
-              <Input id="u" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="contoh: betawi.merah" required data-testid="input-username" />
+            <div className="flex items-center gap-2 mb-1">
+              <span className="h-1 w-6 rounded-full bg-accent" />
+              <span className="text-[10px] uppercase tracking-[0.24em] text-accent">Masuk Akun</span>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="p">Password</Label>
-              <div className="relative">
-                <Input id="p" type={show ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required data-testid="input-password" />
-                <button type="button" onClick={() => setShow(s => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1">
-                  {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+            <h1 className="font-serif text-3xl">Selamat Datang Kembali</h1>
+            <p className="text-sm text-muted-foreground mt-1.5">Gunakan kredensial yang terdaftar untuk melanjutkan.</p>
+
+            <form onSubmit={onSubmit} className="mt-6 space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="u" className="text-xs uppercase tracking-wider text-muted-foreground">Username / Email</Label>
+                <Input id="u" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="contoh: betawi.merah" required data-testid="input-username" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="p" className="text-xs uppercase tracking-wider text-muted-foreground">Password</Label>
+                <div className="relative">
+                  <Input id="p" type={show ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required data-testid="input-password" className="pr-10" />
+                  <button type="button" data-tradisi="silent" onClick={() => setShow(s => !s)} aria-label={show ? "Sembunyikan password" : "Tampilkan password"} aria-pressed={show} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1.5 rounded-md hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50">
+                    {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+              <Button type="submit" className="w-full btn-gold border-0 h-11 text-sm font-semibold tracking-wide" data-testid="button-login">
+                <Lock className="h-4 w-4" />
+                Masuk Aman
+              </Button>
+            </form>
+
+            <div className="mt-5 flex items-center justify-between text-sm">
+              <Link href="/lupa-password" className="text-foreground/70 hover:text-accent hover:underline transition-colors">Lupa Password?</Link>
+              <Link href="/daftar" className="text-foreground/70 hover:text-accent hover:underline transition-colors">Daftar Akun</Link>
+            </div>
+
+            <div className="mt-6 relative">
+              <PucukRebungDivider className="opacity-40" />
+              <div
+                className="mt-4 p-3.5 rounded-xl text-[11px] text-muted-foreground leading-relaxed"
+                style={{
+                  background: "linear-gradient(135deg, hsl(var(--muted) / 0.6), hsl(var(--accent) / 0.04))",
+                  border: "1px solid hsl(var(--accent) / 0.18)",
+                }}
+              >
+                <div className="font-medium text-foreground mb-1.5 flex items-center gap-1.5">
+                  <span className="h-1 w-1 rounded-full bg-accent" />Akun Demo
+                </div>
+                Kurator: <code className="text-foreground">Penguasa jak1</code> / <code className="text-foreground">ayamayaman</code><br />
+                Sanggar: <code className="text-foreground">betawi.merah</code> / <code className="text-foreground">sanggar123</code><br />
+                Pelatih: <code className="text-foreground">pelatih.iwan</code> / <code className="text-foreground">pelatih123</code><br />
+                Seniman: <code className="text-foreground">ayu.tari</code> / <code className="text-foreground">seniman123</code><br />
+                Juri: <code className="text-foreground">juri1</code> / <code className="text-foreground">juri123</code> · Admin: <code className="text-foreground">admin1</code> / <code className="text-foreground">admin123</code>
               </div>
             </div>
-            <Button type="submit" className="w-full" data-testid="button-login">Masuk</Button>
-          </form>
-
-          <div className="mt-5 flex items-center justify-between text-sm">
-            <Link href="/lupa-password" className="text-primary hover:underline">Lupa Password?</Link>
-            <Link href="/daftar" className="text-primary hover:underline">Belum punya akun? Daftar</Link>
           </div>
-
-          <div className="mt-6 p-3 rounded-md bg-muted/60 text-[11px] text-muted-foreground leading-relaxed">
-            <div className="font-medium text-foreground mb-1">Akun Demo</div>
-            Kurator: <code>Penguasa jak1</code> / <code>ayamayaman</code><br />
-            Sanggar: <code>betawi.merah</code> / <code>sanggar123</code><br />
-            Pelatih: <code>pelatih.iwan</code> / <code>pelatih123</code><br />
-            Seniman: <code>ayu.tari</code> / <code>seniman123</code><br />
-            Juri: <code>juri1</code> / <code>juri123</code> · Admin: <code>admin1</code> / <code>admin123</code>
-          </div>
-        </Card>
+        </div>
       </div>
     </div>
   );

@@ -1,12 +1,11 @@
-import { type ReactNode, useEffect } from "react";
+import { type ReactNode, useEffect, useState, useRef } from "react";
 import { Link, useLocation } from "wouter";
-import { useAuth } from "@/lib/auth";
-import { Button } from "@/components/ui/button";
+import { useAuth, useDb } from "@/lib/auth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
-import { LogOut, Sparkles } from "lucide-react";
-import type { Role } from "@/lib/types";
-import { load } from "@/lib/store";
+import { Bell, LogOut, Sun, Moon, Sparkles, ChevronDown, UserCog } from "lucide-react";
+import type { Role, ThemeMode } from "@/lib/types";
+import { load, save } from "@/lib/store";
+import { PucukRebungDivider } from "@/components/betawi/Ornaments";
 
 interface NavItem { label: string; href: string; icon: ReactNode; }
 
@@ -19,15 +18,33 @@ const labels: Record<Role, string> = {
   juri: "Juri",
 };
 
+function applyTheme(theme: ThemeMode) {
+  const root = document.documentElement;
+  root.classList.toggle("dark", theme !== "light");
+  root.classList.toggle("luxury", theme === "luxury");
+}
+
 export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNode }) {
   const { user, logout } = useAuth();
+  const db = useDb();
   const [loc, navigate] = useLocation();
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const ap = load().appearance;
-    document.documentElement.style.setProperty("--primary", ap.primaryHsl);
-    document.documentElement.style.setProperty("--accent", ap.accentHsl);
-    document.documentElement.classList.toggle("dark", ap.dark);
+    if (ap.primaryHsl) document.documentElement.style.setProperty("--primary", ap.primaryHsl);
+    if (ap.accentHsl) document.documentElement.style.setProperty("--accent", ap.accentHsl);
+    const theme: ThemeMode = ap.theme ?? (ap.dark ? "dark" : "light");
+    applyTheme(theme);
+  }, [db.appearance.theme, db.appearance.primaryHsl, db.appearance.accentHsl, db.appearance.dark]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) setProfileOpen(false);
+    };
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
   }, []);
 
   if (!user) return null;
@@ -35,60 +52,187 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
     .split(" ").map((s: string) => s[0]).join("").slice(0, 2).toUpperCase();
   const displayName = (user as any).namaSanggar || (user as any).nama || user.username;
 
+  const currentTheme: ThemeMode = db.appearance.theme ?? (db.appearance.dark ? "dark" : "light");
+  const cycleTheme = () => {
+    const order: ThemeMode[] = ["light", "dark", "luxury"];
+    const next = order[(order.indexOf(currentTheme) + 1) % order.length];
+    save(d => { d.appearance.theme = next; d.appearance.dark = next !== "light"; });
+  };
+
+  const profilePath =
+    user.role === "sanggar" ? "/sanggar/profil" :
+    user.role === "seniman" ? "/seniman/profil" :
+    user.role === "juri" ? "/juri/profil" : null;
+
   return (
     <div className="min-h-screen flex bg-background">
-      <aside className="hidden md:flex w-64 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border">
-        <div className="px-5 py-6 flex items-center gap-2.5 border-b border-sidebar-border">
-          <div className="h-9 w-9 rounded-md bg-sidebar-primary text-sidebar-primary-foreground grid place-items-center">
-            <Sparkles className="h-5 w-5" />
+      <aside
+        className="hidden md:flex w-64 flex-col text-sidebar-foreground border-r border-sidebar-border relative overflow-hidden"
+        style={{
+          background: "linear-gradient(180deg, hsl(var(--sidebar)) 0%, hsl(var(--sidebar) / 0.94) 100%)",
+        }}
+      >
+        <div
+          className="absolute inset-0 opacity-[0.07] pointer-events-none"
+          style={{
+            backgroundImage: "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><g fill='none' stroke='%23d4a64e' stroke-width='0.6'><path d='M20 60 L40 20 L60 60 Z'/><circle cx='40' cy='40' r='2'/></g></svg>\")",
+            backgroundSize: "120px 120px",
+          }}
+        />
+        <div className="relative px-5 py-5 flex items-center gap-3 border-b border-sidebar-border">
+          <div
+            className="h-10 w-10 rounded-lg grid place-items-center"
+            style={{
+              background: "linear-gradient(135deg, hsl(42 80% 60%) 0%, hsl(38 65% 42%) 100%)",
+              boxShadow: "0 0 20px hsl(42 75% 50% / 0.4), 0 1px 0 hsl(42 90% 80%) inset",
+            }}
+          >
+            <Sparkles className="h-5 w-5" style={{ color: "hsl(222 60% 10%)" }} />
           </div>
-          <div>
-            <div className="font-serif text-lg leading-tight">Jak Sanggar</div>
-            <div className="text-[11px] uppercase tracking-wider text-sidebar-foreground/60">{labels[user.role]}</div>
+          <div className="min-w-0">
+            <div className="font-serif text-lg leading-tight truncate">Jak Sanggar</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-sidebar-foreground/55">{labels[user.role]}</div>
           </div>
         </div>
-        <nav className="flex-1 overflow-y-auto scrollbar-thin py-3 px-2">
+
+        <nav className="relative flex-1 overflow-y-auto scrollbar-thin py-3 px-2.5">
           {nav.map((n) => {
             const active = loc === n.href || (n.href !== `/${user.role}` && loc.startsWith(n.href));
             return (
               <Link
                 key={n.href}
                 href={n.href}
-                className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm mb-0.5 transition-colors ${
+                className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm mb-1 transition-all duration-200 ${
                   active
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
-                    : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                    ? "text-sidebar-primary-foreground font-medium"
+                    : "text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
                 }`}
                 data-testid={`nav-${n.href.replace(/\//g, "-")}`}
               >
-                <span className="opacity-90">{n.icon}</span>
-                {n.label}
+                {active && (
+                  <>
+                    <span
+                      className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r"
+                      style={{
+                        background: "linear-gradient(180deg, hsl(42 80% 65%), hsl(38 70% 45%))",
+                        boxShadow: "0 0 10px hsl(42 75% 55% / 0.7)",
+                      }}
+                    />
+                    <span
+                      className="absolute inset-0 rounded-lg"
+                      style={{
+                        background: "linear-gradient(90deg, hsl(var(--sidebar-accent)) 0%, hsl(var(--sidebar) / 0.8) 100%)",
+                        boxShadow: "inset 0 1px 0 hsl(42 60% 50% / 0.15)",
+                      }}
+                    />
+                  </>
+                )}
+                <span className={`relative transition-all ${active ? "text-sidebar-primary" : "opacity-80 group-hover:opacity-100 group-hover:text-sidebar-primary"}`}>{n.icon}</span>
+                <span className="relative">{n.label}</span>
               </Link>
             );
           })}
         </nav>
-        <Separator className="bg-sidebar-border" />
-        <div className="p-3 flex items-center gap-3">
-          <Avatar className="h-9 w-9">
-            <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-xs">{initials}</AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <div className="text-sm truncate">{displayName}</div>
-            <div className="text-xs text-sidebar-foreground/60 truncate">@{user.username}</div>
-          </div>
-          <Button variant="ghost" size="icon" className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent" onClick={() => { logout(); navigate("/"); }} data-testid="button-logout">
-            <LogOut className="h-4 w-4" />
-          </Button>
+
+        <div className="relative border-t border-sidebar-border p-3">
+          <div className="text-[10px] uppercase tracking-widest text-sidebar-foreground/45 px-2">Budaya Naik Kelas,</div>
+          <div className="text-[10px] uppercase tracking-widest text-sidebar-foreground/45 px-2">Digital Tanpa Batas</div>
         </div>
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="md:hidden h-14 px-4 flex items-center justify-between border-b bg-card">
-          <div className="font-serif text-lg">Jak Sanggar · {labels[user.role]}</div>
-          <Button variant="ghost" size="icon" onClick={() => { logout(); navigate("/"); }}><LogOut className="h-4 w-4" /></Button>
+        <header className="sticky top-0 z-30 glass border-b border-border/60">
+          <div className="h-14 px-4 sm:px-6 flex items-center justify-between gap-3">
+            <div className="md:hidden flex items-center gap-2.5 min-w-0">
+              <div className="h-8 w-8 rounded-md bg-primary text-primary-foreground grid place-items-center shrink-0">
+                <Sparkles className="h-4 w-4" />
+              </div>
+              <div className="font-serif text-base truncate">Jak Sanggar · {labels[user.role]}</div>
+            </div>
+
+            <div className="hidden md:block text-sm text-muted-foreground">
+              <span className="font-serif italic">"Budaya Naik Kelas, Digital Tanpa Batas"</span>
+            </div>
+
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <button
+                type="button"
+                data-tradisi="silent"
+                className="relative h-9 w-9 grid place-items-center rounded-md hover:bg-muted transition-colors text-foreground/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                aria-label="Notifikasi"
+                title="Notifikasi"
+              >
+                <Bell className="h-4 w-4" />
+                <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-destructive" />
+              </button>
+
+              <button
+                type="button"
+                data-tradisi="silent"
+                onClick={cycleTheme}
+                className="h-9 w-9 grid place-items-center rounded-md hover:bg-muted transition-colors text-foreground/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                aria-label={`Ganti tema (sekarang: ${currentTheme})`}
+                title={`Tema: ${currentTheme}`}
+              >
+                {currentTheme === "light" ? <Sun className="h-4 w-4" /> :
+                 currentTheme === "dark" ? <Moon className="h-4 w-4" /> :
+                 <Sparkles className="h-4 w-4 text-accent" />}
+              </button>
+
+              <div className="relative" ref={profileRef}>
+                <button
+                  type="button"
+                  data-tradisi="silent"
+                  onClick={() => setProfileOpen(o => !o)}
+                  aria-label="Menu profil"
+                  aria-expanded={profileOpen}
+                  className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-md hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                >
+                  <Avatar className="h-7 w-7 border border-accent/40">
+                    {(user as any).fotoProfileDataUrl ? (
+                      <img src={(user as any).fotoProfileDataUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <AvatarFallback className="text-[10px] bg-primary text-primary-foreground">{initials}</AvatarFallback>
+                    )}
+                  </Avatar>
+                  <span className="hidden sm:inline text-sm max-w-[140px] truncate">{displayName}</span>
+                  <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+                </button>
+                {profileOpen && (
+                  <div className="absolute right-0 mt-2 w-60 rounded-xl glass shadow-lg overflow-hidden p-1 animate-in fade-in slide-in-from-top-2 duration-150">
+                    <div className="px-3 py-2.5 border-b border-border/60">
+                      <div className="text-sm font-medium truncate">{displayName}</div>
+                      <div className="text-xs text-muted-foreground truncate">@{user.username} · {labels[user.role]}</div>
+                    </div>
+                    {profilePath && (
+                      <button
+                        type="button"
+                        data-tradisi="silent"
+                        onClick={() => { setProfileOpen(false); navigate(profilePath); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-muted text-left"
+                      >
+                        <UserCog className="h-4 w-4" /> Profil Saya
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      data-tradisi="silent"
+                      onClick={() => { setProfileOpen(false); logout(); navigate("/"); }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-destructive/10 text-destructive text-left"
+                      data-testid="button-logout"
+                    >
+                      <LogOut className="h-4 w-4" /> Keluar
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          <PucukRebungDivider className="opacity-50" />
         </header>
-        <main className="flex-1 overflow-y-auto">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">{children}</div>
+
+        <main className="flex-1 overflow-y-auto betawi-watermark">
+          <div key={loc} className="page-enter max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">{children}</div>
         </main>
       </div>
     </div>

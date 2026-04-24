@@ -55,14 +55,14 @@ const COOLDOWN_MS = 700;
 const AUTO_HIDE_MS = 6500;
 
 const KATEGORI_COLOR: Record<Kategori, string> = {
-  "Pantun Betawi": "#d4a64e",
-  "Peribahasa": "#c97a4a",
-  "Palang Pintu": "#b8443c",
-  "Sahibul Hikayat": "#9c6b3f",
-  "Cerita Rakyat": "#8b3a52",
-  "Salam Betawi": "#a8763e",
-  "Rancag": "#c19146",
-  "Lenong": "#7c4a8e",
+  "Pantun Betawi": "#e3b864",
+  "Peribahasa": "#d4a64e",
+  "Palang Pintu": "#c2784a",
+  "Sahibul Hikayat": "#b89460",
+  "Cerita Rakyat": "#c45a72",
+  "Salam Betawi": "#caa86a",
+  "Rancag": "#daa44e",
+  "Lenong": "#9d7bc0",
 };
 
 function BatikOrnament({ color = "currentColor" }: { color?: string }) {
@@ -164,9 +164,9 @@ function Card({ item, onClose, progressKey }: { item: Tradisi; onClose: () => vo
     <div
       className="relative overflow-hidden rounded-2xl shadow-2xl backdrop-blur-md border"
       style={{
-        background: "linear-gradient(140deg, hsl(25 25% 12% / 0.96) 0%, hsl(15 35% 18% / 0.96) 60%, hsl(25 25% 10% / 0.97) 100%)",
+        background: "linear-gradient(140deg, hsl(222 60% 10% / 0.96) 0%, hsl(222 55% 14% / 0.96) 50%, hsl(268 40% 18% / 0.97) 100%)",
         borderColor: `${accent}66`,
-        boxShadow: `0 25px 50px -10px rgba(0,0,0,0.6), 0 0 0 1px ${accent}22, inset 0 1px 0 rgba(255,255,255,0.06)`,
+        boxShadow: `0 25px 50px -10px rgba(0,0,0,0.6), 0 0 0 1px ${accent}22, 0 0 40px ${accent}18, inset 0 1px 0 rgba(255,255,255,0.07)`,
       }}
     >
       <div className="absolute inset-x-0 top-0 h-[3px]" style={{ background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }} />

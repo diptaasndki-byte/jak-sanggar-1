@@ -1,11 +1,14 @@
+import { useEffect, useState } from "react";
 import { useAuth, useDb } from "@/lib/auth";
 import { fmtRp, fmtDate } from "@/lib/store";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
 import type { SanggarUser } from "@/lib/types";
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
-import { Users, CalendarDays, Wallet, Award, Bell, ArrowRight } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid, AreaChart, Area } from "recharts";
+import { Users, CalendarDays, Wallet, Award, Bell, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { AnimatedCounter } from "@/components/system/AnimatedCounter";
+import { PucukRebungDivider, BatikCorner } from "@/components/betawi/Ornaments";
 
 export default function SanggarHome() {
   const { user } = useAuth();
@@ -15,11 +18,11 @@ export default function SanggarHome() {
 
   const members = db.users.filter(u => (u.role === "seniman" || u.role === "pelatih") && (u as any).sanggarId === sg.id && (u as any).status === "aktif");
   const kas = db.kas.filter(k => k.sanggarId === sg.id).sort((a, b) => a.tanggal - b.tanggal);
-  const chartData = kas.map(k => ({ tgl: fmtDate(k.tanggal), saldo: k.saldo / 1000 }));
+  const chartData = kas.map(k => ({ tgl: fmtDate(k.tanggal), saldo: k.saldo / 1000, debit: k.debit / 1000, kredit: -k.kredit / 1000 }));
   const pendingReq = db.users.filter(u => (u.role === "seniman" || u.role === "pelatih") && (u as any).sanggarId === sg.id && (u as any).status === "pending").length;
   const pendingIuran = db.iuran.filter(i => i.sanggarId === sg.id && i.status === "pending" && i.buktiDataUrl).length;
   const pendingHonor = db.pengajuanHonor.filter(h => h.sanggarId === sg.id && h.status === "pending").length;
-  const news = [...db.news].sort((a, b) => b.createdAt - a.createdAt).slice(0, 3);
+  const news = [...db.news].sort((a, b) => b.createdAt - a.createdAt).slice(0, 5);
   const banner = db.banners.find(b => b.active);
 
   const tiles = [
@@ -29,25 +32,81 @@ export default function SanggarHome() {
     { href: "/sanggar/kurasi", label: "Kurasi", icon: Award, count: 0 },
   ];
 
+  const [slide, setSlide] = useState(0);
+  useEffect(() => {
+    if (news.length === 0) return;
+    const t = setInterval(() => setSlide(s => (s + 1) % news.length), 5500);
+    return () => clearInterval(t);
+  }, [news.length]);
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-serif text-3xl">{sg.namaSanggar}</h1>
-        <p className="text-muted-foreground text-sm mt-1">Ketua: {sg.namaKetua} · {sg.jenisKesenian.join(", ")}</p>
+      {/* HERO CARD */}
+      <div
+        className="relative overflow-hidden rounded-2xl text-amber-50"
+        style={{
+          background: "linear-gradient(120deg, hsl(222 60% 10%) 0%, hsl(220 55% 16%) 50%, hsl(268 38% 22%) 100%)",
+          boxShadow: "0 20px 50px -10px hsl(222 50% 8% / 0.45), 0 0 0 1px hsl(42 60% 50% / 0.18)",
+        }}
+      >
+        <div
+          className="absolute inset-0 opacity-[0.07] pointer-events-none"
+          style={{
+            backgroundImage: "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'><g fill='none' stroke='%23d4a64e' stroke-width='0.7'><path d='M20 100 L40 60 L60 100 Z'/><path d='M60 100 L80 60 L100 100 Z'/><circle cx='60' cy='40' r='4'/></g></svg>\")",
+            backgroundSize: "160px 160px",
+          }}
+        />
+        <BatikCorner className="absolute right-0 top-0 w-32 h-32 opacity-30" />
+        <BatikCorner className="absolute left-0 bottom-0 w-24 h-24 opacity-20 rotate-180" />
+
+        <div className="relative grid lg:grid-cols-5 gap-6 p-6 lg:p-8">
+          <div className="lg:col-span-3">
+            <div className="flex items-center gap-2 text-amber-200/70 text-[10px] uppercase tracking-[0.24em] mb-2">
+              <span className="h-1 w-6 rounded-full bg-amber-400" />Sanggar Aktif
+            </div>
+            <h1
+              className="font-serif text-3xl sm:text-4xl xl:text-5xl leading-tight"
+              style={{
+                background: "linear-gradient(180deg, hsl(42 80% 88%) 0%, hsl(42 65% 55%) 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+              }}
+            >
+              {sg.namaSanggar}
+            </h1>
+            <p className="text-amber-50/75 text-sm mt-2.5">
+              Ketua: <span className="text-amber-50">{sg.namaKetua}</span> · {sg.jenisKesenian.join(" · ")}
+            </p>
+            <div className="mt-5 max-w-md"><PucukRebungDivider className="opacity-50" /></div>
+          </div>
+
+          {/* Saldo big */}
+          <div className="lg:col-span-2 flex flex-col justify-center lg:items-end">
+            <div className="text-amber-200/55 text-[10px] uppercase tracking-[0.24em] mb-1.5">Saldo Kas Sanggar</div>
+            <div className="font-serif text-3xl sm:text-4xl text-amber-50 gold-glow">
+              <AnimatedCounter value={sg.saldo} format={(n) => fmtRp(n)} duration={1300} />
+            </div>
+            <div className="mt-3 inline-flex items-center gap-2 text-xs text-amber-100/70 bg-amber-500/10 border border-amber-300/25 rounded-full px-3 py-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> Realtime · Tersinkron
+            </div>
+          </div>
+        </div>
       </div>
 
       {banner && (
-        <div className="rounded-lg bg-accent/15 border border-accent/30 p-4 flex items-start gap-3">
-          <Bell className="h-5 w-5 text-accent-foreground/80 shrink-0 mt-0.5" />
-          <div className="text-sm text-accent-foreground/90">{banner.teks}</div>
+        <div className="rounded-xl bg-accent/12 border border-accent/30 p-4 flex items-start gap-3">
+          <Bell className="h-5 w-5 text-accent shrink-0 mt-0.5" />
+          <div className="text-sm text-foreground/85">{banner.teks}</div>
         </div>
       )}
 
+      {/* KPI cards */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Stat label="Saldo Kas" value={fmtRp(sg.saldo)} accent />
-        <Stat label="Anggota Aktif" value={String(members.length)} />
-        <Stat label="Permohonan Gabung" value={String(pendingReq)} pending={pendingReq > 0} />
-        <Stat label="Validasi Tertunda" value={String(pendingIuran + pendingHonor)} pending={(pendingIuran + pendingHonor) > 0} />
+        <Stat label="Saldo Kas" value={sg.saldo} format={(n) => fmtRp(n)} accent />
+        <Stat label="Anggota Aktif" value={members.length} />
+        <Stat label="Permohonan Gabung" value={pendingReq} pending={pendingReq > 0} />
+        <Stat label="Validasi Tertunda" value={pendingIuran + pendingHonor} pending={(pendingIuran + pendingHonor) > 0} />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-4">
@@ -57,36 +116,101 @@ export default function SanggarHome() {
               <h3 className="font-serif text-lg">Grafik Kas</h3>
               <p className="text-xs text-muted-foreground">Riwayat saldo (dalam ribu Rupiah)</p>
             </div>
+            <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[hsl(var(--chart-1))]" />Saldo</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[hsl(var(--chart-3))]" />Pemasukan</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[hsl(var(--chart-4))]" />Pengeluaran</span>
+            </div>
           </div>
-          <div className="h-56 mt-4">
+          <div className="h-64 mt-4">
             {chartData.length === 0 ? (
               <div className="h-full grid place-items-center text-sm text-muted-foreground">Belum ada transaksi.</div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="saldoFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity={0.32} />
+                      <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="tgl" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} />
                   <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} />
-                  <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
-                  <Line type="monotone" dataKey="saldo" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={{ r: 3 }} />
-                </LineChart>
+                  <Tooltip
+                    contentStyle={{
+                      background: "hsl(var(--popover) / 0.92)",
+                      border: "1px solid hsl(var(--accent) / 0.3)",
+                      borderRadius: 12,
+                      backdropFilter: "blur(12px)",
+                      boxShadow: "0 10px 30px -8px hsl(222 50% 10% / 0.25)",
+                    }}
+                    labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 600, fontSize: 11 }}
+                  />
+                  <Area type="monotone" dataKey="saldo" stroke="hsl(var(--chart-1))" strokeWidth={2.5} fill="url(#saldoFill)" />
+                </AreaChart>
               </ResponsiveContainer>
             )}
           </div>
         </Card>
 
-        <Card className="p-5">
-          <h3 className="font-serif text-lg">Berita Terbaru</h3>
-          <div className="mt-3 space-y-3">
-            {news.length === 0 && <p className="text-sm text-muted-foreground">Belum ada berita.</p>}
-            {news.map(n => (
-              <div key={n.id} className="border-l-2 border-primary pl-3">
-                <div className="text-sm font-medium">{n.judul}</div>
-                <div className="text-xs text-muted-foreground mt-0.5">{fmtDate(n.createdAt)}</div>
-                <div className="text-xs text-muted-foreground mt-1 line-clamp-2">{n.isi}</div>
+        {/* News slider */}
+        <Card className="p-5 relative overflow-hidden">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-serif text-lg">Berita Terbaru</h3>
+            {news.length > 1 && (
+              <div className="flex items-center gap-1">
+                <button
+                  type="button" data-tradisi="silent"
+                  onClick={() => setSlide((slide - 1 + news.length) % news.length)}
+                  aria-label="Berita sebelumnya"
+                  className="h-7 w-7 grid place-items-center rounded-md hover:bg-muted text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                ><ChevronLeft className="h-4 w-4" /></button>
+                <button
+                  type="button" data-tradisi="silent"
+                  onClick={() => setSlide((slide + 1) % news.length)}
+                  aria-label="Berita berikutnya"
+                  className="h-7 w-7 grid place-items-center rounded-md hover:bg-muted text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                ><ChevronRight className="h-4 w-4" /></button>
               </div>
-            ))}
+            )}
           </div>
+          {news.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Belum ada berita.</p>
+          ) : (
+            <div className="relative min-h-[140px]">
+              {news.map((n, i) => (
+                <div
+                  key={n.id}
+                  className="absolute inset-0 transition-all duration-500"
+                  style={{
+                    opacity: i === slide ? 1 : 0,
+                    transform: i === slide ? "translateY(0)" : "translateY(8px)",
+                    pointerEvents: i === slide ? "auto" : "none",
+                  }}
+                >
+                  <div className="border-l-2 border-accent pl-3">
+                    <div className="text-sm font-medium leading-snug">{n.judul}</div>
+                    <div className="text-[11px] text-muted-foreground mt-1 uppercase tracking-wider">{fmtDate(n.createdAt)}</div>
+                    <div className="text-xs text-muted-foreground mt-2 line-clamp-3">{n.isi}</div>
+                  </div>
+                </div>
+              ))}
+              {news.length > 1 && (
+                <div className="absolute bottom-0 left-0 right-0 flex items-center gap-1.5">
+                  {news.map((_, i) => (
+                    <button
+                      type="button" data-tradisi="silent" key={i}
+                      onClick={() => setSlide(i)}
+                      aria-label={`Berita ${i + 1} dari ${news.length}`}
+                      aria-current={i === slide}
+                      className={`h-1.5 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${i === slide ? "w-6 bg-accent" : "w-2 bg-muted hover:bg-accent/50"}`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </Card>
       </div>
 
@@ -95,13 +219,22 @@ export default function SanggarHome() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {tiles.map(t => (
             <Link key={t.href} href={t.href}>
-              <Card className="p-5 cursor-pointer hover-elevate active-elevate-2 h-full">
+              <Card className="p-5 cursor-pointer h-full">
                 <div className="flex items-start justify-between">
-                  <div className="h-10 w-10 rounded-md bg-primary/10 text-primary grid place-items-center"><t.icon className="h-5 w-5" /></div>
+                  <div
+                    className="h-11 w-11 rounded-xl grid place-items-center"
+                    style={{
+                      background: "linear-gradient(135deg, hsl(var(--accent) / 0.18), hsl(var(--accent) / 0.05))",
+                      border: "1px solid hsl(var(--accent) / 0.3)",
+                      color: "hsl(var(--accent))",
+                    }}
+                  ><t.icon className="h-5 w-5" /></div>
                   {t.count > 0 && <Badge variant="secondary">{t.count}</Badge>}
                 </div>
                 <div className="mt-3 font-medium">{t.label}</div>
-                <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">Buka <ArrowRight className="h-3 w-3" /></div>
+                <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1 group">
+                  Buka <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+                </div>
               </Card>
             </Link>
           ))}
@@ -111,11 +244,28 @@ export default function SanggarHome() {
   );
 }
 
-function Stat({ label, value, accent, pending }: { label: string; value: string; accent?: boolean; pending?: boolean }) {
+function Stat({ label, value, accent, pending, format }: {
+  label: string; value: number; accent?: boolean; pending?: boolean;
+  format?: (n: number) => string;
+}) {
   return (
-    <Card className={`p-5 ${accent ? "bg-primary text-primary-foreground" : ""}`}>
-      <div className={`text-xs uppercase tracking-wide ${accent ? "text-primary-foreground/70" : "text-muted-foreground"}`}>{label}</div>
-      <div className={`mt-2 text-2xl font-serif ${pending ? "text-accent-foreground" : ""}`}>{value}</div>
+    <Card
+      className={`p-5 relative overflow-hidden ${accent ? "text-primary-foreground" : ""}`}
+      style={accent ? {
+        background: "linear-gradient(135deg, hsl(222 55% 14%) 0%, hsl(220 50% 22%) 100%)",
+        borderColor: "hsl(42 60% 50% / 0.35)",
+      } : undefined}
+    >
+      {accent && (
+        <div
+          className="absolute -right-6 -top-6 w-24 h-24 rounded-full opacity-30"
+          style={{ background: "radial-gradient(circle, hsl(42 80% 60% / 0.45) 0%, transparent 70%)" }}
+        />
+      )}
+      <div className={`relative text-[10px] uppercase tracking-[0.18em] ${accent ? "text-amber-200/80" : "text-muted-foreground"}`}>{label}</div>
+      <div className={`relative mt-2 text-2xl sm:text-3xl font-serif ${pending ? "text-destructive" : accent ? "text-amber-50 gold-glow" : ""}`}>
+        <AnimatedCounter value={value} format={format ?? ((n) => n.toLocaleString("id-ID"))} duration={1100} />
+      </div>
     </Card>
   );
 }

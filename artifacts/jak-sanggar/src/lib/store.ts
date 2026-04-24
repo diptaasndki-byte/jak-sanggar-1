@@ -176,7 +176,7 @@ function seed(): DBShape {
     kurasiSubmissions: [], sertifikat: [], activity: [],
     jamPembinaan: { pagiMax: "08:00", siangStart: "13:00", siangEnd: "17:00", pulangStart: "17:00", pulangEnd: "21:00" },
     absensiPembinaan: [], pendaftaranPembinaan: [],
-    appearance: { primaryHsl: "4 70% 38%", accentHsl: "41 75% 50%", dark: false },
+    appearance: { primaryHsl: "220 55% 18%", accentHsl: "42 65% 53%", dark: false, theme: "light" },
     exportPassword: "kurator123",
     honorPerSesiDefault: 250_000,
   };
