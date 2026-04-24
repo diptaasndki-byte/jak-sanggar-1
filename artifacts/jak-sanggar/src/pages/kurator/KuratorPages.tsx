@@ -14,7 +14,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import type { AdminUser, JuriUser, SanggarUser, PelatihUser, SenimanUser, Indikator, Variabel, AdminPermissions } from "@/lib/types";
-import { Trash2, Eye, FileDown, Plus, Palette, Clock, Shield, X } from "lucide-react";
+import { Trash2, Eye, FileDown, Plus, Palette, Clock, Shield, X, Crown, Users, GraduationCap, UserCog, Wallet } from "lucide-react";
+import { PremiumHero } from "@/components/system/PremiumHero";
+import { AnimatedCounter } from "@/components/system/AnimatedCounter";
+import { ComposedChart, Bar, Line, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 
 export function KuratorHome() {
   const db = useDb();
@@ -22,16 +25,110 @@ export function KuratorHome() {
   const pelatih = db.users.filter(u => u.role === "pelatih").length;
   const seniman = db.users.filter(u => u.role === "seniman").length;
   const totalKas = (db.users.filter(u => u.role === "sanggar") as SanggarUser[]).reduce((s, x) => s + x.saldo, 0);
+
+  // Aggregate cross-system fintech chart: roll up all sanggar kas per date
+  const allKas = [...db.kas].sort((a, b) => a.tanggal - b.tanggal);
+  const byDate: Record<string, { tgl: string; masuk: number; keluar: number; saldo: number }> = {};
+  allKas.forEach(k => {
+    const d = new Date(k.tanggal);
+    const key = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+    if (!byDate[key]) byDate[key] = { tgl: key, masuk: 0, keluar: 0, saldo: 0 };
+    byDate[key].masuk += k.debit / 1000;
+    byDate[key].keluar += k.kredit / 1000;
+  });
+  const dates = Object.keys(byDate);
+  let runningSaldo = 0;
+  const chartData = dates.map(k => {
+    runningSaldo += byDate[k].masuk - byDate[k].keluar;
+    return { ...byDate[k], saldo: Math.max(0, runningSaldo) };
+  });
+
   return (
     <div>
-      <PageHeader title="Dasbor Kurator" subtitle="Pemantauan dan kontrol penuh ekosistem Jak Sanggar." back={false} />
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Stat label="Sanggar Terdaftar" value={String(sanggar)} />
-        <Stat label="Pelatih" value={String(pelatih)} />
-        <Stat label="Seniman" value={String(seniman)} />
-        <Stat label="Total Kas Sistem" value={new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(totalKas)} accent />
+      <PremiumHero
+        eyebrow="Konsol Kurator"
+        icon={<Crown className="h-4 w-4" />}
+        title="Dasbor Kurator"
+        subtitle="Pemantauan dan kontrol penuh atas ekosistem Jak Sanggar — sanggar, pelatih, seniman, hingga arus kas sistem."
+        right={
+          <div className="text-right">
+            <div className="text-[10px] uppercase tracking-[0.2em]" style={{ color: "hsl(42 70% 70%)" }}>Total Kas Sistem</div>
+            <div className="font-serif text-3xl md:text-4xl mt-1 tabular-nums" style={{
+              background: "linear-gradient(135deg, hsl(45 90% 82%), hsl(42 75% 55%))",
+              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+            }}>
+              Rp <AnimatedCounter value={totalKas} />
+            </div>
+          </div>
+        }
+      />
+
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <Stat icon={<Users className="h-5 w-5" />} label="Sanggar Terdaftar" value={sanggar} />
+        <Stat icon={<GraduationCap className="h-5 w-5" />} label="Pelatih" value={pelatih} />
+        <Stat icon={<UserCog className="h-5 w-5" />} label="Seniman" value={seniman} />
       </div>
-      <div className="mt-8">
+
+      {/* Fintech analytics — line + bar combo */}
+      <Card className="p-5 mt-6 premium-card">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h3 className="font-serif text-lg flex items-center gap-2"><Wallet className="h-5 w-5 text-accent-foreground" />Arus Kas Sistem</h3>
+            <p className="text-xs text-muted-foreground">Akumulasi transaksi seluruh sanggar (dalam ribu Rupiah)</p>
+          </div>
+          <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+            <span className="flex items-center gap-1"><span className="h-2 w-6 rounded-sm" style={{ background: "linear-gradient(90deg, hsl(42 75% 55%), hsl(38 60% 42%))", boxShadow: "0 0 6px hsl(42 75% 55% / 0.5)" }} />Saldo</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm" style={{ background: "linear-gradient(180deg, hsl(145 55% 50%), hsl(145 55% 38%))" }} />Pemasukan</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm" style={{ background: "linear-gradient(180deg, hsl(8 65% 55%), hsl(8 60% 42%))" }} />Pengeluaran</span>
+          </div>
+        </div>
+        <div className="h-72 mt-4">
+          {chartData.length === 0 ? (
+            <div className="h-full grid place-items-center text-sm text-muted-foreground">Belum ada transaksi tercatat di sistem.</div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={chartData} barGap={2}>
+                <defs>
+                  <linearGradient id="kuratorMasuk" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(145 55% 50%)" stopOpacity={0.95} />
+                    <stop offset="100%" stopColor="hsl(145 55% 38%)" stopOpacity={0.7} />
+                  </linearGradient>
+                  <linearGradient id="kuratorKeluar" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(8 65% 55%)" stopOpacity={0.92} />
+                    <stop offset="100%" stopColor="hsl(8 60% 42%)" stopOpacity={0.65} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="tgl" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} />
+                <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} />
+                <Tooltip
+                  cursor={{ fill: "hsl(var(--accent) / 0.07)" }}
+                  contentStyle={{
+                    background: "hsl(var(--popover) / 0.92)",
+                    border: "1px solid hsl(var(--accent) / 0.35)",
+                    borderRadius: 12,
+                    backdropFilter: "blur(14px)",
+                    boxShadow: "0 14px 32px -10px hsl(222 50% 10% / 0.35)",
+                    padding: "8px 12px",
+                  }}
+                  labelStyle={{ fontWeight: 600, fontSize: 11 }}
+                  itemStyle={{ fontSize: 12 }}
+                  formatter={(v: number, n: string) => [`${v.toLocaleString("id-ID")} rb`, n === "masuk" ? "Pemasukan" : n === "keluar" ? "Pengeluaran" : "Saldo Akumulasi"]}
+                />
+                <Bar dataKey="masuk" fill="url(#kuratorMasuk)" radius={[5, 5, 0, 0]} maxBarSize={28} />
+                <Bar dataKey="keluar" fill="url(#kuratorKeluar)" radius={[5, 5, 0, 0]} maxBarSize={28} />
+                <Line type="monotone" dataKey="saldo" stroke="hsl(42 75% 55%)" strokeWidth={2.5}
+                  dot={{ r: 3, fill: "hsl(42 80% 60%)", stroke: "hsl(38 60% 38%)", strokeWidth: 1 }}
+                  activeDot={{ r: 5, fill: "hsl(42 85% 65%)" }}
+                  style={{ filter: "drop-shadow(0 0 6px hsl(42 75% 55% / 0.5))" }}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </Card>
+
+      <div className="mt-6">
         <h3 className="font-serif text-lg mb-3">Aktivitas Terbaru</h3>
         <Card className="p-2">
           <div className="max-h-96 overflow-y-auto scrollbar-thin">
@@ -49,8 +146,18 @@ export function KuratorHome() {
     </div>
   );
 }
-function Stat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
-  return <Card className={`p-5 ${accent ? "bg-primary text-primary-foreground" : ""}`}><div className={`text-xs uppercase tracking-wide ${accent ? "text-primary-foreground/70" : "text-muted-foreground"}`}>{label}</div><div className="text-2xl font-serif mt-2">{value}</div></Card>;
+function Stat({ label, value, icon }: { label: string; value: number; icon?: React.ReactNode }) {
+  return (
+    <Card className="p-5 premium-card">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
+          <div className="text-2xl font-serif mt-2 tabular-nums"><AnimatedCounter value={value} /></div>
+        </div>
+        {icon && <div className="h-10 w-10 rounded-lg grid place-items-center bg-accent/15 border border-accent/30 text-accent-foreground">{icon}</div>}
+      </div>
+    </Card>
+  );
 }
 
 export function KuratorAccounts() {

@@ -12,27 +12,72 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import type { AdminUser } from "@/lib/types";
-import { Newspaper, Image as ImageIcon, MessageSquare, Lock } from "lucide-react";
+import { Newspaper, Image as ImageIcon, MessageSquare, Lock, Shield } from "lucide-react";
+import { PremiumHero } from "@/components/system/PremiumHero";
+import { AnimatedCounter } from "@/components/system/AnimatedCounter";
 
 export function AdminHome() {
   const { user } = useAuth();
   const db = useDb();
   if (!user || user.role !== "admin") return null;
   const a = user as AdminUser;
+  const activePerms = Object.values(a.permissions).filter(Boolean).length;
+  const totalPerms = Object.keys(a.permissions).length;
   return (
     <div>
-      <PageHeader title={`Selamat datang, ${a.nama}`} subtitle="Panel staff operasional Jak Sanggar." back={false} />
+      <PremiumHero
+        eyebrow="Panel Operasional"
+        icon={<Shield className="h-4 w-4" />}
+        title={`Selamat datang, ${a.nama}`}
+        subtitle="Kelola berita, banner pengumuman, dan slider carousel untuk seluruh ekosistem Jak Sanggar."
+        right={
+          <div className="text-right">
+            <div className="text-[10px] uppercase tracking-[0.2em]" style={{ color: "hsl(42 70% 70%)" }}>Hak Akses Aktif</div>
+            <div className="font-serif text-4xl mt-1" style={{
+              background: "linear-gradient(135deg, hsl(45 90% 80%), hsl(42 75% 55%))",
+              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+            }}>
+              <AnimatedCounter value={activePerms} /> <span className="text-2xl opacity-70">/ {totalPerms}</span>
+            </div>
+          </div>
+        }
+      />
+
       <div className="grid sm:grid-cols-3 gap-4">
-        <Card className="p-5"><div className="flex items-center justify-between"><div><div className="text-xs uppercase tracking-wider text-muted-foreground">Berita</div><div className="text-3xl font-serif mt-2">{db.news.length}</div></div><Newspaper className="h-6 w-6 text-muted-foreground" /></div></Card>
-        <Card className="p-5"><div className="flex items-center justify-between"><div><div className="text-xs uppercase tracking-wider text-muted-foreground">Banner Aktif</div><div className="text-3xl font-serif mt-2">{db.banners.filter(b => b.active).length}</div></div><MessageSquare className="h-6 w-6 text-muted-foreground" /></div></Card>
-        <Card className="p-5"><div className="flex items-center justify-between"><div><div className="text-xs uppercase tracking-wider text-muted-foreground">Slider</div><div className="text-3xl font-serif mt-2">{db.slider.length}</div></div><ImageIcon className="h-6 w-6 text-muted-foreground" /></div></Card>
+        <Card className="p-5 premium-card">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-xs uppercase tracking-wider text-muted-foreground">Berita</div>
+              <div className="text-3xl font-serif mt-2"><AnimatedCounter value={db.news.length} /></div>
+            </div>
+            <div className="h-10 w-10 rounded-lg grid place-items-center bg-accent/15 border border-accent/30"><Newspaper className="h-5 w-5 text-accent-foreground" /></div>
+          </div>
+        </Card>
+        <Card className="p-5 premium-card">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-xs uppercase tracking-wider text-muted-foreground">Banner Aktif</div>
+              <div className="text-3xl font-serif mt-2"><AnimatedCounter value={db.banners.filter(b => b.active).length} /></div>
+            </div>
+            <div className="h-10 w-10 rounded-lg grid place-items-center bg-accent/15 border border-accent/30"><MessageSquare className="h-5 w-5 text-accent-foreground" /></div>
+          </div>
+        </Card>
+        <Card className="p-5 premium-card">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-xs uppercase tracking-wider text-muted-foreground">Slider</div>
+              <div className="text-3xl font-serif mt-2"><AnimatedCounter value={db.slider.length} /></div>
+            </div>
+            <div className="h-10 w-10 rounded-lg grid place-items-center bg-accent/15 border border-accent/30"><ImageIcon className="h-5 w-5 text-accent-foreground" /></div>
+          </div>
+        </Card>
       </div>
 
       <div className="mt-6">
         <h3 className="font-serif text-lg mb-3">Hak Akses Anda</h3>
         <Card className="p-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {(Object.entries(a.permissions) as [keyof typeof a.permissions, boolean][]).map(([k, v]) => (
-            <div key={k} className="flex items-center gap-2 text-sm">{v ? <Badge>Aktif</Badge> : <Badge variant="outline" className="gap-1"><Lock className="h-3 w-3" />Nonaktif</Badge>}<span className="text-muted-foreground">{k}</span></div>
+            <div key={k} className="flex items-center gap-2 text-sm">{v ? <Badge variant="success">Aktif</Badge> : <Badge variant="outline" className="gap-1"><Lock className="h-3 w-3" />Nonaktif</Badge>}<span className="text-muted-foreground">{k}</span></div>
           ))}
         </Card>
       </div>

@@ -14,7 +14,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import type { SanggarUser, PelatihUser, SenimanUser } from "@/lib/types";
-import { FileDown, Check, X, Upload, ArrowUpRight, ArrowDownRight, Share2 } from "lucide-react";
+import { FileDown, Check, X, Upload, ArrowUpRight, ArrowDownRight, Share2, TrendingUp } from "lucide-react";
+import { ComposedChart, Bar, Line, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
+import { AnimatedCounter } from "@/components/system/AnimatedCounter";
 
 const KAT_PEMASUKAN = ["Job Pementasan", "Donasi", "Tiket", "Hibah", "Lainnya"];
 const KAT_PENGELUARAN = ["PLN/Air", "Sewa", "Vendor", "Konsumsi", "Operasional", "Lainnya"];
@@ -77,10 +79,80 @@ export default function BukuKas() {
       } />
 
       <div className="grid sm:grid-cols-3 gap-4 mb-6">
-        <SmallStat label="Saldo Akhir" value={fmtRp(sg.saldo)} accent />
-        <SmallStat label="Total Pemasukan" value={fmtRp(kas.reduce((s, k) => s + k.debit, 0))} icon={<ArrowUpRight className="h-4 w-4 text-emerald-600" />} />
-        <SmallStat label="Total Pengeluaran" value={fmtRp(kas.reduce((s, k) => s + k.kredit, 0))} icon={<ArrowDownRight className="h-4 w-4 text-destructive" />} />
+        <SmallStat label="Saldo Akhir" value={sg.saldo} accent />
+        <SmallStat label="Total Pemasukan" value={kas.reduce((s, k) => s + k.debit, 0)} icon={<ArrowUpRight className="h-4 w-4 text-emerald-600" />} tone="up" />
+        <SmallStat label="Total Pengeluaran" value={kas.reduce((s, k) => s + k.kredit, 0)} icon={<ArrowDownRight className="h-4 w-4 text-destructive" />} tone="down" />
       </div>
+
+      {/* Fintech-style line + bar chart */}
+      <Card className="p-5 mb-6 premium-card">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h3 className="font-serif text-lg flex items-center gap-2"><TrendingUp className="h-5 w-5 text-accent-foreground" />Analitik Arus Kas</h3>
+            <p className="text-xs text-muted-foreground">Pemasukan vs Pengeluaran + saldo (dalam ribu Rupiah)</p>
+          </div>
+          <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+            <span className="flex items-center gap-1"><span className="h-2 w-6 rounded-sm" style={{ background: "linear-gradient(90deg, hsl(42 75% 55%), hsl(38 60% 42%))", boxShadow: "0 0 6px hsl(42 75% 55% / 0.5)" }} />Saldo</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm" style={{ background: "linear-gradient(180deg, hsl(145 55% 50%), hsl(145 55% 38%))" }} />Pemasukan</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm" style={{ background: "linear-gradient(180deg, hsl(8 65% 55%), hsl(8 60% 42%))" }} />Pengeluaran</span>
+          </div>
+        </div>
+        <div className="h-72 mt-4">
+          {kas.length === 0 ? (
+            <div className="h-full grid place-items-center text-sm text-muted-foreground">Belum ada transaksi.</div>
+          ) : (() => {
+            const series = [...kas].reverse().map(k => {
+              const d = new Date(k.tanggal);
+              return {
+                tgl: `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`,
+                masuk: k.debit / 1000,
+                keluar: k.kredit / 1000,
+                saldo: k.saldo / 1000,
+              };
+            });
+            return (
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={series} barGap={2}>
+                  <defs>
+                    <linearGradient id="bkMasuk" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="hsl(145 55% 50%)" stopOpacity={0.95} />
+                      <stop offset="100%" stopColor="hsl(145 55% 38%)" stopOpacity={0.7} />
+                    </linearGradient>
+                    <linearGradient id="bkKeluar" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="hsl(8 65% 55%)" stopOpacity={0.92} />
+                      <stop offset="100%" stopColor="hsl(8 60% 42%)" stopOpacity={0.65} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="tgl" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} />
+                  <Tooltip
+                    cursor={{ fill: "hsl(var(--accent) / 0.07)" }}
+                    contentStyle={{
+                      background: "hsl(var(--popover) / 0.92)",
+                      border: "1px solid hsl(var(--accent) / 0.35)",
+                      borderRadius: 12,
+                      backdropFilter: "blur(14px)",
+                      boxShadow: "0 14px 32px -10px hsl(222 50% 10% / 0.35)",
+                      padding: "8px 12px",
+                    }}
+                    labelStyle={{ fontWeight: 600, fontSize: 11 }}
+                    itemStyle={{ fontSize: 12 }}
+                    formatter={(v: number, n: string) => [`${v.toLocaleString("id-ID")} rb`, n === "masuk" ? "Pemasukan" : n === "keluar" ? "Pengeluaran" : "Saldo"]}
+                  />
+                  <Bar dataKey="masuk" fill="url(#bkMasuk)" radius={[5, 5, 0, 0]} maxBarSize={28} />
+                  <Bar dataKey="keluar" fill="url(#bkKeluar)" radius={[5, 5, 0, 0]} maxBarSize={28} />
+                  <Line type="monotone" dataKey="saldo" stroke="hsl(42 75% 55%)" strokeWidth={2.5}
+                    dot={{ r: 3, fill: "hsl(42 80% 60%)", stroke: "hsl(38 60% 38%)", strokeWidth: 1 }}
+                    activeDot={{ r: 5, fill: "hsl(42 85% 65%)" }}
+                    style={{ filter: "drop-shadow(0 0 6px hsl(42 75% 55% / 0.5))" }}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            );
+          })()}
+        </div>
+      </Card>
 
       <Tabs defaultValue="ledger">
         <TabsList>
@@ -181,14 +253,36 @@ export default function BukuKas() {
   );
 }
 
-function SmallStat({ label, value, icon, accent }: { label: string; value: string; icon?: React.ReactNode; accent?: boolean }) {
+function SmallStat({ label, value, icon, accent, tone }: { label: string; value: number; icon?: React.ReactNode; accent?: boolean; tone?: "up" | "down" }) {
+  if (accent) {
+    return (
+      <Card className="p-4 relative overflow-hidden border-2 border-[hsl(38_55%_50%/0.35)]"
+        style={{
+          background: "linear-gradient(135deg, hsl(222 55% 12%) 0%, hsl(222 60% 9%) 100%)",
+        }}
+      >
+        <div className="absolute inset-x-0 top-0 h-[3px]" style={{ background: "linear-gradient(90deg, transparent, hsl(42 80% 60%), transparent)" }} />
+        <div className="relative">
+          <div className="text-[10px] uppercase tracking-[0.2em]" style={{ color: "hsl(42 70% 70%)" }}>{label}</div>
+          <div className="mt-2 font-serif text-2xl tabular-nums" style={{
+            background: "linear-gradient(135deg, hsl(45 90% 82%), hsl(42 75% 55%))",
+            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+          }}>
+            Rp <AnimatedCounter value={value} />
+          </div>
+        </div>
+      </Card>
+    );
+  }
   return (
-    <Card className={`p-4 ${accent ? "bg-primary text-primary-foreground" : ""}`}>
+    <Card className="p-4 premium-card">
       <div className="flex items-center justify-between">
-        <div className={`text-xs uppercase tracking-wide ${accent ? "text-primary-foreground/70" : "text-muted-foreground"}`}>{label}</div>
+        <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
         {icon}
       </div>
-      <div className={`mt-2 text-xl font-serif`}>{value}</div>
+      <div className={`mt-2 text-xl font-serif tabular-nums ${tone === "up" ? "text-emerald-700 dark:text-emerald-400" : tone === "down" ? "text-[hsl(8_60%_50%)]" : ""}`}>
+        Rp <AnimatedCounter value={value} />
+      </div>
     </Card>
   );
 }
