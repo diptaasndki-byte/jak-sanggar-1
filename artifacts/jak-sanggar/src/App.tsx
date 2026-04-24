@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import { AuthProvider, useAuth } from "@/lib/auth";
-import { PantunListener } from "@/components/system/PantunListener";
+import { TradisiLisanProvider } from "@/components/system/TradisiLisanBetawi";
 import { AppShell } from "@/components/layout/AppShell";
 import type { ReactNode } from "react";
 
@@ -154,7 +154,7 @@ function App() {
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
             <Router />
           </WouterRouter>
-          <PantunListener />
+          <TradisiLisanProvider />
           <Toaster />
         </AuthProvider>
       </TooltipProvider>
