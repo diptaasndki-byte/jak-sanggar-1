@@ -34,6 +34,8 @@ export interface AdminUser extends BaseUser {
   permissions: AdminPermissions;
 }
 
+export interface FotoGaleriItem { id: string; dataUrl: string; caption?: string; createdAt: number; }
+
 export interface SanggarUser extends BaseUser {
   role: "sanggar";
   namaSanggar: string;
@@ -48,6 +50,12 @@ export interface SanggarUser extends BaseUser {
   saldo: number;
   editCount: number;
   editPeriodStart: number;
+  fotoProfileDataUrl?: string;
+  fotoGaleri?: FotoGaleriItem[];
+  deskripsi?: string;
+  tahunBerdiri?: number;
+  website?: string;
+  instagram?: string;
 }
 
 export interface PelatihUser extends BaseUser {
@@ -60,6 +68,10 @@ export interface PelatihUser extends BaseUser {
   status: "pending" | "aktif" | "ditolak" | "keluar";
   rekening: Rekening;
   honorPerSesi: number;
+  fotoProfileDataUrl?: string;
+  fotoGaleri?: FotoGaleriItem[];
+  bio?: string;
+  alamat?: string;
 }
 
 export interface SenimanUser extends BaseUser {
@@ -72,12 +84,25 @@ export interface SenimanUser extends BaseUser {
   sanggarId?: string;
   status: "pending" | "aktif" | "ditolak" | "keluar";
   rekening: Rekening;
+  fotoProfileDataUrl?: string;
+  fotoGaleri?: FotoGaleriItem[];
+  bio?: string;
+  alamat?: string;
+  jenisKelamin?: "Laki-laki" | "Perempuan";
+  tanggalLahir?: string;
 }
 
 export interface JuriUser extends BaseUser {
   role: "juri";
   nama: string;
   keahlian: string;
+  rekening?: Rekening;
+  fotoProfileDataUrl?: string;
+  fotoGaleri?: FotoGaleriItem[];
+  bio?: string;
+  pendidikan?: string;
+  pengalaman?: string;
+  alamat?: string;
 }
 
 export type AnyUser =

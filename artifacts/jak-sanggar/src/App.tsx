@@ -23,14 +23,16 @@ import Regenerasi from "@/pages/sanggar/Regenerasi";
 
 import { PelatihHome, PelatihDaftarLatih, PelatihHonor, PelatihSlip, PelatihDistribusi, PelatihSertif } from "@/pages/pelatih/PelatihPages";
 import { SenimanHome, SenimanTagihan, SenimanRiwayat } from "@/pages/seniman/SenimanPages";
+import SenimanProfile from "@/pages/seniman/Profile";
 import { JuriHome, JuriScoring } from "@/pages/juri/JuriPages";
+import JuriProfile from "@/pages/juri/Profile";
 import { AdminHome, AdminBerita, AdminBanner, AdminSlider } from "@/pages/admin/AdminPages";
 import { KuratorHome, KuratorAccounts, KuratorMatriks, KuratorAssign, KuratorStaff, KuratorAppearance, KuratorWaktu } from "@/pages/kurator/KuratorPages";
 
 import {
   LayoutDashboard, Users, Calendar, Wallet, BookOpen, Award, GraduationCap,
   Receipt, ScrollText, FileText, Send, Newspaper, Image as ImageIcon, MessageSquare,
-  Sliders, Clock, Palette, Shield, ClipboardList, Trophy,
+  Sliders, Clock, Palette, Shield, ClipboardList, Trophy, UserCog,
 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -62,6 +64,7 @@ const pelatihNav = [
 ];
 const senimanNav = [
   { label: "Beranda", href: "/seniman", icon: <LayoutDashboard className="h-4 w-4" /> },
+  { label: "Profil Saya", href: "/seniman/profil", icon: <UserCog className="h-4 w-4" /> },
   { label: "Tagihan Saya", href: "/seniman/tagihan", icon: <Receipt className="h-4 w-4" /> },
   { label: "Honor Komersial", href: "/seniman/honor-komersial", icon: <Wallet className="h-4 w-4" /> },
   { label: "Riwayat", href: "/seniman/riwayat", icon: <ScrollText className="h-4 w-4" /> },
@@ -69,6 +72,7 @@ const senimanNav = [
 ];
 const juriNav = [
   { label: "Tugas Penilaian", href: "/juri", icon: <ClipboardList className="h-4 w-4" /> },
+  { label: "Profil Saya", href: "/juri/profil", icon: <UserCog className="h-4 w-4" /> },
 ];
 const adminNav = [
   { label: "Beranda", href: "/admin", icon: <LayoutDashboard className="h-4 w-4" /> },
@@ -113,12 +117,14 @@ function Router() {
       <Route path="/pelatih/sertifikat" >{() => <Guard role="pelatih"><AppShell nav={pelatihNav}><PelatihSertif /></AppShell></Guard>}</Route>
 
       <Route path="/seniman" >{() => <Guard role="seniman"><AppShell nav={senimanNav}><SenimanHome /></AppShell></Guard>}</Route>
+      <Route path="/seniman/profil" >{() => <Guard role="seniman"><AppShell nav={senimanNav}><SenimanProfile /></AppShell></Guard>}</Route>
       <Route path="/seniman/tagihan" >{() => <Guard role="seniman"><AppShell nav={senimanNav}><SenimanTagihan /></AppShell></Guard>}</Route>
       <Route path="/seniman/honor-komersial" >{() => <Guard role="seniman"><AppShell nav={senimanNav}><PelatihDistribusi /></AppShell></Guard>}</Route>
       <Route path="/seniman/riwayat" >{() => <Guard role="seniman"><AppShell nav={senimanNav}><SenimanRiwayat /></AppShell></Guard>}</Route>
       <Route path="/seniman/sertifikat" >{() => <Guard role="seniman"><AppShell nav={senimanNav}><PelatihSertif /></AppShell></Guard>}</Route>
 
       <Route path="/juri" >{() => <Guard role="juri"><AppShell nav={juriNav}><JuriHome /></AppShell></Guard>}</Route>
+      <Route path="/juri/profil" >{() => <Guard role="juri"><AppShell nav={juriNav}><JuriProfile /></AppShell></Guard>}</Route>
       <Route path="/juri/:id" >{() => <Guard role="juri"><AppShell nav={juriNav}><JuriScoring /></AppShell></Guard>}</Route>
 
       <Route path="/admin" >{() => <Guard role="admin"><AppShell nav={adminNav}><AdminHome /></AppShell></Guard>}</Route>
