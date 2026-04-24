@@ -5,8 +5,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { FileDown } from "lucide-react";
+import { FileDown, Lock } from "lucide-react";
 import type { SanggarUser } from "@/lib/types";
+import { downloadLockedPdf } from "@/lib/pdf";
 
 export default function Regenerasi() {
   const { user } = useAuth();
@@ -21,13 +22,55 @@ export default function Regenerasi() {
   const exportPdf = () => {
     const pwd = prompt("Password Kurator untuk membuka unduhan:");
     if (pwd !== db.exportPassword) { toast({ title: "Password salah", variant: "destructive" }); return; }
-    const html = `<html><head><title>Arsip Regenerasi</title></head><body style="font-family:sans-serif;padding:32px"><h1>Arsip Regenerasi — ${sg.namaSanggar}</h1>${events.map(e => `<p><b>${fmtDateTime(e.ts)}</b> · ${e.action} · ${JSON.stringify(e.meta || {})}</p>`).join("")}</body></html>`;
-    const w = window.open("", "_blank"); if (w) { w.document.write(html); w.document.close(); w.print(); }
+    try {
+      const safeName = sg.namaSanggar.replace(/[^a-zA-Z0-9-_ ]+/g, "").trim() || "sanggar";
+      downloadLockedPdf({
+        filename: `arsip-regenerasi-${safeName}.pdf`,
+        title: `Arsip Regenerasi — ${sg.namaSanggar}`,
+        subtitle: `Riwayat mutasi SDM · diunduh ${fmtDateTime(Date.now())}`,
+        password: db.exportPassword,
+        sections: events.length === 0
+          ? [{ heading: "Tidak ada riwayat", body: "Belum ada catatan mutasi/keluar masuk SDM yang tercatat." }]
+          : undefined,
+        table: events.length === 0 ? undefined : {
+          head: ["Waktu", "Aksi", "Detail"],
+          rows: events.map(e => [
+            fmtDateTime(e.ts),
+            e.action,
+            JSON.stringify(e.meta || {}),
+          ]),
+        },
+      });
+      toast({
+        title: "Unduhan dimulai",
+        description: "PDF terenkripsi. Gunakan password kurator untuk membukanya.",
+      });
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Gagal membuat PDF", variant: "destructive" });
+    }
   };
 
   return (
     <div>
-      <PageHeader title="Regenerasi (Arsip)" subtitle="Riwayat mutasi/keluar masuk SDM Sanggar." actions={<Button variant="outline" className="gap-2" onClick={exportPdf}><FileDown className="h-4 w-4" />Ekspor PDF</Button>} />
+      <PageHeader
+        title="Regenerasi (Arsip)"
+        subtitle="Riwayat mutasi/keluar masuk SDM Sanggar."
+        actions={
+          <Button variant="outline" className="gap-2" onClick={exportPdf}>
+            <Lock className="h-4 w-4" />
+            <FileDown className="h-4 w-4" />Ekspor PDF Terkunci
+          </Button>
+        }
+      />
+      <div className="mb-4 flex items-start gap-2 rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-xs text-foreground/80">
+        <Lock className="h-3.5 w-3.5 text-accent-foreground mt-0.5 shrink-0" />
+        <div>
+          File PDF yang diunduh dikunci dengan password yang dikelola Kurator
+          (Pengaturan &gt; Password Unduhan PDF). Penguncian ini ditujukan untuk
+          kontrol distribusi internal antar peran, bukan rahasia tingkat tinggi.
+        </div>
+      </div>
       <Card className="p-6">
         <ol className="relative border-l border-border ml-2 space-y-4">
           {events.length === 0 && <div className="text-sm text-muted-foreground">Belum ada riwayat.</div>}

@@ -504,8 +504,19 @@ export function KuratorWaktu() {
           <Field l="Pulang Mulai" v={j.pulangStart} on={v => setJ({ ...j, pulangStart: v })} />
           <Field l="Pulang Selesai" v={j.pulangEnd} on={v => setJ({ ...j, pulangEnd: v })} />
         </div>
-        <div className="space-y-1.5"><Label>Password Unduhan PDF (digunakan oleh seluruh Sanggar)</Label><Input type="text" value={pwd} onChange={e => setPwd(e.target.value)} /></div>
-        <Button onClick={() => { save(d => { d.jamPembinaan = j; d.exportPassword = pwd; }); toast({ title: "Pengaturan disimpan" }); }}>Simpan</Button>
+        <div className="space-y-1.5">
+          <Label>Password Unduhan PDF (digunakan oleh seluruh Sanggar)</Label>
+          <Input type="text" value={pwd} onChange={e => setPwd(e.target.value)} />
+          <p className="text-[11px] text-muted-foreground">Minimal 6 karakter. Password ini mengunci file PDF yang diunduh dari modul Regenerasi.</p>
+        </div>
+        <Button onClick={() => {
+          if (pwd.trim().length < 6) {
+            toast({ title: "Password unduhan terlalu pendek", description: "Gunakan minimal 6 karakter agar PDF terkunci dengan baik.", variant: "destructive" });
+            return;
+          }
+          save(d => { d.jamPembinaan = j; d.exportPassword = pwd.trim(); });
+          toast({ title: "Pengaturan disimpan" });
+        }}>Simpan</Button>
       </Card>
     </div>
   );
