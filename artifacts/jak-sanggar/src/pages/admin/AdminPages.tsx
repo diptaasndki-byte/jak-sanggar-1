@@ -15,6 +15,7 @@ import type { AdminUser } from "@/lib/types";
 import { Newspaper, Image as ImageIcon, MessageSquare, Lock, Shield } from "lucide-react";
 import { PremiumHero } from "@/components/system/PremiumHero";
 import { AnimatedCounter } from "@/components/system/AnimatedCounter";
+import { NewsSlider } from "@/components/system/NewsSlider";
 
 export function AdminHome() {
   const { user } = useAuth();
@@ -71,6 +72,10 @@ export function AdminHome() {
             <div className="h-10 w-10 rounded-lg grid place-items-center bg-accent/15 border border-accent/30"><ImageIcon className="h-5 w-5 text-accent-foreground" /></div>
           </div>
         </Card>
+      </div>
+
+      <div className="mt-6">
+        <NewsSlider news={db.news} title="Berita Aktif Saat Ini" />
       </div>
 
       <div className="mt-6">

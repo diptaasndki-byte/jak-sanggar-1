@@ -17,6 +17,7 @@ import type { AdminUser, JuriUser, SanggarUser, PelatihUser, SenimanUser, Indika
 import { Trash2, Eye, FileDown, Plus, Palette, Clock, Shield, X, Crown, Users, GraduationCap, UserCog, Wallet } from "lucide-react";
 import { PremiumHero } from "@/components/system/PremiumHero";
 import { AnimatedCounter } from "@/components/system/AnimatedCounter";
+import { NewsSlider } from "@/components/system/NewsSlider";
 import { ComposedChart, Bar, Line, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 
 export function KuratorHome() {
@@ -67,6 +68,10 @@ export function KuratorHome() {
         <Stat icon={<Users className="h-5 w-5" />} label="Sanggar Terdaftar" value={sanggar} />
         <Stat icon={<GraduationCap className="h-5 w-5" />} label="Pelatih" value={pelatih} />
         <Stat icon={<UserCog className="h-5 w-5" />} label="Seniman" value={seniman} />
+      </div>
+
+      <div className="mt-6">
+        <NewsSlider news={db.news} title="Berita & Pengumuman Sistem" />
       </div>
 
       {/* Fintech analytics — line + bar combo */}
