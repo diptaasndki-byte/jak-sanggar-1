@@ -102,6 +102,7 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
             const active = isActive(n.href);
             const hasChildren = !!n.children?.length;
             const childActive = hasChildren && n.children!.some((c) => isActive(c.href));
+            const expanded = hasChildren && (active || childActive);
             return (
               <div key={n.href} className="mb-1">
                 <Link
@@ -112,6 +113,7 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
                       : "text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
                   }`}
                   data-testid={`nav-${n.href.replace(/\//g, "-")}`}
+                  aria-expanded={hasChildren ? expanded : undefined}
                 >
                   {active && (
                     <>
@@ -134,14 +136,16 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
                   <span className={`relative transition-all ${active ? "text-sidebar-primary" : "opacity-80 group-hover:opacity-100 group-hover:text-sidebar-primary"}`}>{n.icon}</span>
                   <span className="relative flex-1">{n.label}</span>
                   {hasChildren && (
-                    <span
-                      className={`relative h-1.5 w-1.5 rounded-full ${childActive || active ? "bg-sidebar-primary" : "bg-sidebar-foreground/30"}`}
+                    <ChevronDown
+                      className={`relative h-3.5 w-3.5 transition-transform duration-200 ${
+                        expanded ? "rotate-0 text-sidebar-primary" : "-rotate-90 text-sidebar-foreground/45"
+                      }`}
                       aria-hidden="true"
                     />
                   )}
                 </Link>
-                {hasChildren && (
-                  <ul className="relative mt-0.5 ml-5 pl-3 border-l border-sidebar-border/60 space-y-0.5">
+                {hasChildren && expanded && (
+                  <ul className="relative mt-1 ml-5 pl-3 border-l border-sidebar-border/60 space-y-0.5 animate-in fade-in slide-in-from-top-1 duration-200">
                     {n.children!.map((c) => {
                       const cActive = isActive(c.href);
                       return (
