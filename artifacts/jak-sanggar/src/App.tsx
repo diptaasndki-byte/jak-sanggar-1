@@ -21,19 +21,27 @@ import BukuKas from "@/pages/sanggar/BukuKas";
 import Pembinaan from "@/pages/sanggar/Pembinaan";
 import KurasiPage from "@/pages/sanggar/Kurasi";
 import Regenerasi from "@/pages/sanggar/Regenerasi";
+import AsetPage from "@/pages/sanggar/Aset";
+import SarprasPage from "@/pages/sanggar/Sarpras";
+import KatalogKerjasama from "@/pages/sanggar/kerjasama/Katalog";
+import PermintaanKerjasama from "@/pages/sanggar/kerjasama/Permintaan";
+import KerjasamaDetail from "@/pages/sanggar/kerjasama/Detail";
 
 import { PelatihHome, PelatihDaftarLatih, PelatihHonor, PelatihSlip, PelatihDistribusi, PelatihSertif } from "@/pages/pelatih/PelatihPages";
 import { SenimanHome, SenimanTagihan, SenimanRiwayat } from "@/pages/seniman/SenimanPages";
 import SenimanProfile from "@/pages/seniman/Profile";
+import PermintaanSdmReadOnly from "@/pages/seniman/PermintaanSdm";
 import { JuriHome, JuriScoring } from "@/pages/juri/JuriPages";
 import JuriProfile from "@/pages/juri/Profile";
 import { AdminHome, AdminBerita, AdminBanner, AdminSlider } from "@/pages/admin/AdminPages";
 import { KuratorHome, KuratorAccounts, KuratorMatriks, KuratorAssign, KuratorStaff, KuratorAppearance, KuratorWaktu } from "@/pages/kurator/KuratorPages";
+import KuratorKerjasama from "@/pages/kurator/KuratorKerjasama";
 
 import {
   LayoutDashboard, Users, Calendar, Wallet, BookOpen, Award, GraduationCap,
   Receipt, ScrollText, FileText, Send, Newspaper, Image as ImageIcon, MessageSquare,
   Sliders, Clock, Palette, Shield, ClipboardList, Trophy, UserCog,
+  Package, Building2, Handshake, Inbox,
 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -65,6 +73,22 @@ const sanggarNav = [
       { label: "Kurasi Sanggar", href: "/sanggar/kurasi", icon: <Trophy className="h-4 w-4" /> },
     ],
   },
+  {
+    label: "Aset & Sarana",
+    href: "/sanggar/aset",
+    icon: <Package className="h-4 w-4" />,
+    children: [
+      { label: "Sarana & Prasarana", href: "/sanggar/sarpras", icon: <Building2 className="h-4 w-4" /> },
+    ],
+  },
+  {
+    label: "Kerjasama",
+    href: "/sanggar/kerjasama",
+    icon: <Handshake className="h-4 w-4" />,
+    children: [
+      { label: "Permintaan", href: "/sanggar/kerjasama/permintaan", icon: <Inbox className="h-4 w-4" /> },
+    ],
+  },
   { label: "Buku Kas", href: "/sanggar/buku-kas", icon: <Wallet className="h-4 w-4" /> },
 ];
 const pelatihNav = [
@@ -73,6 +97,7 @@ const pelatihNav = [
   { label: "Pengajuan Honor", href: "/pelatih/honor", icon: <Send className="h-4 w-4" /> },
   { label: "Arsip E-Slip", href: "/pelatih/slip", icon: <FileText className="h-4 w-4" /> },
   { label: "Honor Proyek", href: "/pelatih/honor-proyek", icon: <Wallet className="h-4 w-4" /> },
+  { label: "Permintaan SDM", href: "/pelatih/permintaan-sdm", icon: <Handshake className="h-4 w-4" /> },
   { label: "Sertifikat", href: "/pelatih/sertifikat", icon: <Award className="h-4 w-4" /> },
 ];
 const senimanNav = [
@@ -87,6 +112,7 @@ const senimanNav = [
       { label: "Honor Komersial", href: "/seniman/honor-komersial", icon: <Wallet className="h-4 w-4" /> },
     ],
   },
+  { label: "Permintaan SDM", href: "/seniman/permintaan-sdm", icon: <Handshake className="h-4 w-4" /> },
   { label: "Riwayat", href: "/seniman/riwayat", icon: <ScrollText className="h-4 w-4" /> },
   { label: "Sertifikat", href: "/seniman/sertifikat", icon: <Award className="h-4 w-4" /> },
 ];
@@ -105,6 +131,7 @@ const kuratorNav = [
   { label: "Akun Pengguna", href: "/kurator/akun", icon: <Users className="h-4 w-4" /> },
   { label: "Sistem Kurasi", href: "/kurator/kurasi", icon: <Sliders className="h-4 w-4" /> },
   { label: "Penugasan Juri", href: "/kurator/penugasan", icon: <Trophy className="h-4 w-4" /> },
+  { label: "Pengawasan Kerjasama", href: "/kurator/kerjasama", icon: <Handshake className="h-4 w-4" /> },
   { label: "Admin & Juri", href: "/kurator/staff", icon: <Shield className="h-4 w-4" /> },
   { label: "Tampilan", href: "/kurator/tampilan", icon: <Palette className="h-4 w-4" /> },
   { label: "Waktu & Sistem", href: "/kurator/waktu", icon: <Clock className="h-4 w-4" /> },
@@ -127,6 +154,11 @@ function Router() {
       <Route path="/sanggar/latihan" >{() => <Guard role="sanggar"><AppShell nav={sanggarNav}><LatihanPage /></AppShell></Guard>}</Route>
       <Route path="/sanggar/pembinaan" >{() => <Guard role="sanggar"><AppShell nav={sanggarNav}><Pembinaan /></AppShell></Guard>}</Route>
       <Route path="/sanggar/kurasi" >{() => <Guard role="sanggar"><AppShell nav={sanggarNav}><KurasiPage /></AppShell></Guard>}</Route>
+      <Route path="/sanggar/aset" >{() => <Guard role="sanggar"><AppShell nav={sanggarNav}><AsetPage /></AppShell></Guard>}</Route>
+      <Route path="/sanggar/sarpras" >{() => <Guard role="sanggar"><AppShell nav={sanggarNav}><SarprasPage /></AppShell></Guard>}</Route>
+      <Route path="/sanggar/kerjasama" >{() => <Guard role="sanggar"><AppShell nav={sanggarNav}><KatalogKerjasama /></AppShell></Guard>}</Route>
+      <Route path="/sanggar/kerjasama/permintaan" >{() => <Guard role="sanggar"><AppShell nav={sanggarNav}><PermintaanKerjasama /></AppShell></Guard>}</Route>
+      <Route path="/sanggar/kerjasama/:id" >{() => <Guard role="sanggar"><AppShell nav={sanggarNav}><KerjasamaDetail /></AppShell></Guard>}</Route>
       <Route path="/sanggar/buku-kas" >{() => <Guard role="sanggar"><AppShell nav={sanggarNav}><BukuKas /></AppShell></Guard>}</Route>
 
       <Route path="/pelatih" >{() => <Guard role="pelatih"><AppShell nav={pelatihNav}><PelatihHome /></AppShell></Guard>}</Route>
@@ -134,6 +166,7 @@ function Router() {
       <Route path="/pelatih/honor" >{() => <Guard role="pelatih"><AppShell nav={pelatihNav}><PelatihHonor /></AppShell></Guard>}</Route>
       <Route path="/pelatih/slip" >{() => <Guard role="pelatih"><AppShell nav={pelatihNav}><PelatihSlip /></AppShell></Guard>}</Route>
       <Route path="/pelatih/honor-proyek" >{() => <Guard role="pelatih"><AppShell nav={pelatihNav}><PelatihDistribusi /></AppShell></Guard>}</Route>
+      <Route path="/pelatih/permintaan-sdm" >{() => <Guard role="pelatih"><AppShell nav={pelatihNav}><PermintaanSdmReadOnly /></AppShell></Guard>}</Route>
       <Route path="/pelatih/sertifikat" >{() => <Guard role="pelatih"><AppShell nav={pelatihNav}><PelatihSertif /></AppShell></Guard>}</Route>
 
       <Route path="/seniman" >{() => <Guard role="seniman"><AppShell nav={senimanNav}><SenimanHome /></AppShell></Guard>}</Route>
@@ -142,6 +175,7 @@ function Router() {
       <Route path="/seniman/tagihan" >{() => <Guard role="seniman"><AppShell nav={senimanNav}><SenimanTagihan /></AppShell></Guard>}</Route>
       <Route path="/seniman/honor-komersial" >{() => <Guard role="seniman"><AppShell nav={senimanNav}><PelatihDistribusi /></AppShell></Guard>}</Route>
       <Route path="/seniman/riwayat" >{() => <Guard role="seniman"><AppShell nav={senimanNav}><SenimanRiwayat /></AppShell></Guard>}</Route>
+      <Route path="/seniman/permintaan-sdm" >{() => <Guard role="seniman"><AppShell nav={senimanNav}><PermintaanSdmReadOnly /></AppShell></Guard>}</Route>
       <Route path="/seniman/sertifikat" >{() => <Guard role="seniman"><AppShell nav={senimanNav}><PelatihSertif /></AppShell></Guard>}</Route>
 
       <Route path="/juri" >{() => <Guard role="juri"><AppShell nav={juriNav}><JuriHome /></AppShell></Guard>}</Route>
@@ -157,6 +191,7 @@ function Router() {
       <Route path="/kurator/akun" >{() => <Guard role="kurator"><AppShell nav={kuratorNav}><KuratorAccounts /></AppShell></Guard>}</Route>
       <Route path="/kurator/kurasi" >{() => <Guard role="kurator"><AppShell nav={kuratorNav}><KuratorMatriks /></AppShell></Guard>}</Route>
       <Route path="/kurator/penugasan" >{() => <Guard role="kurator"><AppShell nav={kuratorNav}><KuratorAssign /></AppShell></Guard>}</Route>
+      <Route path="/kurator/kerjasama" >{() => <Guard role="kurator"><AppShell nav={kuratorNav}><KuratorKerjasama /></AppShell></Guard>}</Route>
       <Route path="/kurator/staff" >{() => <Guard role="kurator"><AppShell nav={kuratorNav}><KuratorStaff /></AppShell></Guard>}</Route>
       <Route path="/kurator/tampilan" >{() => <Guard role="kurator"><AppShell nav={kuratorNav}><KuratorAppearance /></AppShell></Guard>}</Route>
       <Route path="/kurator/waktu" >{() => <Guard role="kurator"><AppShell nav={kuratorNav}><KuratorWaktu /></AppShell></Guard>}</Route>

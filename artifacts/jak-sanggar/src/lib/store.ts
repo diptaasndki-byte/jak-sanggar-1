@@ -4,6 +4,8 @@ import type {
   TransaksiManual, KasEntry, KurasiMatrix, PenugasanJuri, KurasiSubmission,
   Sertifikat, ActivityLog, JamPembinaan, AbsensiPembinaan, PendaftaranPembinaan,
   AppearanceSettings, Role,
+  Aset, Sarpras, Kerjasama, ChatMessage, Negosiasi, Invoice, Payment,
+  Contract, Bast, Rating,
 } from "./types";
 
 const KEY = "jaksanggar_v1";
@@ -30,6 +32,17 @@ export interface DBShape {
   appearance: AppearanceSettings;
   exportPassword: string;
   honorPerSesiDefault: number;
+  // Kerjasama Sanggar
+  aset: Aset[];
+  sarpras: Sarpras[];
+  kerjasama: Kerjasama[];
+  chatMessages: ChatMessage[];
+  negosiasi: Negosiasi[];
+  invoices: Invoice[];
+  payments: Payment[];
+  contracts: Contract[];
+  bast: Bast[];
+  ratings: Rating[];
 }
 
 export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
@@ -169,6 +182,17 @@ function seed(): DBShape {
     { id: uid(), juriId: juri.id, sanggarId: sanggar1.id, periode: "Kurasi 2026 Tahap I", createdAt: now },
   ];
 
+  // Kerjasama seed
+  const aset: Aset[] = [
+    { id: uid(), sanggarId: sanggar1.id, kategori: "alat_musik", nama: "Gambang Kromong", jenis: "Set lengkap 7 alat", jumlahTotal: 1, jumlahTersedia: 1, kondisi: "baik", hargaSewa: 1_500_000, satuanHarga: "per_event", statusPublish: true, createdAt: now },
+    { id: uid(), sanggarId: sanggar1.id, kategori: "kostum", nama: "Kostum Tari Topeng", jenis: "Pria & Wanita", jumlahTotal: 12, jumlahTersedia: 12, kondisi: "baik", hargaSewa: 75_000, satuanHarga: "per_hari", statusPublish: true, createdAt: now },
+    { id: uid(), sanggarId: sanggar2.id, kategori: "kostum", nama: "Kostum Lenong Klasik", jenis: "Set 8 pemain", jumlahTotal: 8, jumlahTersedia: 8, kondisi: "baik", hargaSewa: 90_000, satuanHarga: "per_hari", statusPublish: true, createdAt: now },
+  ];
+  const sarpras: Sarpras[] = [
+    { id: uid(), sanggarId: sanggar1.id, namaTempat: "Aula Betawi Merah", jenisTempat: "aula", kapasitas: 80, fasilitas: "AC, Sound, Cermin", alamat: "Jl. Condet Raya No. 12", hargaSewa: 350_000, satuanHarga: "per_jam", statusPublish: true, createdAt: now },
+    { id: uid(), sanggarId: sanggar2.id, namaTempat: "Studio Kembang Setaman", jenisTempat: "studio", kapasitas: 30, fasilitas: "Lantai parket, cermin, sound", alamat: "Jl. Kebon Jeruk Raya 88", hargaSewa: 200_000, satuanHarga: "per_jam", statusPublish: true, createdAt: now },
+  ];
+
   return {
     users: [kurator, admin, juri, sanggar1, sanggar2, pelatih1, pelatih2, seniman1, seniman2, seniman3, senimanPending],
     news, banners, slider, latihan: [], iuran, pengajuanHonor, distribusi: [],
@@ -179,7 +203,24 @@ function seed(): DBShape {
     appearance: { primaryHsl: "220 55% 18%", accentHsl: "42 65% 53%", dark: false, theme: "light" },
     exportPassword: "kurator123",
     honorPerSesiDefault: 250_000,
+    aset, sarpras, kerjasama: [], chatMessages: [], negosiasi: [], invoices: [],
+    payments: [], contracts: [], bast: [], ratings: [],
   };
+}
+
+function migrate(db: DBShape): DBShape {
+  // Backfill new collections for existing localStorage seeds.
+  db.aset ||= [];
+  db.sarpras ||= [];
+  db.kerjasama ||= [];
+  db.chatMessages ||= [];
+  db.negosiasi ||= [];
+  db.invoices ||= [];
+  db.payments ||= [];
+  db.contracts ||= [];
+  db.bast ||= [];
+  db.ratings ||= [];
+  return db;
 }
 
 let cache: DBShape | null = null;
@@ -193,8 +234,10 @@ export function load(): DBShape {
     localStorage.setItem(KEY, JSON.stringify(cache));
     return cache;
   }
-  try { cache = JSON.parse(raw) as DBShape; return cache; }
-  catch { cache = seed(); localStorage.setItem(KEY, JSON.stringify(cache)); return cache; }
+  try {
+    cache = migrate(JSON.parse(raw) as DBShape);
+    return cache;
+  } catch { cache = seed(); localStorage.setItem(KEY, JSON.stringify(cache)); return cache; }
 }
 
 const subs = new Set<() => void>();

@@ -290,6 +290,148 @@ export interface PendaftaranPembinaan {
   createdAt: number;
 }
 
+// ===================== KERJASAMA SANGGAR =====================
+
+export type SatuanHarga = "per_jam" | "per_hari" | "per_event";
+export type AsetKategori = "alat_musik" | "kostum";
+export type KondisiAset = "baik" | "perlu_perbaikan";
+
+export interface Aset {
+  id: string;
+  sanggarId: string;
+  kategori: AsetKategori;
+  nama: string;
+  jenis: string;
+  jumlahTotal: number;
+  jumlahTersedia: number;
+  kondisi: KondisiAset;
+  fotoDataUrl?: string;
+  hargaSewa: number;
+  satuanHarga: SatuanHarga;
+  statusPublish: boolean;
+  createdAt: number;
+}
+
+export type JenisTempat = "tempat_latihan" | "aula" | "studio";
+
+export interface Sarpras {
+  id: string;
+  sanggarId: string;
+  namaTempat: string;
+  jenisTempat: JenisTempat;
+  kapasitas: number;
+  fasilitas: string;
+  alamat: string;
+  fotoDataUrl?: string;
+  hargaSewa: number;
+  satuanHarga: SatuanHarga;
+  statusPublish: boolean;
+  createdAt: number;
+}
+
+export type KerjasamaKategori = "sdm" | "alat_musik" | "kostum" | "tempat_latihan";
+export type KerjasamaStatus =
+  | "menunggu" | "diterima" | "ditolak" | "negosiasi" | "berjalan" | "selesai" | "batal";
+export type KerjasamaSumber =
+  | "sdm-pelatih" | "sdm-seniman" | "sdm-juri" | "aset" | "sarpras";
+
+export interface Kerjasama {
+  id: string;
+  nomor: string;
+  sumberType: KerjasamaSumber;
+  sumberId: string;
+  sanggarPenyediaId: string;
+  sanggarPeminjamId: string;
+  kategori: KerjasamaKategori;
+  judul: string;
+  tanggalMulai: string;
+  tanggalSelesai: string;
+  lokasi: string;
+  jumlah: number;
+  satuanHarga: SatuanHarga;
+  deskripsi: string;
+  hargaAwal: number;
+  nilaiTotal: number;
+  status: KerjasamaStatus;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface ChatMessage {
+  id: string;
+  kerjasamaId: string;
+  senderId: string;
+  senderName: string;
+  senderRole: Role;
+  message: string;
+  ts: number;
+}
+
+export type NegosiasiStatus = "diajukan" | "diterima" | "ditolak";
+
+export interface Negosiasi {
+  id: string;
+  kerjasamaId: string;
+  pengirimSanggarId: string;
+  pengirimUserId: string;
+  hargaTawar: number;
+  catatan: string;
+  status: NegosiasiStatus;
+  createdAt: number;
+}
+
+export type InvoiceStatus = "terhutang" | "lunas";
+
+export interface Invoice {
+  id: string;
+  kerjasamaId: string;
+  nomor: string;
+  total: number;
+  status: InvoiceStatus;
+  batasPembayaran: number;
+  createdAt: number;
+}
+
+export type PaymentStatus = "menunggu" | "disetujui" | "ditolak";
+
+export interface Payment {
+  id: string;
+  invoiceId: string;
+  nominal: number;
+  tanggalBayar: number;
+  buktiDataUrl?: string;
+  status: PaymentStatus;
+  catatanVerifikator?: string;
+  createdAt: number;
+}
+
+export interface Contract {
+  id: string;
+  kerjasamaId: string;
+  nomor: string;
+  createdAt: number;
+}
+
+export type BastStatus = "draft" | "final";
+
+export interface Bast {
+  id: string;
+  kerjasamaId: string;
+  nomor: string;
+  status: BastStatus;
+  createdAt: number;
+  finalAt?: number;
+}
+
+export interface Rating {
+  id: string;
+  kerjasamaId: string;
+  dariSanggarId: string;
+  rating: 1 | 2 | 3 | 4 | 5;
+  ulasan: string;
+  createdAt: number;
+}
+
 export type ThemeMode = "light" | "dark" | "luxury";
 
 export interface AppearanceSettings {
