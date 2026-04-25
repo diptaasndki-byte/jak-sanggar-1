@@ -78,8 +78,15 @@ const pelatihNav = [
 const senimanNav = [
   { label: "Beranda", href: "/seniman", icon: <LayoutDashboard className="h-4 w-4" /> },
   { label: "Profil Saya", href: "/seniman/profil", icon: <UserCog className="h-4 w-4" /> },
-  { label: "Tagihan Saya", href: "/seniman/tagihan", icon: <Receipt className="h-4 w-4" /> },
-  { label: "Honor Komersial", href: "/seniman/honor-komersial", icon: <Wallet className="h-4 w-4" /> },
+  {
+    label: "Keuangan",
+    href: "/seniman/keuangan",
+    icon: <Wallet className="h-4 w-4" />,
+    children: [
+      { label: "Tagihan Saya", href: "/seniman/tagihan", icon: <Receipt className="h-4 w-4" /> },
+      { label: "Honor Komersial", href: "/seniman/honor-komersial", icon: <Wallet className="h-4 w-4" /> },
+    ],
+  },
   { label: "Riwayat", href: "/seniman/riwayat", icon: <ScrollText className="h-4 w-4" /> },
   { label: "Sertifikat", href: "/seniman/sertifikat", icon: <Award className="h-4 w-4" /> },
 ];
@@ -131,6 +138,7 @@ function Router() {
 
       <Route path="/seniman" >{() => <Guard role="seniman"><AppShell nav={senimanNav}><SenimanHome /></AppShell></Guard>}</Route>
       <Route path="/seniman/profil" >{() => <Guard role="seniman"><AppShell nav={senimanNav}><SenimanProfile /></AppShell></Guard>}</Route>
+      <Route path="/seniman/keuangan" >{() => <Guard role="seniman"><Redirect to="/seniman/tagihan" /></Guard>}</Route>
       <Route path="/seniman/tagihan" >{() => <Guard role="seniman"><AppShell nav={senimanNav}><SenimanTagihan /></AppShell></Guard>}</Route>
       <Route path="/seniman/honor-komersial" >{() => <Guard role="seniman"><AppShell nav={senimanNav}><PelatihDistribusi /></AppShell></Guard>}</Route>
       <Route path="/seniman/riwayat" >{() => <Guard role="seniman"><AppShell nav={senimanNav}><SenimanRiwayat /></AppShell></Guard>}</Route>
