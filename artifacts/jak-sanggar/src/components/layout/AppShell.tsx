@@ -7,7 +7,7 @@ import type { Role, ThemeMode } from "@/lib/types";
 import { load, save } from "@/lib/store";
 import { PucukRebungDivider } from "@/components/betawi/Ornaments";
 
-interface NavItem { label: string; href: string; icon: ReactNode; }
+interface NavItem { label: string; href: string; icon: ReactNode; children?: NavItem[]; }
 
 const labels: Record<Role, string> = {
   kurator: "Kurator",
@@ -97,39 +97,77 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
 
         <nav className="relative flex-1 overflow-y-auto scrollbar-thin py-3 px-2.5">
           {nav.map((n) => {
-            const active = loc === n.href || (n.href !== `/${user.role}` && loc.startsWith(n.href));
+            const isActive = (href: string) =>
+              loc === href || (href !== `/${user.role}` && loc.startsWith(href));
+            const active = isActive(n.href);
+            const hasChildren = !!n.children?.length;
+            const childActive = hasChildren && n.children!.some((c) => isActive(c.href));
             return (
-              <Link
-                key={n.href}
-                href={n.href}
-                className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm mb-1 transition-all duration-200 ${
-                  active
-                    ? "text-sidebar-primary-foreground font-medium"
-                    : "text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
-                }`}
-                data-testid={`nav-${n.href.replace(/\//g, "-")}`}
-              >
-                {active && (
-                  <>
+              <div key={n.href} className="mb-1">
+                <Link
+                  href={n.href}
+                  className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
+                    active
+                      ? "text-sidebar-primary-foreground font-medium"
+                      : "text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+                  }`}
+                  data-testid={`nav-${n.href.replace(/\//g, "-")}`}
+                >
+                  {active && (
+                    <>
+                      <span
+                        className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r"
+                        style={{
+                          background: "linear-gradient(180deg, hsl(42 80% 65%), hsl(38 70% 45%))",
+                          boxShadow: "0 0 10px hsl(42 75% 55% / 0.7)",
+                        }}
+                      />
+                      <span
+                        className="absolute inset-0 rounded-lg"
+                        style={{
+                          background: "linear-gradient(90deg, hsl(var(--sidebar-accent)) 0%, hsl(var(--sidebar) / 0.8) 100%)",
+                          boxShadow: "inset 0 1px 0 hsl(42 60% 50% / 0.15)",
+                        }}
+                      />
+                    </>
+                  )}
+                  <span className={`relative transition-all ${active ? "text-sidebar-primary" : "opacity-80 group-hover:opacity-100 group-hover:text-sidebar-primary"}`}>{n.icon}</span>
+                  <span className="relative flex-1">{n.label}</span>
+                  {hasChildren && (
                     <span
-                      className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r"
-                      style={{
-                        background: "linear-gradient(180deg, hsl(42 80% 65%), hsl(38 70% 45%))",
-                        boxShadow: "0 0 10px hsl(42 75% 55% / 0.7)",
-                      }}
+                      className={`relative h-1.5 w-1.5 rounded-full ${childActive || active ? "bg-sidebar-primary" : "bg-sidebar-foreground/30"}`}
+                      aria-hidden="true"
                     />
-                    <span
-                      className="absolute inset-0 rounded-lg"
-                      style={{
-                        background: "linear-gradient(90deg, hsl(var(--sidebar-accent)) 0%, hsl(var(--sidebar) / 0.8) 100%)",
-                        boxShadow: "inset 0 1px 0 hsl(42 60% 50% / 0.15)",
-                      }}
-                    />
-                  </>
+                  )}
+                </Link>
+                {hasChildren && (
+                  <ul className="relative mt-0.5 ml-5 pl-3 border-l border-sidebar-border/60 space-y-0.5">
+                    {n.children!.map((c) => {
+                      const cActive = isActive(c.href);
+                      return (
+                        <li key={c.href}>
+                          <Link
+                            href={c.href}
+                            className={`group relative flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[13px] transition-colors ${
+                              cActive
+                                ? "text-sidebar-primary-foreground font-medium bg-sidebar-accent/70"
+                                : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+                            }`}
+                            data-testid={`nav-${c.href.replace(/\//g, "-")}`}
+                          >
+                            <span
+                              className={`h-1 w-1 rounded-full ${cActive ? "bg-sidebar-primary" : "bg-sidebar-foreground/35 group-hover:bg-sidebar-primary"}`}
+                              aria-hidden="true"
+                            />
+                            <span className={cActive ? "text-sidebar-primary" : "opacity-75 group-hover:opacity-100"}>{c.icon}</span>
+                            <span className="truncate">{c.label}</span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 )}
-                <span className={`relative transition-all ${active ? "text-sidebar-primary" : "opacity-80 group-hover:opacity-100 group-hover:text-sidebar-primary"}`}>{n.icon}</span>
-                <span className="relative">{n.label}</span>
-              </Link>
+              </div>
             );
           })}
         </nav>
@@ -153,7 +191,9 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
             {/* Central compact nav (desktop only) — shows top 5 nav items with gold underline on active */}
             <nav className="hidden lg:flex items-center gap-0.5">
               {nav.slice(0, 5).map(n => {
-                const active = loc === n.href || (n.href !== `/${user.role}` && loc.startsWith(n.href));
+                const selfActive = loc === n.href || (n.href !== `/${user.role}` && loc.startsWith(n.href));
+                const childActive = !!n.children?.some(c => loc === c.href || loc.startsWith(c.href));
+                const active = selfActive || childActive;
                 return (
                   <Link
                     key={n.href}

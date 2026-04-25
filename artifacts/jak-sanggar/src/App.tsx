@@ -48,11 +48,23 @@ function Guard({ role, children }: { role: string; children: ReactNode }) {
 const sanggarNav = [
   { label: "Beranda", href: "/sanggar", icon: <LayoutDashboard className="h-4 w-4" /> },
   { label: "Profil Sanggar", href: "/sanggar/profil", icon: <BookOpen className="h-4 w-4" /> },
-  { label: "Keanggotaan", href: "/sanggar/keanggotaan", icon: <Users className="h-4 w-4" /> },
-  { label: "Regenerasi", href: "/sanggar/regenerasi", icon: <ScrollText className="h-4 w-4" /> },
+  {
+    label: "Keanggotaan",
+    href: "/sanggar/keanggotaan",
+    icon: <Users className="h-4 w-4" />,
+    children: [
+      { label: "Regenerasi", href: "/sanggar/regenerasi", icon: <ScrollText className="h-4 w-4" /> },
+    ],
+  },
   { label: "Latihan", href: "/sanggar/latihan", icon: <Calendar className="h-4 w-4" /> },
-  { label: "Pembinaan", href: "/sanggar/pembinaan", icon: <GraduationCap className="h-4 w-4" /> },
-  { label: "Kurasi Sanggar", href: "/sanggar/kurasi", icon: <Trophy className="h-4 w-4" /> },
+  {
+    label: "Pembinaan",
+    href: "/sanggar/pembinaan",
+    icon: <GraduationCap className="h-4 w-4" />,
+    children: [
+      { label: "Kurasi Sanggar", href: "/sanggar/kurasi", icon: <Trophy className="h-4 w-4" /> },
+    ],
+  },
   { label: "Buku Kas", href: "/sanggar/buku-kas", icon: <Wallet className="h-4 w-4" /> },
 ];
 const pelatihNav = [
