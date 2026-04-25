@@ -14,6 +14,7 @@ import type { SanggarUser } from "@/lib/types";
 import { Video, Award, Trophy } from "lucide-react";
 import { AnimatedCounter } from "@/components/system/AnimatedCounter";
 import { PucukRebungDivider, BatikCorner } from "@/components/betawi/Ornaments";
+import { escapeHtml } from "@/lib/utils";
 
 export default function KurasiPage() {
   const { user } = useAuth();
@@ -215,11 +216,11 @@ function printSertifikat(sg: SanggarUser, na: number, predikat: string) {
   const html = `<html><head><title>Sertifikat Kurasi</title></head><body style="font-family:Georgia,serif;padding:0;margin:0;background:#0a1428">
     <div style="border:14px double #d4a64e;margin:24px;padding:60px;text-align:center;background:linear-gradient(135deg,#0a1428,#15264a 50%,#2c1a40);min-height:80vh;color:#fef3d4">
       <div style="font-size:14px;letter-spacing:6px;color:#d4a64e">SERTIFIKAT KURASI SANGGAR</div>
-      <h1 style="font-size:36px;margin:16px 0;color:#fef3d4">${sg.namaSanggar}</h1>
+      <h1 style="font-size:36px;margin:16px 0;color:#fef3d4">${escapeHtml(sg.namaSanggar)}</h1>
       <div style="margin-top:24px;color:#fef3d4cc">Telah lulus Kurasi Sanggar Jak Sanggar dengan</div>
-      <div style="font-size:64px;margin:12px 0;color:#d4a64e;text-shadow:0 0 20px #d4a64e88"><b>${na.toFixed(2)}</b></div>
-      <div style="font-size:24px;letter-spacing:4px;color:#fef3d4">PREDIKAT: <b style="color:#d4a64e">${predikat}</b></div>
-      <div style="margin-top:48px;font-size:12px;color:#fef3d488">Diterbitkan otomatis oleh Sistem Jak Sanggar · ${new Date().toLocaleDateString("id-ID")}</div>
+      <div style="font-size:64px;margin:12px 0;color:#d4a64e;text-shadow:0 0 20px #d4a64e88"><b>${escapeHtml(na.toFixed(2))}</b></div>
+      <div style="font-size:24px;letter-spacing:4px;color:#fef3d4">PREDIKAT: <b style="color:#d4a64e">${escapeHtml(predikat)}</b></div>
+      <div style="margin-top:48px;font-size:12px;color:#fef3d488">Diterbitkan otomatis oleh Sistem Jak Sanggar · ${escapeHtml(new Date().toLocaleDateString("id-ID"))}</div>
     </div>
   </body></html>`;
   const w = window.open("", "_blank"); if (w) { w.document.write(html); w.document.close(); w.print(); }
