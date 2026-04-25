@@ -5,7 +5,8 @@ export interface LockedPdfOptions {
   filename: string;
   title: string;
   subtitle?: string;
-  password: string;
+  /** Owner password — required to modify the PDF. The file itself opens without a password. */
+  ownerPassword: string;
   sections?: { heading?: string; body?: string }[];
   table?: { head: string[]; rows: RowInput[] };
 }
@@ -15,9 +16,8 @@ export function downloadLockedPdf(opts: LockedPdfOptions) {
     unit: "pt",
     format: "a4",
     encryption: {
-      userPassword: opts.password,
-      ownerPassword: opts.password,
-      userPermissions: ["print"],
+      ownerPassword: opts.ownerPassword,
+      userPermissions: ["print", "copy", "annot-forms"],
     },
   });
 
@@ -82,7 +82,7 @@ export function downloadLockedPdf(opts: LockedPdfOptions) {
     doc.setFontSize(8);
     doc.setTextColor(120, 120, 130);
     doc.text(
-      `Dokumen terkunci · Jak Sanggar · Halaman ${i} dari ${pageCount}`,
+      `Dokumen Jak Sanggar · Hanya-baca tanpa password edit · Halaman ${i} dari ${pageCount}`,
       pageWidth / 2,
       doc.internal.pageSize.getHeight() - 18,
       { align: "center" },

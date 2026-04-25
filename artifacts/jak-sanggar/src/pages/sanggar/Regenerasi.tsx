@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { FileDown, Lock } from "lucide-react";
+import { FileDown, ShieldCheck } from "lucide-react";
 import type { SanggarUser } from "@/lib/types";
 import { downloadLockedPdf } from "@/lib/pdf";
 
@@ -20,15 +20,13 @@ export default function Regenerasi() {
     .slice(0, 50);
 
   const exportPdf = () => {
-    const pwd = prompt("Password Kurator untuk membuka unduhan:");
-    if (pwd !== db.exportPassword) { toast({ title: "Password salah", variant: "destructive" }); return; }
     try {
       const safeName = sg.namaSanggar.replace(/[^a-zA-Z0-9-_ ]+/g, "").trim() || "sanggar";
       downloadLockedPdf({
         filename: `arsip-regenerasi-${safeName}.pdf`,
         title: `Arsip Regenerasi — ${sg.namaSanggar}`,
         subtitle: `Riwayat mutasi SDM · diunduh ${fmtDateTime(Date.now())}`,
-        password: db.exportPassword,
+        ownerPassword: db.exportPassword,
         sections: events.length === 0
           ? [{ heading: "Tidak ada riwayat", body: "Belum ada catatan mutasi/keluar masuk SDM yang tercatat." }]
           : undefined,
@@ -43,7 +41,7 @@ export default function Regenerasi() {
       });
       toast({
         title: "Unduhan dimulai",
-        description: "PDF terenkripsi. Gunakan password kurator untuk membukanya.",
+        description: "PDF dapat langsung dibuka. Untuk mengedit, perlu password Kurator.",
       });
     } catch (err) {
       console.error(err);
@@ -58,17 +56,16 @@ export default function Regenerasi() {
         subtitle="Riwayat mutasi/keluar masuk SDM Sanggar."
         actions={
           <Button variant="outline" className="gap-2" onClick={exportPdf}>
-            <Lock className="h-4 w-4" />
-            <FileDown className="h-4 w-4" />Ekspor PDF Terkunci
+            <FileDown className="h-4 w-4" />Ekspor PDF
           </Button>
         }
       />
       <div className="mb-4 flex items-start gap-2 rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-xs text-foreground/80">
-        <Lock className="h-3.5 w-3.5 text-accent-foreground mt-0.5 shrink-0" />
+        <ShieldCheck className="h-3.5 w-3.5 text-accent-foreground mt-0.5 shrink-0" />
         <div>
-          File PDF yang diunduh dikunci dengan password yang dikelola Kurator
-          (Pengaturan &gt; Password Unduhan PDF). Penguncian ini ditujukan untuk
-          kontrol distribusi internal antar peran, bukan rahasia tingkat tinggi.
+          File PDF langsung terunduh dan dapat dibuka tanpa password. Untuk
+          mengedit isinya (mengubah/menambah/menghapus konten) diperlukan
+          password yang dikelola Kurator pada Pengaturan &gt; Password Edit PDF.
         </div>
       </div>
       <Card className="p-6">
