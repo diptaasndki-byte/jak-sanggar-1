@@ -1,0 +1,216 @@
+📌 MODUL: KERJASAMA SANGGAR
+🎯 Cakupan
+Pemanfaatan SDM (seniman, juri, akademisi)
+Penyewaan Alat Musik & Kostum
+Penyewaan Tempat Latihan
+Katalog otomatis dari:
+Keanggotaan
+Aset
+Sarana & Prasarana
+Transaksi lengkap: request → chat → invoice → kontrak → pembayaran → BAST → rating
+🗄️ DATABASE SCHEMA
+👤 Users & Sanggar
+users
+- id (PK)
+- name
+- email
+- phone
+- password_hash
+- role
+- created_at
+
+sanggars
+- id (PK)
+- user_id (FK -> users.id)
+- nama_sanggar
+- alamat
+- kelurahan
+- kecamatan
+- kota
+- provinsi
+- no_hp
+- email
+- bank_name
+- bank_account_number
+- bank_account_name
+- status_verifikasi
+- created_at
+👥 Keanggotaan (SDM)
+anggota_sanggar
+- id (PK)
+- sanggar_id (FK -> sanggars.id)
+- nama
+- nik
+- no_hp
+- jenis_kelamin
+- keahlian
+- kategori_sdm
+  -- seniman / juri / akademisi / pelatih
+- foto_url
+- status_aktif
+🎭 Aset (Alat & Kostum)
+aset_sanggar
+- id (PK)
+- sanggar_id (FK -> sanggars.id)
+- kategori_aset
+  -- alat_musik / kostum
+- nama_aset
+- jenis
+- jumlah_total
+- jumlah_tersedia
+- kondisi
+- foto_url
+- status_aktif
+🏢 Sarana & Prasarana (Tempat Latihan)
+sarpras_sanggar
+- id (PK)
+- sanggar_id (FK -> sanggars.id)
+- nama_tempat
+- jenis_tempat
+  -- tempat_latihan / aula / studio
+- kapasitas
+- fasilitas
+- alamat
+- foto_url
+- status_aktif
+📦 KATALOG KERJASAMA (AUTO-GENERATED)
+katalog_kerjasama
+- id (PK)
+- sanggar_id (FK -> sanggars.id)
+- sumber_tabel
+  -- anggota_sanggar / aset_sanggar / sarpras_sanggar
+- sumber_id
+- kategori
+  -- sdm / alat_musik / kostum / tempat_latihan
+- judul
+- deskripsi
+- harga
+- satuan_harga
+  -- per_jam / per_hari / per_event
+- status_publish
+- created_at
+
+📌 Catatan:
+
+Tidak ada input manual katalog
+Otomatis dari:
+anggota_sanggar
+aset_sanggar
+sarpras_sanggar
+🤝 TRANSAKSI KERJASAMA SANGGAR
+kerjasama
+- id (PK)
+- nomor_kerjasama
+- katalog_id (FK -> katalog_kerjasama.id)
+- sanggar_penyedia_id (FK -> sanggars.id)
+- sanggar_peminjam_id (FK -> sanggars.id)
+- jenis_kerjasama
+  -- sdm / alat_musik / kostum / tempat_latihan
+- tanggal_mulai
+- tanggal_selesai
+- lokasi_kegiatan
+- jumlah
+- deskripsi_kebutuhan
+- nilai_total
+- status_kerjasama
+  -- menunggu / diterima / ditolak / negosiasi / berjalan / selesai / batal
+- created_at
+💬 CHAT & NEGOSIASI
+chat_rooms
+- id (PK)
+- kerjasama_id (FK)
+
+chat_messages
+- id (PK)
+- chat_room_id (FK)
+- sender_user_id (FK)
+- message_text
+- attachment_url
+- created_at
+
+negosiasi
+- id (PK)
+- kerjasama_id (FK)
+- pengirim_sanggar_id (FK)
+- harga_tawar
+- catatan
+- status
+💰 PEMBAYARAN & DOKUMEN
+🧾 Invoice
+invoices
+- id (PK)
+- kerjasama_id (FK)
+- nomor_invoice
+- total
+- status_pembayaran
+  -- terhutang / lunas
+- batas_pembayaran
+- pdf_url
+💳 Pembayaran
+payments
+- id (PK)
+- invoice_id (FK)
+- nominal
+- tanggal_bayar
+- bukti_pembayaran_url
+- status_verifikasi
+  -- menunggu / disetujui / ditolak
+📄 Kontrak
+contracts
+- id (PK)
+- kerjasama_id (FK)
+- nomor_kontrak
+- status_pembayaran
+- pdf_url
+📑 Berita Acara Serah Terima
+berita_acara_serah_terima
+- id (PK)
+- kerjasama_id (FK)
+- nomor_bast
+- status_bast
+  -- draft / final
+- pdf_url
+⭐ RATING & LOG
+ratings
+- id (PK)
+- kerjasama_id (FK)
+- rating
+- ulasan
+
+activity_logs
+- id (PK)
+- user_id (FK)
+- aktivitas
+- created_at
+🔗 RELASI UTAMA
+users → sanggars
+sanggars → anggota_sanggar
+sanggars → aset_sanggar
+sanggars → sarpras_sanggar
+
+anggota/aset/sarpras → katalog_kerjasama
+
+katalog_kerjasama → kerjasama
+
+kerjasama → chat_rooms → chat_messages
+kerjasama → invoices → payments
+kerjasama → contracts
+kerjasama → berita_acara_serah_terima
+kerjasama → ratings
+⚠️ RULES WAJIB SISTEM
+Katalog otomatis dari data profil (tidak boleh input ulang)
+Status:
+TERHUTANG → wajib upload bukti bayar
+LUNAS → setelah diverifikasi
+BAST hanya bisa final jika LUNAS
+Invoice & kontrak tetap bisa diunduh saat terhutang (label merah)
+Semua aktivitas masuk activity_logs
+Kontak pribadi hanya terbuka setelah deal
+🔥 KESIMPULAN
+
+Modul KERJASAMA SANGGAR:
+
+Menggabungkan SDM + aset + tempat latihan
+Full otomatis dari database
+Ada sistem transaksi lengkap (legal + pembayaran)
+Siap dijadikan backend (API / Firebase / Supabase)
