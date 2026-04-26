@@ -8,6 +8,7 @@ import { load, save } from "@/lib/store";
 import { PucukRebungDivider } from "@/components/betawi/Ornaments";
 import { getBrandIcon } from "@/lib/brandIcons";
 import { useT } from "@/lib/i18n";
+import { InstallPwaCard } from "@/components/InstallPwaCard";
 
 interface NavItem { label: string; href: string; icon: ReactNode; children?: NavItem[]; }
 
@@ -248,7 +249,10 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
           })}
         </nav>
 
-        <div className="relative border-t border-sidebar-border p-3">
+        <div className="relative border-t border-sidebar-border p-3 space-y-2">
+          <div className="px-1">
+            <InstallPwaCard variant="button" className="w-full justify-center" />
+          </div>
           <div className="text-[10px] uppercase tracking-widest text-sidebar-foreground/45 px-2">{footer1}</div>
           <div className="text-[10px] uppercase tracking-widest text-sidebar-foreground/45 px-2">{footer2}</div>
         </div>

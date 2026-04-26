@@ -121,6 +121,35 @@ const BTW: Dict = {
   "Gambar Hero": "Gambar Utama",
   "Warna Lapisan": "Warna Lapisan",
   "Opasitas Lapisan": "Tebel-Tipisnye Lapisan",
+
+  // PWA / Pasang aplikasi
+  "Versi Android": "Versi Android",
+  "Pasang Jak Sanggar di HP": "Pasang Jak Sanggar di HP",
+  "Tap tombol di bawah, izinin pasang. App-nya bakal nongol di layar utama HP, bisa dibuka offline.":
+    "Pencet tombolnye, izinin pasang. App-nye nongol di layar utama HP, bisa dibuka tanpa internet.",
+  "Buka di Safari → tombol Bagikan → 'Tambahkan ke Layar Utama'.":
+    "Buka di Safari → pencet tombol Bagikan → pilih 'Tambahkan ke Layar Utama'.",
+  "Buka link ini di Chrome Android atau Safari iPhone biar bisa dipasang sebagai aplikasi.":
+    "Buka link ini di Chrome Android atau Safari iPhone biar bisa dipasang sebagai aplikasi, Bang/Mpok.",
+  "Pasang Sekarang": "Pasang Sat-Set",
+  "Cara Pasang di iPhone": "Cara Pasang di iPhone",
+  "Pasang Aplikasi": "Pasang Aplikasi",
+  "(Pakai Chrome Android biar tombolnya aktif)": "(Pake Chrome Android biar tombolnye nyala)",
+  "Aplikasi terpasang": "Aplikasi udah kepasang!",
+  "Buka dari layar utama HP Abang/Mpok, sat-set!": "Buka dari layar utama HP Abang/Mpok, sat-set!",
+  "Mantap!": "Mantap, Bang!",
+  "Aplikasi lagi dipasang ke HP Abang/Mpok...": "Aplikasi lagi dipasang ke HP Abang/Mpok, sabar bentar...",
+  "Belum bisa dipasang otomatis": "Belum bisa dipasang otomatis",
+  "Buka di Chrome Android, terus tap menu titik tiga → 'Pasang aplikasi'.":
+    "Buka di Chrome Android, terus pencet menu titik tiga → 'Pasang aplikasi'.",
+  "Aplikasi sudah terpasang di perangkat ini": "Aplikasinye udah kepasang di perangkat ini",
+  "Pasang di iPhone": "Pasang di iPhone",
+  "Tiga langkah aja, Bang/Mpok": "Tiga langkah aje, Bang/Mpok",
+  "Buka halaman ini di browser Safari (bukan Chrome).": "Buka halaman ini di browser Safari (bukan Chrome).",
+  "Tap ikon": "Pencet ikon",
+  "Bagikan di bawah layar.": "Bagikan di bawah layar.",
+  "Tambahkan ke Layar Utama": "Tambahkan ke Layar Utama",
+  "Tutup": "Tutup",
 };
 
 const PACKS: Record<Language, Dict> = { id: ID, btw: BTW };

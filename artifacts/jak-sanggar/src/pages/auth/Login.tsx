@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { GoldDustField, OndelOndelSilhouette, PucukRebungDivider, TumpalSpinner } from "@/components/betawi/Ornaments";
 import { getBrandIcon } from "@/lib/brandIcons";
 import { useT } from "@/lib/i18n";
+import { InstallPwaCard } from "@/components/InstallPwaCard";
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -219,6 +220,10 @@ export default function Login() {
                 Seniman: <code className="text-foreground">ayu.tari</code> / <code className="text-foreground">seniman123</code><br />
                 Juri: <code className="text-foreground">juri1</code> / <code className="text-foreground">juri123</code> · Admin: <code className="text-foreground">admin1</code> / <code className="text-foreground">admin123</code>
               </div>
+            </div>
+
+            <div className="mt-4">
+              <InstallPwaCard />
             </div>
           </div>
         </div>

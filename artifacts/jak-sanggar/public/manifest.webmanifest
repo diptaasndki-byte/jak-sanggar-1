@@ -1,0 +1,34 @@
+{
+  "name": "Jak Sanggar — Konsorsium Sanggar Betawi",
+  "short_name": "Jak Sanggar",
+  "description": "Satu pintu untuk sanggar, pelatih, dan seniman di Jakarta. Kebudayaan akan bernyawa karena ketulusan.",
+  "lang": "id",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0c1834",
+  "theme_color": "#0c1834",
+  "categories": ["education", "productivity", "lifestyle"],
+  "icons": [
+    {
+      "src": "icon-512.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
