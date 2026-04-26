@@ -435,6 +435,71 @@ function readImageFile(file: File, maxBytes = 2_000_000): Promise<string> {
   });
 }
 
+// Read any image (no size cap on input) and auto-compress it to under
+// `targetBytes` by scaling down to max dimension and stepping JPEG quality.
+// Returns { dataUrl, width, height, finalBytes, originalBytes }.
+async function compressImageFile(
+  file: File,
+  opts: { targetBytes?: number; maxDimension?: number } = {},
+): Promise<{ dataUrl: string; width: number; height: number; finalBytes: number; originalBytes: number }> {
+  const targetBytes = opts.targetBytes ?? 900_000; // ~0.9 MB after base64 inflation stays well under 2 MB
+  const maxDimension = opts.maxDimension ?? 1920;
+  if (!file.type.startsWith("image/")) throw new Error("File bukan gambar.");
+
+  const originalDataUrl: string = await new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result));
+    r.onerror = () => reject(r.error ?? new Error("Gagal membaca file"));
+    r.readAsDataURL(file);
+  });
+
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const im = new Image();
+    im.onload = () => resolve(im);
+    im.onerror = () => reject(new Error("Gambar tidak bisa dimuat."));
+    im.src = originalDataUrl;
+  });
+
+  let { width, height } = { width: img.naturalWidth, height: img.naturalHeight };
+  const scale = Math.min(1, maxDimension / Math.max(width, height));
+  let curW = Math.max(1, Math.round(width * scale));
+  let curH = Math.max(1, Math.round(height * scale));
+
+  const tryEncode = (w: number, h: number, q: number): string => {
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas tidak tersedia.");
+    ctx.drawImage(img, 0, 0, w, h);
+    return canvas.toDataURL("image/jpeg", q);
+  };
+
+  const dataUrlBytes = (s: string) => Math.ceil((s.length - s.indexOf(",") - 1) * 3 / 4);
+
+  let dataUrl = tryEncode(curW, curH, 0.88);
+  let finalBytes = dataUrlBytes(dataUrl);
+  const qualitySteps = [0.78, 0.68, 0.58, 0.48, 0.4, 0.33];
+  for (const q of qualitySteps) {
+    if (finalBytes <= targetBytes) break;
+    dataUrl = tryEncode(curW, curH, q);
+    finalBytes = dataUrlBytes(dataUrl);
+  }
+  // If still too large, progressively shrink dimensions
+  let safety = 0;
+  while (finalBytes > targetBytes && Math.max(curW, curH) > 480 && safety++ < 6) {
+    curW = Math.round(curW * 0.8);
+    curH = Math.round(curH * 0.8);
+    dataUrl = tryEncode(curW, curH, 0.7);
+    finalBytes = dataUrlBytes(dataUrl);
+    if (finalBytes > targetBytes) {
+      dataUrl = tryEncode(curW, curH, 0.5);
+      finalBytes = dataUrlBytes(dataUrl);
+    }
+  }
+
+  return { dataUrl, width: curW, height: curH, finalBytes, originalBytes: file.size };
+}
+
 export function KuratorAppearance() {
   const db = useDb();
   const { toast } = useToast();
@@ -662,12 +727,18 @@ function BackdropTab() {
   const [draft, setDraft] = useState(bd);
   const [busy, setBusy] = useState(false);
 
+  const fmtKB = (b: number) => b >= 1_000_000 ? `${(b / 1_000_000).toFixed(2)} MB` : `${Math.round(b / 1024)} KB`;
+
   const onUpload = async (file: File) => {
     try {
       setBusy(true);
-      const url = await readImageFile(file, 2_000_000);
-      setDraft(d => ({ ...d, imageDataUrl: url, enabled: true }));
-      toast({ title: "Backdrop siap. Tekan Simpan untuk menerapkan." });
+      const r = await compressImageFile(file, { targetBytes: 900_000, maxDimension: 1920 });
+      setDraft(d => ({ ...d, imageDataUrl: r.dataUrl, enabled: true }));
+      const ratio = r.originalBytes > 0 ? Math.round((r.finalBytes / r.originalBytes) * 100) : 100;
+      toast({
+        title: "Backdrop siap dipakai",
+        description: `Gambar dikecilkan otomatis: ${fmtKB(r.originalBytes)} → ${fmtKB(r.finalBytes)} (${ratio}%) pada ${r.width}×${r.height}px. Tekan Simpan untuk menerapkan.`,
+      });
     } catch (e: any) {
       toast({ title: "Gagal memuat gambar", description: e?.message ?? "", variant: "destructive" });
     } finally { setBusy(false); }
@@ -698,7 +769,7 @@ function BackdropTab() {
     <div className="grid lg:grid-cols-[1fr_320px] gap-4">
       <Card className="p-5 space-y-4">
         <h3 className="font-serif text-lg flex items-center gap-2"><ImageIcon className="h-5 w-5" />Gambar Latar Belakang</h3>
-        <p className="text-sm text-muted-foreground">Unggah gambar yang akan menjadi backdrop semi-transparan di seluruh halaman setelah login. Ideal: 1920×1080 atau lebih, maks 2 MB.</p>
+        <p className="text-sm text-muted-foreground">Unggah gambar apa pun (PNG/JPG/WebP) — sistem akan otomatis mengecilkan & mengoptimasi (resize ≤ 1920px, kompresi JPEG) supaya hemat penyimpanan tanpa Anda repot. Ideal: 1920×1080 atau lebih.</p>
 
         <div className="flex items-center gap-3 flex-wrap">
           <div className="h-20 w-32 rounded-md border bg-muted/30 grid place-items-center overflow-hidden">
