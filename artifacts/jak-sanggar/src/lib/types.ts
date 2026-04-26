@@ -140,6 +140,7 @@ export interface Latihan {
   kurikulum: string;
   ciriAdat: string;
   pelatihId?: string;
+  editedAt?: number;
   laporan?: {
     fotoDataUrl: string;
     timestamp: number;
