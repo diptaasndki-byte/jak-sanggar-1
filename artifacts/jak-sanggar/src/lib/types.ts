@@ -494,6 +494,24 @@ export interface CustomThemeSettings {
   };
 }
 
+export interface StudioSettings {
+  fontSerif?: string;
+  fontSans?: string;
+  fontScale?: number;
+  borderRadius?: number;
+  foregroundHsl?: string;
+  backgroundHsl?: string;
+  cardHsl?: string;
+  borderHsl?: string;
+  sidebarHsl?: string;
+  sidebarFgHsl?: string;
+  sidebarImageDataUrl?: string;
+  sidebarImageOpacity?: number;
+  loginHeroImageDataUrl?: string;
+  loginHeroOverlayHsl?: string;
+  loginHeroOverlayOpacity?: number;
+}
+
 export interface AppearanceSettings {
   primaryHsl: string;
   accentHsl: string;
@@ -505,4 +523,5 @@ export interface AppearanceSettings {
   backdrop?: LayoutBackdropSettings;
   tradisi?: TradisiSettings;
   customTheme?: CustomThemeSettings;
+  studio?: StudioSettings;
 }

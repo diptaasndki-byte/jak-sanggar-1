@@ -13,8 +13,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import type { AdminUser, JuriUser, SanggarUser, PelatihUser, SenimanUser, Indikator, Variabel, AdminPermissions, TradisiKategori, TradisiItem, ThemeMode } from "@/lib/types";
-import { Trash2, Eye, FileDown, Plus, Palette, Clock, Shield, X, Crown, Users, GraduationCap, UserCog, Wallet, Image as ImageIcon, Upload, RotateCcw, Type, Sparkles, ScrollText, Languages, Check } from "lucide-react";
+import type { AdminUser, JuriUser, SanggarUser, PelatihUser, SenimanUser, Indikator, Variabel, AdminPermissions, TradisiKategori, TradisiItem, ThemeMode, StudioSettings } from "@/lib/types";
+import { Trash2, Eye, FileDown, Plus, Palette, Clock, Shield, X, Crown, Users, GraduationCap, UserCog, Wallet, Image as ImageIcon, Upload, RotateCcw, Type, Sparkles, ScrollText, Languages, Check, Wand2, LayoutTemplate, LogIn } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import { BRAND_ICON_KEYS, getBrandIcon } from "@/lib/brandIcons";
 import { DEFAULT_KATEGORI_COLOR, DEFAULT_TRADISI_POOL } from "@/components/system/TradisiLisanBetawi";
@@ -567,6 +567,7 @@ export function KuratorAppearance() {
           <TabsTrigger value="tema" className="gap-1.5"><Palette className="h-3.5 w-3.5" />{t("Tema & Warna")}</TabsTrigger>
           <TabsTrigger value="backdrop" className="gap-1.5"><ImageIcon className="h-3.5 w-3.5" />{t("Backdrop")}</TabsTrigger>
           <TabsTrigger value="tradisi" className="gap-1.5"><ScrollText className="h-3.5 w-3.5" />{t("Pop-up Tradisi")}</TabsTrigger>
+          <TabsTrigger value="studio" className="gap-1.5" data-testid="tab-studio"><Wand2 className="h-3.5 w-3.5" />{t("Studio Lanjutan")}</TabsTrigger>
           <TabsTrigger value="bahasa" className="gap-1.5" data-testid="tab-bahasa"><Languages className="h-3.5 w-3.5" />{t("Bahasa")}</TabsTrigger>
         </TabsList>
 
@@ -618,6 +619,7 @@ export function KuratorAppearance() {
 
         <TabsContent value="backdrop"><BackdropTab /></TabsContent>
         <TabsContent value="tradisi"><TradisiTab /></TabsContent>
+        <TabsContent value="studio"><StudioTab /></TabsContent>
         <TabsContent value="bahasa"><BahasaTab /></TabsContent>
       </Tabs>
     </div>
@@ -825,6 +827,273 @@ function CustomThemeCard() {
         </div>
       </div>
     </Card>
+  );
+}
+
+const SERIF_FONTS = [
+  { id: "Playfair Display", label: "Playfair Display" },
+  { id: "DM Serif Display", label: "DM Serif Display" },
+  { id: "Lora", label: "Lora" },
+  { id: "Cormorant Garamond", label: "Cormorant Garamond" },
+  { id: "Merriweather", label: "Merriweather" },
+];
+const SANS_FONTS = [
+  { id: "Inter", label: "Inter" },
+  { id: "Manrope", label: "Manrope" },
+  { id: "Plus Jakarta Sans", label: "Plus Jakarta Sans" },
+  { id: "Poppins", label: "Poppins" },
+];
+
+function _hslToHex(hsl?: string, fallback = "#1f3a72"): string {
+  if (!hsl) return fallback;
+  const m = hsl.match(/(\d+)\s+(\d+)%\s+(\d+)%/);
+  if (!m) return fallback;
+  const h = +m[1], s = +m[2] / 100, l = +m[3] / 100;
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const mm = l - c / 2;
+  let r = 0, g = 0, b = 0;
+  if (h < 60) [r, g, b] = [c, x, 0];
+  else if (h < 120) [r, g, b] = [x, c, 0];
+  else if (h < 180) [r, g, b] = [0, c, x];
+  else if (h < 240) [r, g, b] = [0, x, c];
+  else if (h < 300) [r, g, b] = [x, 0, c];
+  else[r, g, b] = [c, 0, x];
+  const toHex = (n: number) => Math.round((n + mm) * 255).toString(16).padStart(2, "0");
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+function _hexToHsl(hex: string, fallback = "220 50% 20%"): string {
+  const m = hex.replace("#", "").match(/^([0-9a-f]{6})$/i);
+  if (!m) return fallback;
+  const r = parseInt(m[1].slice(0, 2), 16) / 255;
+  const g = parseInt(m[1].slice(2, 4), 16) / 255;
+  const b = parseInt(m[1].slice(4, 6), 16) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s = 0; const l = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)); break;
+      case g: h = ((b - r) / d + 2); break;
+      case b: h = ((r - g) / d + 4); break;
+    }
+    h *= 60;
+  }
+  return `${Math.round(h)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+}
+
+function ColorRow({ label, hsl, onChange, fallbackHex, testid }: { label: string; hsl?: string; onChange: (v: string) => void; fallbackHex: string; testid?: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="text-sm flex-1">{label}</div>
+      <input
+        type="color"
+        value={_hslToHex(hsl, fallbackHex)}
+        onChange={e => onChange(_hexToHsl(e.target.value))}
+        className="h-9 w-12 rounded cursor-pointer border border-border"
+        data-testid={testid}
+      />
+      {hsl && (
+        <button
+          type="button"
+          className="text-[11px] text-muted-foreground underline-offset-2 hover:underline"
+          onClick={() => onChange("")}
+          data-testid={testid ? `${testid}-reset` : undefined}
+        >
+          reset
+        </button>
+      )}
+    </div>
+  );
+}
+
+function StudioTab() {
+  const db = useDb();
+  const { toast } = useToast();
+  const t = useT();
+  const initial: StudioSettings = db.appearance.studio ?? { fontScale: 1, sidebarImageOpacity: 0.18, loginHeroOverlayOpacity: 0.55 };
+  const [draft, setDraft] = useState<StudioSettings>(initial);
+  const [busy, setBusy] = useState(false);
+
+  const set = (patch: Partial<StudioSettings>) => setDraft(d => ({ ...d, ...patch }));
+
+  const onUploadSidebar = async (file: File) => {
+    try {
+      setBusy(true);
+      const r = await compressImageFile(file, { targetBytes: 800_000, maxDimension: 1600 });
+      set({ sidebarImageDataUrl: r.dataUrl });
+      toast({ title: t("Gambar siap. Tekan Simpan untuk menerapkan.") });
+    } catch (e: any) {
+      toast({ title: t("Gagal memuat gambar"), description: e?.message ?? "", variant: "destructive" });
+    } finally { setBusy(false); }
+  };
+  const onUploadHero = async (file: File) => {
+    try {
+      setBusy(true);
+      const r = await compressImageFile(file, { targetBytes: 1_000_000, maxDimension: 1920 });
+      set({ loginHeroImageDataUrl: r.dataUrl });
+      toast({ title: t("Gambar siap. Tekan Simpan untuk menerapkan.") });
+    } catch (e: any) {
+      toast({ title: t("Gagal memuat gambar"), description: e?.message ?? "", variant: "destructive" });
+    } finally { setBusy(false); }
+  };
+
+  const simpan = () => {
+    try {
+      save(d => { d.appearance.studio = { ...(d.appearance.studio ?? {}), ...draft }; });
+      toast({ title: t("Studio diperbarui") });
+    } catch (e: any) {
+      toast({ title: t("Gagal menyimpan"), description: e?.message ?? "", variant: "destructive" });
+    }
+  };
+  const resetSemua = () => {
+    const fresh: StudioSettings = { fontScale: 1, sidebarImageOpacity: 0.18, loginHeroOverlayOpacity: 0.55 };
+    setDraft(fresh);
+    save(d => { d.appearance.studio = fresh; });
+    toast({ title: t("Studio dikembalikan ke bawaan") });
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card className="p-5">
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div>
+            <h3 className="font-serif text-lg flex items-center gap-2"><Type className="h-5 w-5" />{t("Tipografi")}</h3>
+            <p className="text-sm text-muted-foreground mt-1">{t("Pilih jenis huruf untuk judul dan teks isi, serta atur skala teks global.")}</p>
+          </div>
+        </div>
+        <div className="grid sm:grid-cols-3 gap-4">
+          <div>
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">{t("Font Judul")}</Label>
+            <Select value={draft.fontSerif ?? "__default"} onValueChange={(v) => set({ fontSerif: v === "__default" ? undefined : v })}>
+              <SelectTrigger className="mt-2" data-testid="select-font-serif"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__default">{t("Bawaan")} (Playfair Display)</SelectItem>
+                {SERIF_FONTS.map(f => <SelectItem key={f.id} value={f.id} style={{ fontFamily: `'${f.id}', serif` }}>{f.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <div className="mt-3 p-3 rounded border border-border bg-muted/40 text-2xl" style={{ fontFamily: draft.fontSerif ? `'${draft.fontSerif}', serif` : undefined }}>Aa Bb 123</div>
+          </div>
+          <div>
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">{t("Font Isi")}</Label>
+            <Select value={draft.fontSans ?? "__default"} onValueChange={(v) => set({ fontSans: v === "__default" ? undefined : v })}>
+              <SelectTrigger className="mt-2" data-testid="select-font-sans"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__default">{t("Bawaan")} (Inter)</SelectItem>
+                {SANS_FONTS.map(f => <SelectItem key={f.id} value={f.id} style={{ fontFamily: `'${f.id}', sans-serif` }}>{f.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <div className="mt-3 p-3 rounded border border-border bg-muted/40 text-base" style={{ fontFamily: draft.fontSans ? `'${draft.fontSans}', sans-serif` : undefined }}>Aa Bb 123 — kalimat contoh.</div>
+          </div>
+          <div>
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">{t("Skala Teks")} ({Math.round((draft.fontScale ?? 1) * 100)}%)</Label>
+            <input
+              type="range" min={0.85} max={1.2} step={0.05}
+              value={draft.fontScale ?? 1}
+              onChange={e => set({ fontScale: parseFloat(e.target.value) })}
+              className="w-full mt-3"
+              data-testid="range-font-scale"
+            />
+            <div className="text-xs text-muted-foreground mt-2">{t("Berlaku ke seluruh aplikasi.")}</div>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="p-5">
+        <h3 className="font-serif text-lg flex items-center gap-2"><LayoutTemplate className="h-5 w-5" />{t("Permukaan & Sudut")}</h3>
+        <p className="text-sm text-muted-foreground mt-1">{t("Atur warna halaman, kartu, garis batas, serta tingkat kelengkungan sudut.")}</p>
+        <div className="grid sm:grid-cols-2 gap-4 mt-4">
+          <ColorRow label={t("Warna Halaman")} hsl={draft.backgroundHsl} onChange={(v) => set({ backgroundHsl: v || undefined })} fallbackHex="#f4eee2" testid="color-bg" />
+          <ColorRow label={t("Warna Teks")} hsl={draft.foregroundHsl} onChange={(v) => set({ foregroundHsl: v || undefined })} fallbackHex="#0f1a33" testid="color-fg" />
+          <ColorRow label={t("Warna Kartu")} hsl={draft.cardHsl} onChange={(v) => set({ cardHsl: v || undefined })} fallbackHex="#ffffff" testid="color-card" />
+          <ColorRow label={t("Warna Garis")} hsl={draft.borderHsl} onChange={(v) => set({ borderHsl: v || undefined })} fallbackHex="#d6cdb8" testid="color-border" />
+          <div className="sm:col-span-2">
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">{t("Sudut")} ({(draft.borderRadius ?? 0.625).toFixed(3)} rem)</Label>
+            <input type="range" min={0} max={1.5} step={0.125}
+              value={draft.borderRadius ?? 0.625}
+              onChange={e => set({ borderRadius: parseFloat(e.target.value) })}
+              className="w-full mt-2" data-testid="range-radius" />
+            <div className="mt-3 flex gap-3">
+              <div className="h-12 w-24 bg-primary text-primary-foreground grid place-items-center text-xs" style={{ borderRadius: `${draft.borderRadius ?? 0.625}rem` }}>Tombol</div>
+              <div className="h-12 w-24 bg-card border border-border grid place-items-center text-xs" style={{ borderRadius: `${draft.borderRadius ?? 0.625}rem` }}>Kartu</div>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="p-5">
+        <h3 className="font-serif text-lg flex items-center gap-2"><Wand2 className="h-5 w-5" />{t("Sidebar")}</h3>
+        <p className="text-sm text-muted-foreground mt-1">{t("Ganti warna, atau unggah gambar latar untuk sidebar navigasi.")}</p>
+        <div className="grid sm:grid-cols-2 gap-4 mt-4">
+          <ColorRow label={t("Warna Sidebar")} hsl={draft.sidebarHsl} onChange={(v) => set({ sidebarHsl: v || undefined })} fallbackHex="#0f1a33" testid="color-sidebar" />
+          <ColorRow label={t("Warna Teks Sidebar")} hsl={draft.sidebarFgHsl} onChange={(v) => set({ sidebarFgHsl: v || undefined })} fallbackHex="#f4eee2" testid="color-sidebar-fg" />
+          <div className="sm:col-span-2">
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">{t("Gambar Latar Sidebar")}</Label>
+            <div className="flex items-center gap-3 mt-2">
+              <label className="inline-flex items-center gap-2 px-3 h-9 rounded border border-border cursor-pointer bg-muted/40 hover:bg-muted text-sm">
+                <Upload className="h-4 w-4" /> {t("Unggah")}
+                <input type="file" accept="image/*" className="hidden" disabled={busy} onChange={(e) => e.target.files?.[0] && onUploadSidebar(e.target.files[0])} data-testid="file-sidebar-bg" />
+              </label>
+              {draft.sidebarImageDataUrl && (
+                <button type="button" className="text-xs text-muted-foreground underline-offset-2 hover:underline inline-flex items-center gap-1" onClick={() => set({ sidebarImageDataUrl: undefined })}>
+                  <Trash2 className="h-3.5 w-3.5" /> {t("Hapus")}
+                </button>
+              )}
+              {draft.sidebarImageDataUrl && <img src={draft.sidebarImageDataUrl} alt="" className="h-9 w-14 object-cover rounded border border-border" />}
+            </div>
+            <div className="mt-3">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">{t("Opasitas Gambar")} ({Math.round((draft.sidebarImageOpacity ?? 0.18) * 100)}%)</Label>
+              <input type="range" min={0} max={1} step={0.05}
+                value={draft.sidebarImageOpacity ?? 0.18}
+                onChange={e => set({ sidebarImageOpacity: parseFloat(e.target.value) })}
+                className="w-full mt-2" data-testid="range-sidebar-opacity" />
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="p-5">
+        <h3 className="font-serif text-lg flex items-center gap-2"><LogIn className="h-5 w-5" />{t("Halaman Masuk")}</h3>
+        <p className="text-sm text-muted-foreground mt-1">{t("Ganti gambar dan warna lapisan panel kiri halaman masuk.")}</p>
+        <div className="mt-4 space-y-4">
+          <div>
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">{t("Gambar Hero")}</Label>
+            <div className="flex items-center gap-3 mt-2">
+              <label className="inline-flex items-center gap-2 px-3 h-9 rounded border border-border cursor-pointer bg-muted/40 hover:bg-muted text-sm">
+                <Upload className="h-4 w-4" /> {t("Unggah")}
+                <input type="file" accept="image/*" className="hidden" disabled={busy} onChange={(e) => e.target.files?.[0] && onUploadHero(e.target.files[0])} data-testid="file-login-hero" />
+              </label>
+              {draft.loginHeroImageDataUrl && (
+                <button type="button" className="text-xs text-muted-foreground underline-offset-2 hover:underline inline-flex items-center gap-1" onClick={() => set({ loginHeroImageDataUrl: undefined })}>
+                  <Trash2 className="h-3.5 w-3.5" /> {t("Hapus")}
+                </button>
+              )}
+              {draft.loginHeroImageDataUrl && <img src={draft.loginHeroImageDataUrl} alt="" className="h-9 w-14 object-cover rounded border border-border" />}
+            </div>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <ColorRow label={t("Warna Lapisan")} hsl={draft.loginHeroOverlayHsl} onChange={(v) => set({ loginHeroOverlayHsl: v || undefined })} fallbackHex="#0f1a33" testid="color-login-overlay" />
+            <div>
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">{t("Opasitas Lapisan")} ({Math.round((draft.loginHeroOverlayOpacity ?? 0.55) * 100)}%)</Label>
+              <input type="range" min={0} max={1} step={0.05}
+                value={draft.loginHeroOverlayOpacity ?? 0.55}
+                onChange={e => set({ loginHeroOverlayOpacity: parseFloat(e.target.value) })}
+                className="w-full mt-2" data-testid="range-login-overlay-opacity" />
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <div className="sticky bottom-3 z-10 flex justify-between gap-2 pt-2">
+        <Button variant="outline" onClick={resetSemua} className="gap-2" data-testid="btn-studio-reset">
+          <RotateCcw className="h-4 w-4" /> {t("Kembalikan Bawaan")}
+        </Button>
+        <Button onClick={simpan} className="gap-2" data-testid="btn-studio-simpan">
+          <Check className="h-4 w-4" /> {t("Simpan Studio")}
+        </Button>
+      </div>
+    </div>
   );
 }
 

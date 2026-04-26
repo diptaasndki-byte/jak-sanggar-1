@@ -25,6 +25,7 @@ export default function Login() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const t = useT();
+  const studio = db.appearance.studio;
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,9 +54,25 @@ export default function Login() {
       <div
         className="hidden lg:flex lg:col-span-3 relative overflow-hidden text-sidebar-foreground p-10 xl:p-14 flex-col justify-between"
         style={{
-          background: "linear-gradient(135deg, hsl(222 60% 8%) 0%, hsl(222 55% 14%) 50%, hsl(268 40% 18%) 100%)",
+          background: studio?.loginHeroImageDataUrl
+            ? `url(${studio.loginHeroImageDataUrl}) center/cover no-repeat`
+            : "linear-gradient(135deg, hsl(222 60% 8%) 0%, hsl(222 55% 14%) 50%, hsl(268 40% 18%) 100%)",
         }}
       >
+        {studio?.loginHeroImageDataUrl && (() => {
+          const op = Math.max(0, Math.min(1, studio.loginHeroOverlayOpacity ?? 0.55));
+          return (
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background: studio.loginHeroOverlayHsl
+                  ? `hsl(${studio.loginHeroOverlayHsl} / ${op})`
+                  : `linear-gradient(135deg, hsl(222 60% 8% / ${op}) 0%, hsl(268 40% 18% / ${op}) 100%)`,
+              }}
+            />
+          );
+        })()}
         {/* Batik watermark */}
         <div
           className="absolute inset-0 opacity-[0.08] pointer-events-none"

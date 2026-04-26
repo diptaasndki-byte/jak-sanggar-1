@@ -30,6 +30,29 @@ function applyLang(lang: string) {
   if (typeof document !== "undefined") document.documentElement.dataset.lang = lang;
 }
 
+function applyStudio(studio: any) {
+  const root = document.documentElement;
+  const setVar = (name: string, value: string | undefined) => {
+    if (value !== undefined && value !== "") root.style.setProperty(name, value);
+    else root.style.removeProperty(name);
+  };
+  if (!studio) return;
+  setVar("--app-font-serif", studio.fontSerif ? `'${studio.fontSerif}', Georgia, serif` : undefined);
+  setVar("--app-font-sans", studio.fontSans ? `'${studio.fontSans}', system-ui, sans-serif` : undefined);
+  setVar("--radius", studio.borderRadius != null ? `${studio.borderRadius}rem` : undefined);
+  setVar("--foreground", studio.foregroundHsl);
+  setVar("--background", studio.backgroundHsl);
+  setVar("--card", studio.cardHsl);
+  setVar("--border", studio.borderHsl);
+  setVar("--sidebar", studio.sidebarHsl);
+  setVar("--sidebar-foreground", studio.sidebarFgHsl);
+  if (studio.fontScale != null) {
+    root.style.setProperty("font-size", `${Math.round(studio.fontScale * 16)}px`);
+  } else {
+    root.style.removeProperty("font-size");
+  }
+}
+
 export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNode }) {
   const { user, logout } = useAuth();
   const db = useDb();
@@ -46,7 +69,8 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
     const theme: ThemeMode = ap.theme ?? (ap.dark ? "dark" : "light");
     applyTheme(theme);
     applyLang(ap.language ?? "id");
-  }, [db.appearance.theme, db.appearance.primaryHsl, db.appearance.accentHsl, db.appearance.dark, db.appearance.language]);
+    applyStudio(ap.studio);
+  }, [db.appearance.theme, db.appearance.primaryHsl, db.appearance.accentHsl, db.appearance.dark, db.appearance.language, db.appearance.studio]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -69,6 +93,7 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
   const BrandIcon = getBrandIcon(brand?.iconKey);
   const backdrop = db.appearance.backdrop;
   const customTheme = db.appearance.customTheme;
+  const studio = db.appearance.studio;
 
   const currentTheme: ThemeMode = db.appearance.theme ?? (db.appearance.dark ? "dark" : "light");
   const cycleTheme = () => {
@@ -98,6 +123,18 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
           background: "linear-gradient(180deg, hsl(var(--sidebar)) 0%, hsl(var(--sidebar) / 0.94) 100%)",
         }}
       >
+        {studio?.sidebarImageDataUrl && (
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              backgroundImage: `url(${studio.sidebarImageDataUrl})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              opacity: Math.max(0, Math.min(1, studio.sidebarImageOpacity ?? 0.18)),
+            }}
+          />
+        )}
         <div
           className="absolute inset-0 opacity-[0.07] pointer-events-none"
           style={{

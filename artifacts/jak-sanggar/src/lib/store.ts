@@ -261,6 +261,7 @@ function migrate(db: DBShape): DBShape {
   db.appearance.themePreset ||= db.appearance.theme ?? "light";
   db.appearance.language ||= "id";
   db.appearance.customTheme = { enabled: false, mode: "light", primaryHsl: "220 55% 18%", accentHsl: "42 65% 53%", bgOpacity: 0.22, ...(db.appearance.customTheme ?? {}) };
+  db.appearance.studio = { fontScale: 1, sidebarImageOpacity: 0.18, loginHeroOverlayOpacity: 0.55, ...(db.appearance.studio ?? {}) };
   const defBrand = {
     appName: "Jak Sanggar",
     appTagline: "Budaya Naik Kelas, Digital Tanpa Batas",
