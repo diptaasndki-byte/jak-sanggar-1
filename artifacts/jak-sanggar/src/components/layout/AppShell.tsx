@@ -2,15 +2,103 @@ import { type ReactNode, useEffect, useState, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth, useDb } from "@/lib/auth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Bell, LogOut, Sun, Moon, Sparkles, ChevronDown, UserCog } from "lucide-react";
+import { Bell, LogOut, Sun, Moon, Sparkles, ChevronDown, UserCog, Menu, X } from "lucide-react";
 import type { Role, ThemeMode } from "@/lib/types";
 import { load, save } from "@/lib/store";
 import { PucukRebungDivider } from "@/components/betawi/Ornaments";
 import { getBrandIcon } from "@/lib/brandIcons";
 import { useT } from "@/lib/i18n";
 import { InstallPwaCard } from "@/components/InstallPwaCard";
+import { Sheet, SheetContent, SheetTitle, SheetDescription, SheetHeader } from "@/components/ui/sheet";
 
 interface NavItem { label: string; href: string; icon: ReactNode; children?: NavItem[]; }
+
+function SidebarNavList({
+  nav, loc, role, testIdPrefix,
+}: { nav: NavItem[]; loc: string; role: Role; testIdPrefix: string }) {
+  const isActive = (href: string) =>
+    loc === href || (href !== `/${role}` && loc.startsWith(href));
+  return (
+    <>
+      {nav.map((n) => {
+        const active = isActive(n.href);
+        const hasChildren = !!n.children?.length;
+        const childActive = hasChildren && n.children!.some((c) => isActive(c.href));
+        const expanded = hasChildren && (active || childActive);
+        return (
+          <div key={n.href} className="mb-1">
+            <Link
+              href={n.href}
+              className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
+                active
+                  ? "text-sidebar-primary-foreground font-medium"
+                  : "text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+              }`}
+              data-testid={`${testIdPrefix}-${n.href.replace(/\//g, "-")}`}
+              aria-expanded={hasChildren ? expanded : undefined}
+            >
+              {active && (
+                <>
+                  <span
+                    className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r"
+                    style={{
+                      background: "linear-gradient(180deg, hsl(42 80% 65%), hsl(38 70% 45%))",
+                      boxShadow: "0 0 10px hsl(42 75% 55% / 0.7)",
+                    }}
+                  />
+                  <span
+                    className="absolute inset-0 rounded-lg"
+                    style={{
+                      background: "linear-gradient(90deg, hsl(var(--sidebar-accent)) 0%, hsl(var(--sidebar) / 0.8) 100%)",
+                      boxShadow: "inset 0 1px 0 hsl(42 60% 50% / 0.15)",
+                    }}
+                  />
+                </>
+              )}
+              <span className={`relative transition-all ${active ? "text-sidebar-primary" : "opacity-80 group-hover:opacity-100 group-hover:text-sidebar-primary"}`}>{n.icon}</span>
+              <span className="relative flex-1">{n.label}</span>
+              {hasChildren && (
+                <ChevronDown
+                  className={`relative h-3.5 w-3.5 transition-transform duration-200 ${
+                    expanded ? "rotate-0 text-sidebar-primary" : "-rotate-90 text-sidebar-foreground/45"
+                  }`}
+                  aria-hidden="true"
+                />
+              )}
+            </Link>
+            {hasChildren && expanded && (
+              <ul className="relative mt-1 ml-5 pl-3 border-l border-sidebar-border/60 space-y-0.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                {n.children!.map((c) => {
+                  const cActive = isActive(c.href);
+                  return (
+                    <li key={c.href}>
+                      <Link
+                        href={c.href}
+                        className={`group relative flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[13px] transition-colors ${
+                          cActive
+                            ? "text-sidebar-primary-foreground font-medium bg-sidebar-accent/70"
+                            : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+                        }`}
+                        data-testid={`${testIdPrefix}-${c.href.replace(/\//g, "-")}`}
+                      >
+                        <span
+                          className={`h-1 w-1 rounded-full ${cActive ? "bg-sidebar-primary" : "bg-sidebar-foreground/35 group-hover:bg-sidebar-primary"}`}
+                          aria-hidden="true"
+                        />
+                        <span className={cActive ? "text-sidebar-primary" : "opacity-75 group-hover:opacity-100"}>{c.icon}</span>
+                        <span className="truncate">{c.label}</span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        );
+      })}
+    </>
+  );
+}
 
 const ROLE_KEY: Record<Role, string> = {
   kurator: "Kurator",
@@ -59,9 +147,13 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
   const db = useDb();
   const [loc, navigate] = useLocation();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   const t = useT();
   const labels = ROLE_KEY;
+
+  // Tutup drawer mobile saat pindah halaman
+  useEffect(() => { setMobileNavOpen(false); }, [loc]);
 
   useEffect(() => {
     const ap = load().appearance;
@@ -169,84 +261,7 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
         </div>
 
         <nav className="relative flex-1 overflow-y-auto scrollbar-thin py-3 px-2.5">
-          {nav.map((n) => {
-            const isActive = (href: string) =>
-              loc === href || (href !== `/${user.role}` && loc.startsWith(href));
-            const active = isActive(n.href);
-            const hasChildren = !!n.children?.length;
-            const childActive = hasChildren && n.children!.some((c) => isActive(c.href));
-            const expanded = hasChildren && (active || childActive);
-            return (
-              <div key={n.href} className="mb-1">
-                <Link
-                  href={n.href}
-                  className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
-                    active
-                      ? "text-sidebar-primary-foreground font-medium"
-                      : "text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
-                  }`}
-                  data-testid={`nav-${n.href.replace(/\//g, "-")}`}
-                  aria-expanded={hasChildren ? expanded : undefined}
-                >
-                  {active && (
-                    <>
-                      <span
-                        className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r"
-                        style={{
-                          background: "linear-gradient(180deg, hsl(42 80% 65%), hsl(38 70% 45%))",
-                          boxShadow: "0 0 10px hsl(42 75% 55% / 0.7)",
-                        }}
-                      />
-                      <span
-                        className="absolute inset-0 rounded-lg"
-                        style={{
-                          background: "linear-gradient(90deg, hsl(var(--sidebar-accent)) 0%, hsl(var(--sidebar) / 0.8) 100%)",
-                          boxShadow: "inset 0 1px 0 hsl(42 60% 50% / 0.15)",
-                        }}
-                      />
-                    </>
-                  )}
-                  <span className={`relative transition-all ${active ? "text-sidebar-primary" : "opacity-80 group-hover:opacity-100 group-hover:text-sidebar-primary"}`}>{n.icon}</span>
-                  <span className="relative flex-1">{n.label}</span>
-                  {hasChildren && (
-                    <ChevronDown
-                      className={`relative h-3.5 w-3.5 transition-transform duration-200 ${
-                        expanded ? "rotate-0 text-sidebar-primary" : "-rotate-90 text-sidebar-foreground/45"
-                      }`}
-                      aria-hidden="true"
-                    />
-                  )}
-                </Link>
-                {hasChildren && expanded && (
-                  <ul className="relative mt-1 ml-5 pl-3 border-l border-sidebar-border/60 space-y-0.5 animate-in fade-in slide-in-from-top-1 duration-200">
-                    {n.children!.map((c) => {
-                      const cActive = isActive(c.href);
-                      return (
-                        <li key={c.href}>
-                          <Link
-                            href={c.href}
-                            className={`group relative flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[13px] transition-colors ${
-                              cActive
-                                ? "text-sidebar-primary-foreground font-medium bg-sidebar-accent/70"
-                                : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
-                            }`}
-                            data-testid={`nav-${c.href.replace(/\//g, "-")}`}
-                          >
-                            <span
-                              className={`h-1 w-1 rounded-full ${cActive ? "bg-sidebar-primary" : "bg-sidebar-foreground/35 group-hover:bg-sidebar-primary"}`}
-                              aria-hidden="true"
-                            />
-                            <span className={cActive ? "text-sidebar-primary" : "opacity-75 group-hover:opacity-100"}>{c.icon}</span>
-                            <span className="truncate">{c.label}</span>
-                          </Link>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </div>
-            );
-          })}
+          <SidebarNavList nav={nav} loc={loc} role={user.role} testIdPrefix="nav" />
         </nav>
 
         <div className="relative border-t border-sidebar-border p-3 space-y-2">
@@ -261,7 +276,18 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
       <div className="flex-1 flex flex-col min-w-0">
         <header className="sticky top-0 z-30 glass border-b border-border/60">
           <div className="h-14 px-4 sm:px-6 flex items-center justify-between gap-3">
-            <div className="md:hidden flex items-center gap-2.5 min-w-0">
+            <div className="md:hidden flex items-center gap-2 min-w-0">
+              <button
+                type="button"
+                data-tradisi="silent"
+                onClick={() => setMobileNavOpen(true)}
+                aria-label={t("Buka menu navigasi")}
+                aria-expanded={mobileNavOpen}
+                className="h-9 w-9 grid place-items-center rounded-md hover:bg-muted text-foreground/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 shrink-0"
+                data-testid="button-mobile-nav-open"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
               {brand?.logoDataUrl ? (
                 <img src={brand.logoDataUrl} alt={appName} className="h-8 w-8 rounded-md object-cover shrink-0" />
               ) : (
@@ -269,7 +295,7 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
                   <BrandIcon className="h-4 w-4" />
                 </div>
               )}
-              <div className="font-serif text-base truncate">{appName} · {t(labels[user.role])}</div>
+              <div className="font-serif text-base truncate">{appName}</div>
             </div>
 
             {/* Central compact nav (desktop only) — shows top 5 nav items with gold underline on active */}
@@ -412,6 +438,86 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
           <div key={loc} className="relative page-enter max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">{children}</div>
         </main>
       </div>
+
+      {/* Mobile navigation drawer */}
+      <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+        <SheetContent
+          side="left"
+          className="w-[82vw] max-w-[320px] p-0 border-r border-sidebar-border text-sidebar-foreground overflow-hidden"
+          style={{
+            background: "linear-gradient(180deg, hsl(var(--sidebar)) 0%, hsl(var(--sidebar) / 0.96) 100%)",
+          }}
+        >
+          <SheetHeader className="sr-only">
+            <SheetTitle>{appName}</SheetTitle>
+            <SheetDescription>{t("Navigasi utama")}</SheetDescription>
+          </SheetHeader>
+          <div className="relative flex h-full flex-col">
+            {studio?.sidebarImageDataUrl && (
+              <div
+                aria-hidden="true"
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  backgroundImage: `url(${studio.sidebarImageDataUrl})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  opacity: Math.max(0, Math.min(1, studio.sidebarImageOpacity ?? 0.18)),
+                }}
+              />
+            )}
+            <div
+              className="absolute inset-0 opacity-[0.07] pointer-events-none"
+              style={{
+                backgroundImage: "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><g fill='none' stroke='%23d4a64e' stroke-width='0.6'><path d='M20 60 L40 20 L60 60 Z'/><circle cx='40' cy='40' r='2'/></g></svg>\")",
+                backgroundSize: "120px 120px",
+              }}
+            />
+
+            <div className="relative px-5 py-5 flex items-center gap-3 border-b border-sidebar-border">
+              {brand?.logoDataUrl ? (
+                <div className="h-10 w-10 rounded-lg overflow-hidden grid place-items-center bg-white/5"
+                  style={{ boxShadow: "0 0 18px hsl(42 75% 50% / 0.3), 0 0 0 1px hsl(42 60% 50% / 0.25)" }}>
+                  <img src={brand.logoDataUrl} alt={appName} className="h-full w-full object-cover" />
+                </div>
+              ) : (
+                <div className="h-10 w-10 rounded-lg grid place-items-center"
+                  style={{
+                    background: "linear-gradient(135deg, hsl(42 80% 60%) 0%, hsl(38 65% 42%) 100%)",
+                    boxShadow: "0 0 20px hsl(42 75% 50% / 0.4), 0 1px 0 hsl(42 90% 80%) inset",
+                  }}>
+                  <BrandIcon className="h-5 w-5" style={{ color: "hsl(222 60% 10%)" }} />
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="font-serif text-lg leading-tight truncate">{appName}</div>
+                <div className="text-[10px] uppercase tracking-[0.2em] text-sidebar-foreground/55">{t(labels[user.role])}</div>
+              </div>
+              <button
+                type="button"
+                data-tradisi="silent"
+                onClick={() => setMobileNavOpen(false)}
+                className="h-8 w-8 grid place-items-center rounded-md hover:bg-sidebar-accent/60 text-sidebar-foreground/70 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                aria-label={t("Tutup menu navigasi")}
+                data-testid="button-mobile-nav-close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <nav className="relative flex-1 overflow-y-auto scrollbar-thin py-3 px-2.5">
+              <SidebarNavList nav={nav} loc={loc} role={user.role} testIdPrefix="mobile-nav" />
+            </nav>
+
+            <div className="relative border-t border-sidebar-border p-3 space-y-2">
+              <div className="px-1">
+                <InstallPwaCard variant="button" className="w-full justify-center" />
+              </div>
+              <div className="text-[10px] uppercase tracking-widest text-sidebar-foreground/45 px-2">{footer1}</div>
+              <div className="text-[10px] uppercase tracking-widest text-sidebar-foreground/45 px-2">{footer2}</div>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

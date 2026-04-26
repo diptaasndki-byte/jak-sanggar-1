@@ -5,7 +5,7 @@ import type {
   Sertifikat, ActivityLog, JamPembinaan, AbsensiPembinaan, PendaftaranPembinaan,
   AppearanceSettings, Role,
   Aset, Sarpras, Kerjasama, ChatMessage, Negosiasi, Invoice, Payment,
-  Contract, Bast, Rating,
+  Contract, Bast, Rating, InfoBudaya,
 } from "./types";
 
 const KEY = "jaksanggar_v1";
@@ -43,6 +43,8 @@ export interface DBShape {
   contracts: Contract[];
   bast: Bast[];
   ratings: Rating[];
+  // Informasi Kebudayaan (replaces "Berita Sanggar Aktif" on Sanggar dashboard)
+  infoBudaya: InfoBudaya[];
 }
 
 export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
@@ -56,7 +58,7 @@ function seed(): DBShape {
   const admin: AdminUser = {
     id: uid(), role: "admin", username: "admin1", password: "admin123",
     nama: "Sari Admin", createdAt: now,
-    permissions: { kelolaBerita: true, kelolaBanner: true, kelolaSlider: true, kelolaJamPembinaan: false },
+    permissions: { kelolaBerita: true, kelolaBanner: true, kelolaSlider: true, kelolaJamPembinaan: false, kelolaInfoBudaya: true },
   };
   const juri: JuriUser = {
     id: uid(), role: "juri", username: "juri1", password: "juri123",
@@ -145,6 +147,79 @@ function seed(): DBShape {
   ];
   const banners: Banner[] = [
     { id: uid(), teks: "Periode kurasi sanggar 2026 akan dimulai 1 Mei 2026.", start: now, end: now + 86400000 * 30, active: true },
+  ];
+
+  const infoBudaya: InfoBudaya[] = [
+    {
+      id: uid(),
+      judul: "Tari Topeng Betawi",
+      ringkasan: "Tarian topeng khas Betawi yang lahir dari tradisi keliling kampung. Memadukan tari, musik, dan teater rakyat.",
+      isi: "Tari Topeng Betawi adalah seni pertunjukan rakyat yang berkembang di pinggiran Jakarta sejak abad ke-19. Penari mengenakan tiga jenis topeng — Panji, Samba, dan Jingga — yang masing-masing membawa karakter berbeda. Diiringi musik gambang kromong dan rebana, pertunjukan ini biasa hadir di pesta hajatan, khitanan, sampai panen.",
+      imageUrl: "https://images.unsplash.com/photo-1583394293214-28a4b0028b1c?w=1600",
+      kategori: "Tari",
+      sumber: "Dinas Kebudayaan DKI Jakarta",
+      active: true,
+      order: 1,
+      createdAt: now - 86400000 * 5,
+      updatedAt: now - 86400000 * 5,
+      authorId: kurator.id,
+    },
+    {
+      id: uid(),
+      judul: "Gambang Kromong",
+      ringkasan: "Orkes khas Betawi yang memadukan alat musik Tionghoa dan pribumi. Bukti hidup akulturasi panjang di Jakarta.",
+      isi: "Gambang Kromong lahir dari perpaduan alat musik Tionghoa (kongahyan, tehyan, sukong) dengan alat musik pribumi (gambang, kromong, gendang). Lagu-lagunya seperti 'Jali-Jali', 'Kicir-Kicir', dan 'Surilang' jadi identitas Jakarta. Hari ini gambang kromong sering dipakai mengiringi lenong, tari cokek, hingga upacara pernikahan adat Betawi.",
+      imageUrl: "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1600",
+      kategori: "Musik",
+      sumber: "Lembaga Kebudayaan Betawi",
+      active: true,
+      order: 2,
+      createdAt: now - 86400000 * 4,
+      updatedAt: now - 86400000 * 4,
+      authorId: kurator.id,
+    },
+    {
+      id: uid(),
+      judul: "Lenong Denes & Lenong Preman",
+      ringkasan: "Teater rakyat Betawi penuh humor, dialek khas, dan kritik sosial. Dua versi: Denes (kerajaan) dan Preman (rakyat).",
+      isi: "Lenong adalah teater rakyat Betawi yang memadukan dialog jenaka, lagu, dan tari. Lenong Denes mengangkat cerita kerajaan dengan kostum mewah, sedangkan Lenong Preman bercerita tentang jagoan kampung dengan bahasa sehari-hari yang nyablak. Tokoh ikonik seperti Si Jampang dan Si Pitung sering jadi lakon utama.",
+      imageUrl: "https://images.unsplash.com/photo-1503095396549-807759245b35?w=1600",
+      kategori: "Teater",
+      sumber: "Pusat Studi Betawi UI",
+      active: true,
+      order: 3,
+      createdAt: now - 86400000 * 3,
+      updatedAt: now - 86400000 * 3,
+      authorId: kurator.id,
+    },
+    {
+      id: uid(),
+      judul: "Kerak Telor — Kuliner Identitas",
+      ringkasan: "Hidangan ikonik Betawi yang mulai langka. Beras ketan, telur bebek, ebi, kelapa serundeng — dibakar di anglo.",
+      isi: "Kerak Telor adalah penganan khas Betawi yang dulu disajikan untuk tamu kehormatan kompeni Belanda di pesta Pemerintah Hindia Belanda. Bahan utamanya beras ketan putih, telur bebek atau ayam, ebi (udang kering halus), bawang goreng, kelapa sangrai, dan bumbu rempah. Saat ini kerak telor jadi ikon Pekan Raya Jakarta dan festival budaya Betawi.",
+      imageUrl: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=1600",
+      kategori: "Kuliner",
+      sumber: "Kompendium Kuliner Nusantara",
+      active: true,
+      order: 4,
+      createdAt: now - 86400000 * 2,
+      updatedAt: now - 86400000 * 2,
+      authorId: admin.id,
+    },
+    {
+      id: uid(),
+      judul: "Palang Pintu — Tradisi Pernikahan",
+      ringkasan: "Tradisi penyambutan rombongan pengantin pria dengan adu pantun, silat beksi, dan baca shalawat sebelum diizinkan masuk.",
+      isi: "Palang Pintu adalah tradisi adat dalam pernikahan Betawi. Saat rombongan pengantin pria tiba di kediaman pengantin perempuan, jagoan dari kedua pihak akan beradu pantun dan silat beksi. Setelah saling mengalahkan secara simbolis, diakhiri dengan lantunan shalawat dan rombongan diperbolehkan masuk. Tradisi ini menggambarkan keterbukaan, kesopanan, dan keberanian khas masyarakat Betawi.",
+      imageUrl: "https://images.unsplash.com/photo-1591604466107-ec97de577aff?w=1600",
+      kategori: "Upacara",
+      sumber: "Lembaga Kebudayaan Betawi",
+      active: true,
+      order: 5,
+      createdAt: now - 86400000,
+      updatedAt: now - 86400000,
+      authorId: admin.id,
+    },
   ];
 
   const kasEntries: KasEntry[] = [
@@ -242,6 +317,7 @@ function seed(): DBShape {
     honorPerSesiDefault: 250_000,
     aset, sarpras, kerjasama: [], chatMessages: [], negosiasi: [], invoices: [],
     payments: [], contracts: [], bast: [], ratings: [],
+    infoBudaya,
   };
 }
 
@@ -257,6 +333,21 @@ function migrate(db: DBShape): DBShape {
   db.contracts ||= [];
   db.bast ||= [];
   db.ratings ||= [];
+  db.infoBudaya ||= [];
+  // Backfill kelolaInfoBudaya permission untuk admin yang sudah ada
+  for (const u of db.users) {
+    if (u.role === "admin") {
+      const a = u as AdminUser;
+      const existing = (a.permissions ?? {}) as Partial<AdminUser["permissions"]>;
+      a.permissions = {
+        kelolaBerita: existing.kelolaBerita ?? true,
+        kelolaBanner: existing.kelolaBanner ?? true,
+        kelolaSlider: existing.kelolaSlider ?? true,
+        kelolaJamPembinaan: existing.kelolaJamPembinaan ?? false,
+        kelolaInfoBudaya: existing.kelolaInfoBudaya ?? true,
+      };
+    }
+  }
   db.appearance ||= { primaryHsl: "220 55% 18%", accentHsl: "42 65% 53%", dark: false, theme: "light" };
   db.appearance.themePreset ||= db.appearance.theme ?? "light";
   db.appearance.language ||= "id";

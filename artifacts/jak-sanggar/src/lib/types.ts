@@ -27,6 +27,7 @@ export interface AdminPermissions {
   kelolaBanner: boolean;
   kelolaSlider: boolean;
   kelolaJamPembinaan: boolean;
+  kelolaInfoBudaya: boolean;
 }
 export interface AdminUser extends BaseUser {
   role: "admin";
@@ -114,6 +115,25 @@ export interface News {
   isi: string;
   imageUrl?: string;
   createdAt: number;
+  authorId: string;
+}
+
+export type InfoBudayaKategori =
+  | "Tari" | "Musik" | "Teater" | "Kuliner" | "Pakaian" | "Upacara" | "Sejarah" | "Bahasa" | "Permainan";
+
+export interface InfoBudaya {
+  id: string;
+  judul: string;
+  ringkasan: string;
+  isi: string;
+  imageUrl?: string;
+  imageDataUrl?: string;
+  kategori: InfoBudayaKategori;
+  sumber?: string;
+  active: boolean;
+  order: number;
+  createdAt: number;
+  updatedAt: number;
   authorId: string;
 }
 

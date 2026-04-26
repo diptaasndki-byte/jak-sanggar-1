@@ -9,7 +9,7 @@ import { XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid, ComposedChar
 import { Users, CalendarDays, Wallet, Award, Bell, ArrowRight } from "lucide-react";
 import { AnimatedCounter } from "@/components/system/AnimatedCounter";
 import { PucukRebungDivider, BatikCorner } from "@/components/betawi/Ornaments";
-import { NewsSlider } from "@/components/system/NewsSlider";
+import { BudayaSlider } from "@/components/system/BudayaSlider";
 
 export default function SanggarHome() {
   const { user } = useAuth();
@@ -165,8 +165,8 @@ export default function SanggarHome() {
           </div>
         </Card>
 
-        {/* News slider */}
-        <NewsSlider news={db.news} />
+        {/* Informasi Kebudayaan slider — diatur oleh kurator/admin */}
+        <BudayaSlider items={db.infoBudaya} />
       </div>
 
       <div>
