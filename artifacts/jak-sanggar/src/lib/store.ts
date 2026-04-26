@@ -210,9 +210,9 @@ function seed(): DBShape {
       customTheme: { enabled: false, mode: "light", primaryHsl: "220 55% 18%", accentHsl: "42 65% 53%", bgOpacity: 0.22 },
       brand: {
         appName: "Jak Sanggar",
-        appTagline: "Budaya Naik Kelas, Digital Tanpa Batas",
-        sidebarFooterLine1: "Budaya Naik Kelas,",
-        sidebarFooterLine2: "Digital Tanpa Batas",
+        appTagline: "Kebudayaan akan bernyawa karena ketulusan",
+        sidebarFooterLine1: "Kebudayaan akan bernyawa",
+        sidebarFooterLine2: "karena ketulusan",
         iconKey: "Sparkles",
         loginEyebrow: "Konsorsium Sanggar Betawi",
       },
@@ -264,9 +264,9 @@ function migrate(db: DBShape): DBShape {
   db.appearance.studio = { fontScale: 1, sidebarImageOpacity: 0.18, loginHeroOverlayOpacity: 0.55, ...(db.appearance.studio ?? {}) };
   const defBrand = {
     appName: "Jak Sanggar",
-    appTagline: "Budaya Naik Kelas, Digital Tanpa Batas",
-    sidebarFooterLine1: "Budaya Naik Kelas,",
-    sidebarFooterLine2: "Digital Tanpa Batas",
+    appTagline: "Kebudayaan akan bernyawa karena ketulusan",
+    sidebarFooterLine1: "Kebudayaan akan bernyawa",
+    sidebarFooterLine2: "karena ketulusan",
     iconKey: "Sparkles",
     loginEyebrow: "Konsorsium Sanggar Betawi",
   };

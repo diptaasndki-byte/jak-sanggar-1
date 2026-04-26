@@ -19,7 +19,7 @@ export default function Login() {
   const db = useDb();
   const brand = db.appearance.brand;
   const appName = brand?.appName || "Jak Sanggar";
-  const tagline = brand?.appTagline || "Budaya Naik Kelas, Digital Tanpa Batas";
+  const tagline = brand?.appTagline || "Kebudayaan akan bernyawa karena ketulusan";
   const eyebrow = brand?.loginEyebrow || "Konsorsium Sanggar Betawi";
   const BrandIcon = getBrandIcon(brand?.iconKey);
   const [, navigate] = useLocation();

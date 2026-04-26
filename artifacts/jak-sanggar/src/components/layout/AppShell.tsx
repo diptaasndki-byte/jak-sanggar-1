@@ -87,9 +87,9 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
 
   const brand = db.appearance.brand;
   const appName = brand?.appName || "Jak Sanggar";
-  const tagline = brand?.appTagline || "Budaya Naik Kelas, Digital Tanpa Batas";
-  const footer1 = brand?.sidebarFooterLine1 || "Budaya Naik Kelas,";
-  const footer2 = brand?.sidebarFooterLine2 || "Digital Tanpa Batas";
+  const tagline = brand?.appTagline || "Kebudayaan akan bernyawa karena ketulusan";
+  const footer1 = brand?.sidebarFooterLine1 || "Kebudayaan akan bernyawa";
+  const footer2 = brand?.sidebarFooterLine2 || "karena ketulusan";
   const BrandIcon = getBrandIcon(brand?.iconKey);
   const backdrop = db.appearance.backdrop;
   const customTheme = db.appearance.customTheme;
