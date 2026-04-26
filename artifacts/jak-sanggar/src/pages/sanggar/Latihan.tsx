@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import type { SanggarUser, PelatihUser } from "@/lib/types";
 import { Camera, Calendar, MapPin, FileDown, Plus } from "lucide-react";
-import { escapeHtml } from "@/lib/utils";
+import { openPrintWindow, safeHtml, rawHtml } from "@/lib/print";
 
 export default function LatihanPage() {
   const { user } = useAuth();
@@ -25,8 +25,11 @@ export default function LatihanPage() {
   const exportPdf = () => {
     const pwd = prompt(`Masukkan password Kurator untuk membuka proteksi unduh:`);
     if (pwd !== db.exportPassword) { toast({ title: "Password salah", variant: "destructive" }); return; }
-    const html = `<html><head><title>Jadwal Latihan ${escapeHtml(sg.namaSanggar)}</title></head><body style="font-family:sans-serif;padding:32px"><h1>Jadwal Latihan — ${escapeHtml(sg.namaSanggar)}</h1><table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%"><thead><tr><th>Tanggal</th><th>Jam</th><th>Tempat</th><th>Kurikulum</th><th>Pelatih</th></tr></thead><tbody>${items.map(l => `<tr><td>${escapeHtml(l.tanggal)}</td><td>${escapeHtml(l.jam)}</td><td>${escapeHtml(l.tempat)}</td><td>${escapeHtml(l.kurikulum)}</td><td>${escapeHtml(pelatihList.find(p => p.id === l.pelatihId)?.nama ?? "-")}</td></tr>`).join("")}</tbody></table></body></html>`;
-    const w = window.open("", "_blank"); if (w) { w.document.write(html); w.document.close(); w.print(); }
+    const rows = items
+      .map(l => safeHtml`<tr><td>${l.tanggal}</td><td>${l.jam}</td><td>${l.tempat}</td><td>${l.kurikulum}</td><td>${pelatihList.find(p => p.id === l.pelatihId)?.nama ?? "-"}</td></tr>`)
+      .join("");
+    const body = safeHtml`<h1>Jadwal Latihan — ${sg.namaSanggar}</h1><table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%"><thead><tr><th>Tanggal</th><th>Jam</th><th>Tempat</th><th>Kurikulum</th><th>Pelatih</th></tr></thead><tbody>${rawHtml(rows)}</tbody></table>`;
+    openPrintWindow({ title: `Jadwal Latihan ${sg.namaSanggar}`, bodyHtml: body });
   };
 
   return (

@@ -17,7 +17,7 @@ import type { SanggarUser, PelatihUser, SenimanUser } from "@/lib/types";
 import { FileDown, Check, X, Upload, ArrowUpRight, ArrowDownRight, Share2, TrendingUp } from "lucide-react";
 import { ComposedChart, Bar, Line, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import { AnimatedCounter } from "@/components/system/AnimatedCounter";
-import { escapeHtml } from "@/lib/utils";
+import { openPrintWindow, safeHtml, rawHtml } from "@/lib/print";
 
 const KAT_PEMASUKAN = ["Job Pementasan", "Donasi", "Tiket", "Hibah", "Lainnya"];
 const KAT_PENGELUARAN = ["PLN/Air", "Sewa", "Vendor", "Konsumsi", "Operasional", "Lainnya"];
@@ -66,8 +66,11 @@ export default function BukuKas() {
   };
 
   const printPdf = () => {
-    const html = `<html><head><title>Buku Kas ${escapeHtml(sg.namaSanggar)}</title></head><body style="font-family:sans-serif;padding:32px"><h1>Buku Kas — ${escapeHtml(sg.namaSanggar)}</h1><p>Saldo Akhir: <b>${escapeHtml(fmtRp(sg.saldo))}</b></p><table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%"><thead><tr><th>Tanggal</th><th>Keterangan</th><th>Debit</th><th>Kredit</th><th>Saldo</th></tr></thead><tbody>${[...kas].reverse().map(k => `<tr><td>${escapeHtml(fmtDateTime(k.tanggal))}</td><td>${escapeHtml(k.keterangan)}</td><td style="text-align:right">${escapeHtml(k.debit ? fmtRp(k.debit) : "")}</td><td style="text-align:right">${escapeHtml(k.kredit ? fmtRp(k.kredit) : "")}</td><td style="text-align:right">${escapeHtml(fmtRp(k.saldo))}</td></tr>`).join("")}</tbody></table></body></html>`;
-    const w = window.open("", "_blank"); if (w) { w.document.write(html); w.document.close(); w.print(); }
+    const rows = [...kas].reverse()
+      .map(k => safeHtml`<tr><td>${fmtDateTime(k.tanggal)}</td><td>${k.keterangan}</td><td style="text-align:right">${k.debit ? fmtRp(k.debit) : ""}</td><td style="text-align:right">${k.kredit ? fmtRp(k.kredit) : ""}</td><td style="text-align:right">${fmtRp(k.saldo)}</td></tr>`)
+      .join("");
+    const body = safeHtml`<h1>Buku Kas — ${sg.namaSanggar}</h1><p>Saldo Akhir: <b>${fmtRp(sg.saldo)}</b></p><table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%"><thead><tr><th>Tanggal</th><th>Keterangan</th><th>Debit</th><th>Kredit</th><th>Saldo</th></tr></thead><tbody>${rawHtml(rows)}</tbody></table>`;
+    openPrintWindow({ title: `Buku Kas ${sg.namaSanggar}`, bodyHtml: body });
   };
 
   return (
