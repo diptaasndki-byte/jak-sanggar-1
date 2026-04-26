@@ -13,8 +13,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import type { AdminUser, JuriUser, SanggarUser, PelatihUser, SenimanUser, Indikator, Variabel, AdminPermissions, TradisiKategori, TradisiItem } from "@/lib/types";
-import { Trash2, Eye, FileDown, Plus, Palette, Clock, Shield, X, Crown, Users, GraduationCap, UserCog, Wallet, Image as ImageIcon, Upload, RotateCcw, Type, Sparkles, ScrollText } from "lucide-react";
+import type { AdminUser, JuriUser, SanggarUser, PelatihUser, SenimanUser, Indikator, Variabel, AdminPermissions, TradisiKategori, TradisiItem, ThemeMode } from "@/lib/types";
+import { Trash2, Eye, FileDown, Plus, Palette, Clock, Shield, X, Crown, Users, GraduationCap, UserCog, Wallet, Image as ImageIcon, Upload, RotateCcw, Type, Sparkles, ScrollText, Languages, Check } from "lucide-react";
+import { useT } from "@/lib/i18n";
 import { BRAND_ICON_KEYS, getBrandIcon } from "@/lib/brandIcons";
 import { DEFAULT_KATEGORI_COLOR, DEFAULT_TRADISI_POOL } from "@/components/system/TradisiLisanBetawi";
 import { Textarea } from "@/components/ui/textarea";
@@ -415,12 +416,33 @@ const SWATCHES: { name: string; primary: string; accent: string }[] = [
   { name: "Hijau Daun", primary: "145 50% 30%", accent: "41 75% 50%" },
   { name: "Biru Lautan", primary: "215 60% 35%", accent: "41 75% 55%" },
   { name: "Ungu Sastra", primary: "275 45% 38%", accent: "41 75% 55%" },
+  { name: "Sepia Hangat", primary: "28 55% 32%", accent: "32 70% 58%" },
+  { name: "Mocha Latte", primary: "20 35% 28%", accent: "30 60% 55%" },
+  { name: "Pink Pastel", primary: "330 50% 45%", accent: "320 70% 70%" },
+  { name: "Hutan Tropis", primary: "150 45% 22%", accent: "85 65% 50%" },
+  { name: "Senja Karang", primary: "12 60% 32%", accent: "20 80% 60%" },
 ];
 
-const THEMES: { id: "light" | "dark" | "luxury"; name: string; desc: string; preview: string }[] = [
-  { id: "light", name: "Terang", desc: "Cream + navy + emas. Cocok pemakaian siang & cetak.", preview: "linear-gradient(135deg, hsl(38 35% 96%) 0%, hsl(220 30% 90%) 100%)" },
-  { id: "dark", name: "Gelap", desc: "Navy gelap + emas hangat. Nyaman di mata.", preview: "linear-gradient(135deg, hsl(222 38% 10%) 0%, hsl(222 50% 18%) 100%)" },
-  { id: "luxury", name: "Dark Luxury", desc: "Navy paling pekat + glow emas premium.", preview: "linear-gradient(135deg, hsl(224 60% 5%) 0%, hsl(268 40% 14%) 60%, hsl(42 55% 25%) 100%)" },
+type ThemePresetDef = {
+  id: string;
+  name: string;
+  desc: string;
+  mode: "light" | "dark" | "luxury";
+  primary: string;
+  accent: string;
+  preview: string;
+};
+
+const THEMES: ThemePresetDef[] = [
+  { id: "light", name: "Terang", desc: "Cream + navy + emas. Cocok pemakaian siang & cetak.", mode: "light", primary: "220 55% 18%", accent: "42 65% 53%", preview: "linear-gradient(135deg, hsl(38 35% 96%) 0%, hsl(220 30% 90%) 100%)" },
+  { id: "dark", name: "Gelap", desc: "Navy gelap + emas hangat. Nyaman di mata.", mode: "dark", primary: "220 55% 18%", accent: "42 65% 53%", preview: "linear-gradient(135deg, hsl(222 38% 10%) 0%, hsl(222 50% 18%) 100%)" },
+  { id: "luxury", name: "Dark Luxury", desc: "Navy pekat + glow emas premium.", mode: "luxury", primary: "42 78% 60%", accent: "42 80% 62%", preview: "linear-gradient(135deg, hsl(224 60% 5%) 0%, hsl(268 40% 14%) 60%, hsl(42 55% 25%) 100%)" },
+  { id: "sepia", name: "Sepia Klasik", desc: "Aksen kayu manis & cream — terasa hangat & vintage.", mode: "light", primary: "28 55% 32%", accent: "32 70% 58%", preview: "linear-gradient(135deg, hsl(36 60% 92%) 0%, hsl(28 55% 78%) 100%)" },
+  { id: "ocean", name: "Lautan Biru", desc: "Biru laut dalam + cyan terang. Tegas dan modern.", mode: "dark", primary: "210 80% 22%", accent: "190 80% 55%", preview: "linear-gradient(135deg, hsl(210 70% 8%) 0%, hsl(200 60% 18%) 100%)" },
+  { id: "hutan", name: "Hutan Tropis", desc: "Hijau lumut + lime. Segar dan natural.", mode: "dark", primary: "150 45% 22%", accent: "85 65% 50%", preview: "linear-gradient(135deg, hsl(150 50% 8%) 0%, hsl(145 45% 16%) 100%)" },
+  { id: "senja", name: "Senja Maroon", desc: "Maroon dramatis + peach. Hangat dan elegan.", mode: "dark", primary: "350 55% 25%", accent: "20 80% 60%", preview: "linear-gradient(135deg, hsl(350 50% 8%) 0%, hsl(20 60% 22%) 100%)" },
+  { id: "pastel", name: "Pastel Lembut", desc: "Pink & lavender lembut — friendly & ringan.", mode: "light", primary: "330 50% 45%", accent: "320 70% 70%", preview: "linear-gradient(135deg, hsl(330 60% 95%) 0%, hsl(280 50% 92%) 100%)" },
+  { id: "mocha", name: "Mocha Latte", desc: "Cokelat susu + krim. Klasik dan elegan.", mode: "light", primary: "20 35% 28%", accent: "30 60% 55%", preview: "linear-gradient(135deg, hsl(35 40% 92%) 0%, hsl(25 30% 80%) 100%)" },
 ];
 
 const KATEGORI_LIST: TradisiKategori[] = ["Pantun Betawi", "Peribahasa", "Palang Pintu", "Sahibul Hikayat", "Cerita Rakyat", "Salam Betawi", "Rancag", "Lenong"];
@@ -504,67 +526,85 @@ export function KuratorAppearance() {
   const db = useDb();
   const { toast } = useToast();
   const ap = db.appearance;
-  const currentTheme = ap.theme ?? (ap.dark ? "dark" : "light");
+  const t = useT();
+  const currentPreset = ap.themePreset ?? ap.theme ?? "light";
+
+  const applyMode = (mode: "light" | "dark" | "luxury") => {
+    const root = document.documentElement;
+    root.classList.toggle("dark", mode !== "light");
+    root.classList.toggle("luxury", mode === "luxury");
+  };
 
   const apply = (primary: string, accent: string) => {
-    save(d => { d.appearance.primaryHsl = primary; d.appearance.accentHsl = accent; });
+    save(d => { d.appearance.primaryHsl = primary; d.appearance.accentHsl = accent; if (d.appearance.customTheme) d.appearance.customTheme.enabled = false; });
     document.documentElement.style.setProperty("--primary", primary);
     document.documentElement.style.setProperty("--accent", accent);
-    toast({ title: "Skema warna diperbarui" });
+    toast({ title: t("Tema diperbarui") });
   };
-  const setTheme = (t: "light" | "dark" | "luxury") => {
-    save(d => { d.appearance.theme = t; d.appearance.dark = t !== "light"; });
-    const root = document.documentElement;
-    root.classList.toggle("dark", t !== "light");
-    root.classList.toggle("luxury", t === "luxury");
-    toast({ title: `Tema: ${t === "light" ? "Terang" : t === "dark" ? "Gelap" : "Dark Luxury"}` });
+
+  const setPreset = (preset: ThemePresetDef) => {
+    save(d => {
+      d.appearance.theme = preset.mode;
+      d.appearance.themePreset = preset.id;
+      d.appearance.dark = preset.mode !== "light";
+      d.appearance.primaryHsl = preset.primary;
+      d.appearance.accentHsl = preset.accent;
+      if (d.appearance.customTheme) d.appearance.customTheme.enabled = false;
+    });
+    applyMode(preset.mode);
+    document.documentElement.style.setProperty("--primary", preset.primary);
+    document.documentElement.style.setProperty("--accent", preset.accent);
+    toast({ title: `${t("Tema diperbarui")}: ${preset.name}` });
   };
 
   return (
     <div>
-      <PageHeader title="Pengaturan Tampilan" subtitle="Kustomisasi identitas brand, warna, latar belakang, hingga isi & perilaku pop-up Tradisi Betawi." />
+      <PageHeader title={t("Pengaturan Tampilan")} subtitle="Kustomisasi identitas brand, warna, latar belakang, bahasa, hingga isi & perilaku pop-up Tradisi Betawi." />
 
       <Tabs defaultValue="brand" className="space-y-4">
         <TabsList className="flex flex-wrap h-auto">
-          <TabsTrigger value="brand" className="gap-1.5"><Sparkles className="h-3.5 w-3.5" />Brand & Logo</TabsTrigger>
-          <TabsTrigger value="tema" className="gap-1.5"><Palette className="h-3.5 w-3.5" />Tema & Warna</TabsTrigger>
-          <TabsTrigger value="backdrop" className="gap-1.5"><ImageIcon className="h-3.5 w-3.5" />Backdrop</TabsTrigger>
-          <TabsTrigger value="tradisi" className="gap-1.5"><ScrollText className="h-3.5 w-3.5" />Pop-up Tradisi</TabsTrigger>
+          <TabsTrigger value="brand" className="gap-1.5"><Sparkles className="h-3.5 w-3.5" />{t("Brand & Logo")}</TabsTrigger>
+          <TabsTrigger value="tema" className="gap-1.5"><Palette className="h-3.5 w-3.5" />{t("Tema & Warna")}</TabsTrigger>
+          <TabsTrigger value="backdrop" className="gap-1.5"><ImageIcon className="h-3.5 w-3.5" />{t("Backdrop")}</TabsTrigger>
+          <TabsTrigger value="tradisi" className="gap-1.5"><ScrollText className="h-3.5 w-3.5" />{t("Pop-up Tradisi")}</TabsTrigger>
+          <TabsTrigger value="bahasa" className="gap-1.5" data-testid="tab-bahasa"><Languages className="h-3.5 w-3.5" />{t("Bahasa")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="brand"><BrandTab /></TabsContent>
 
         <TabsContent value="tema">
           <Card className="p-5 mb-4">
-            <h3 className="font-serif text-lg flex items-center gap-2"><Palette className="h-5 w-5" />Mode Tampilan</h3>
+            <h3 className="font-serif text-lg flex items-center gap-2"><Palette className="h-5 w-5" />{t("Mode Tampilan")}</h3>
             <p className="text-sm text-muted-foreground mt-1">Pilih atmosfer yang paling nyaman. Berlaku untuk semua pengguna.</p>
-            <div className="mt-4 grid sm:grid-cols-3 gap-3">
-              {THEMES.map(t => (
+            <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {THEMES.map(p => (
                 <button
-                  key={t.id}
-                  onClick={() => setTheme(t.id)}
+                  key={p.id}
+                  onClick={() => setPreset(p)}
                   className={`text-left rounded-2xl border p-3 transition-all ${
-                    currentTheme === t.id
+                    currentPreset === p.id
                       ? "border-accent ring-2 ring-accent/40"
                       : "border-border hover:border-accent/50 hover:-translate-y-0.5"
                   }`}
-                  data-testid={`theme-${t.id}`}
+                  data-testid={`theme-${p.id}`}
                 >
-                  <div className="h-20 w-full rounded-xl mb-3 relative overflow-hidden" style={{ background: t.preview, border: "1px solid hsl(var(--border))" }}>
-                    <div className="absolute inset-x-3 top-3 h-2 rounded-full" style={{ background: "hsl(42 75% 60%)" }} />
+                  <div className="h-20 w-full rounded-xl mb-3 relative overflow-hidden" style={{ background: p.preview, border: "1px solid hsl(var(--border))" }}>
+                    <div className="absolute inset-x-3 top-3 h-2 rounded-full" style={{ background: `hsl(${p.accent})` }} />
                     <div className="absolute left-3 right-1/2 bottom-3 h-1.5 rounded-full bg-white/40" />
                     <div className="absolute right-3 left-2/3 bottom-3 h-1.5 rounded-full bg-white/20" />
                   </div>
-                  <div className="text-sm font-medium">{t.name}</div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{t.desc}</div>
+                  <div className="text-sm font-medium">{p.name}</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{p.desc}</div>
                 </button>
               ))}
             </div>
           </Card>
 
-          <Card className="p-5">
-            <h3 className="font-serif text-lg flex items-center gap-2"><Palette className="h-5 w-5" />Aksen Warna</h3>
-            <p className="text-sm text-muted-foreground mt-1">Atur warna primer & aksen secara opsional. Gunakan default <b>Navy Emas</b> untuk identitas Jak Sanggar.</p>
+          <CustomThemeCard />
+
+          <Card className="p-5 mt-4">
+            <h3 className="font-serif text-lg flex items-center gap-2"><Palette className="h-5 w-5" />{t("Aksen Warna")}</h3>
+            <p className="text-sm text-muted-foreground mt-1">Ganti hanya warna primer & aksen tanpa mengubah mode. Klik salah satu untuk menerapkan langsung.</p>
             <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
               {SWATCHES.map(s => (
                 <button key={s.name} onClick={() => apply(s.primary, s.accent)} className={`text-left rounded-xl border p-3 transition hover:-translate-y-0.5 ${ap.primaryHsl === s.primary ? "ring-2 ring-accent border-accent" : "hover:border-accent/40"}`}>
@@ -578,8 +618,262 @@ export function KuratorAppearance() {
 
         <TabsContent value="backdrop"><BackdropTab /></TabsContent>
         <TabsContent value="tradisi"><TradisiTab /></TabsContent>
+        <TabsContent value="bahasa"><BahasaTab /></TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+function CustomThemeCard() {
+  const db = useDb();
+  const { toast } = useToast();
+  const t = useT();
+  const ct = db.appearance.customTheme ?? { enabled: false, mode: "light" as const, primaryHsl: "220 55% 18%", accentHsl: "42 65% 53%", bgOpacity: 0.22 };
+  const [draft, setDraft] = useState(ct);
+  const [busy, setBusy] = useState(false);
+
+  const hslToHex = (hsl: string): string => {
+    const m = hsl.match(/(\d+)\s+(\d+)%\s+(\d+)%/);
+    if (!m) return "#1f3a72";
+    const h = +m[1], s = +m[2] / 100, l = +m[3] / 100;
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+    const mm = l - c / 2;
+    let r = 0, g = 0, b = 0;
+    if (h < 60) [r, g, b] = [c, x, 0];
+    else if (h < 120) [r, g, b] = [x, c, 0];
+    else if (h < 180) [r, g, b] = [0, c, x];
+    else if (h < 240) [r, g, b] = [0, x, c];
+    else if (h < 300) [r, g, b] = [x, 0, c];
+    else[r, g, b] = [c, 0, x];
+    const toHex = (n: number) => Math.round((n + mm) * 255).toString(16).padStart(2, "0");
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+  };
+  const hexToHsl = (hex: string): string => {
+    const m = hex.replace("#", "").match(/^([0-9a-f]{6})$/i);
+    if (!m) return draft.primaryHsl;
+    const r = parseInt(m[1].slice(0, 2), 16) / 255;
+    const g = parseInt(m[1].slice(2, 4), 16) / 255;
+    const b = parseInt(m[1].slice(4, 6), 16) / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h = 0, s = 0; const l = (max + min) / 2;
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r: h = ((g - b) / d + (g < b ? 6 : 0)); break;
+        case g: h = ((b - r) / d + 2); break;
+        case b: h = ((r - g) / d + 4); break;
+      }
+      h *= 60;
+    }
+    return `${Math.round(h)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+  };
+
+  const onUpload = async (file: File) => {
+    try {
+      setBusy(true);
+      const r = await compressImageFile(file, { targetBytes: 900_000, maxDimension: 1920 });
+      setDraft(d => ({ ...d, bgImageDataUrl: r.dataUrl }));
+      toast({ title: "Gambar tema siap. Tekan Simpan untuk menerapkan." });
+    } catch (e: any) {
+      toast({ title: "Gagal memuat gambar", description: e?.message ?? "", variant: "destructive" });
+    } finally { setBusy(false); }
+  };
+
+  const simpan = () => {
+    try {
+      save(d => {
+        const ap = d.appearance;
+        const wasEnabled = ap.customTheme?.enabled ?? false;
+        const baseline = wasEnabled
+          ? ap.customTheme?.previousBaseline
+          : {
+              theme: (ap.theme ?? "light") as ThemeMode,
+              themePreset: ap.themePreset ?? ap.theme ?? "light",
+              primaryHsl: ap.primaryHsl,
+              accentHsl: ap.accentHsl,
+              dark: ap.dark,
+            };
+        ap.customTheme = { ...draft, enabled: true, previousBaseline: baseline };
+        ap.theme = draft.mode;
+        ap.themePreset = "custom";
+        ap.dark = draft.mode !== "light";
+        ap.primaryHsl = draft.primaryHsl;
+        ap.accentHsl = draft.accentHsl;
+      });
+      const root = document.documentElement;
+      root.classList.toggle("dark", draft.mode !== "light");
+      root.classList.toggle("luxury", draft.mode === "luxury");
+      root.style.setProperty("--primary", draft.primaryHsl);
+      root.style.setProperty("--accent", draft.accentHsl);
+      toast({ title: t("Tema kustom diterapkan") });
+    } catch (e: any) {
+      toast({ title: "Gagal menyimpan", description: e?.message ?? "", variant: "destructive" });
+    }
+  };
+
+  const matikan = () => {
+    try {
+      const restoredBox: Array<{ mode: ThemeMode; primary: string; accent: string }> = [];
+      save(d => {
+        const ap = d.appearance;
+        const baseline = ap.customTheme?.previousBaseline;
+        if (baseline) {
+          ap.theme = baseline.theme;
+          ap.themePreset = baseline.themePreset;
+          ap.primaryHsl = baseline.primaryHsl;
+          ap.accentHsl = baseline.accentHsl;
+          ap.dark = baseline.dark;
+          restoredBox.push({ mode: baseline.theme, primary: baseline.primaryHsl, accent: baseline.accentHsl });
+        }
+        if (ap.customTheme) {
+          ap.customTheme.enabled = false;
+          ap.customTheme.previousBaseline = undefined;
+        }
+      });
+      setDraft(d => ({ ...d, enabled: false }));
+      const restored = restoredBox[0];
+      if (restored) {
+        const root = document.documentElement;
+        root.classList.toggle("dark", restored.mode !== "light");
+        root.classList.toggle("luxury", restored.mode === "luxury");
+        root.style.setProperty("--primary", restored.primary);
+        root.style.setProperty("--accent", restored.accent);
+      }
+      toast({ title: "Tema kustom dimatikan" });
+    } catch (e: any) {
+      toast({ title: "Gagal menyimpan", description: e?.message ?? "", variant: "destructive" });
+    }
+  };
+
+  return (
+    <Card className="p-5 mt-4">
+      <div className="flex items-start justify-between flex-wrap gap-2">
+        <div>
+          <h3 className="font-serif text-lg flex items-center gap-2"><Sparkles className="h-5 w-5" />{t("Tema Kustom Anda")}</h3>
+          <p className="text-sm text-muted-foreground mt-1">Pilih warna primer + aksen sendiri, ditambah opsi gambar latar tema. Sistem akan otomatis mengecilkan gambar.</p>
+        </div>
+        {ct.enabled && (
+          <div className="text-[11px] uppercase tracking-wider px-2 py-1 rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">Aktif</div>
+        )}
+      </div>
+
+      <div className="mt-4 grid lg:grid-cols-[1fr_280px] gap-4">
+        <div className="space-y-4">
+          <div className="grid sm:grid-cols-3 gap-3">
+            <div className="space-y-1.5">
+              <Label>Mode Dasar</Label>
+              <Select value={draft.mode} onValueChange={(v: any) => setDraft({ ...draft, mode: v })}>
+                <SelectTrigger data-testid="select-custom-mode"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="light">Terang</SelectItem>
+                  <SelectItem value="dark">Gelap</SelectItem>
+                  <SelectItem value="luxury">Dark Luxury</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Warna Primer</Label>
+              <div className="flex items-center gap-2">
+                <input type="color" value={hslToHex(draft.primaryHsl)} onChange={e => setDraft({ ...draft, primaryHsl: hexToHsl(e.target.value) })} className="h-9 w-12 rounded cursor-pointer" data-testid="color-custom-primary" />
+                <Input value={draft.primaryHsl} onChange={e => setDraft({ ...draft, primaryHsl: e.target.value })} className="font-mono text-xs" placeholder="220 55% 18%" />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Warna Aksen</Label>
+              <div className="flex items-center gap-2">
+                <input type="color" value={hslToHex(draft.accentHsl)} onChange={e => setDraft({ ...draft, accentHsl: hexToHsl(e.target.value) })} className="h-9 w-12 rounded cursor-pointer" data-testid="color-custom-accent" />
+                <Input value={draft.accentHsl} onChange={e => setDraft({ ...draft, accentHsl: e.target.value })} className="font-mono text-xs" placeholder="42 65% 53%" />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <Label>Gambar Latar Tema (opsional)</Label>
+            <p className="text-[11px] text-muted-foreground mt-0.5 mb-2">Berlaku saat tema kustom aktif. Akan ditampilkan di seluruh halaman setelah login.</p>
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="h-20 w-32 rounded-md border bg-muted/30 grid place-items-center overflow-hidden">
+                {draft.bgImageDataUrl ? <img src={draft.bgImageDataUrl} alt="bg" className="h-full w-full object-cover" /> : <span className="text-[11px] text-muted-foreground">Tanpa gambar</span>}
+              </div>
+              <label className="inline-flex items-center gap-2 px-3 py-2 border rounded-md text-sm cursor-pointer hover-elevate">
+                <Upload className="h-4 w-4" />{busy ? "Memproses..." : (draft.bgImageDataUrl ? "Ganti Gambar" : "Unggah Gambar")}
+                <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && onUpload(e.target.files[0])} data-testid="input-custom-bg" />
+              </label>
+              {draft.bgImageDataUrl && <Button size="sm" variant="outline" onClick={() => setDraft(d => ({ ...d, bgImageDataUrl: undefined }))} className="gap-1"><X className="h-3.5 w-3.5" />Hapus</Button>}
+            </div>
+            {draft.bgImageDataUrl && (
+              <div className="mt-3 space-y-1.5">
+                <div className="flex items-center justify-between"><Label>Opasitas Gambar</Label><span className="text-xs text-muted-foreground tabular-nums">{Math.round((draft.bgOpacity ?? 0.22) * 100)}%</span></div>
+                <input type="range" min={5} max={80} value={Math.round((draft.bgOpacity ?? 0.22) * 100)} onChange={e => setDraft({ ...draft, bgOpacity: Number(e.target.value) / 100 })} className="w-full" />
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-2 flex-wrap">
+            <Button onClick={simpan} className="gap-1.5" data-testid="button-save-custom-theme"><Sparkles className="h-4 w-4" />{t("Simpan Tema Kustom")}</Button>
+            {ct.enabled && <Button variant="outline" onClick={matikan} className="gap-1.5"><X className="h-4 w-4" />Matikan</Button>}
+          </div>
+        </div>
+
+        <div className="rounded-xl border overflow-hidden h-fit" style={{ background: draft.bgImageDataUrl ? `url(${draft.bgImageDataUrl}) center/cover` : `hsl(${draft.primaryHsl})` }}>
+          <div className="p-4" style={{ background: draft.bgImageDataUrl ? `hsl(${draft.primaryHsl} / ${1 - (draft.bgOpacity ?? 0.22)})` : "transparent", minHeight: 180 }}>
+            <div className="text-[10px] uppercase tracking-widest text-white/70 mb-2">Pratinjau</div>
+            <div className="font-serif text-xl text-white">Halo, ini tema kustom</div>
+            <div className="mt-3 inline-block px-3 py-1.5 rounded-md text-xs font-medium" style={{ background: `hsl(${draft.accentHsl})`, color: "hsl(220 60% 10%)" }}>Tombol Aksen</div>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function BahasaTab() {
+  const db = useDb();
+  const { toast } = useToast();
+  const t = useT();
+  const cur = db.appearance.language ?? "id";
+  const [lang, setLang] = useState<"id" | "btw">(cur);
+
+  const simpan = () => {
+    save(d => { d.appearance.language = lang; });
+    toast({ title: t("Bahasa berhasil diganti") });
+  };
+
+  return (
+    <Card className="p-5 max-w-2xl">
+      <h3 className="font-serif text-lg flex items-center gap-2"><Languages className="h-5 w-5" />{t("Pilih Bahasa Antarmuka")}</h3>
+      <p className="text-sm text-muted-foreground mt-1">Pilihan bahasa hanya tersedia untuk Bahasa Indonesia (resmi) dan Bahasa Betawi (logat khas Jakarta — santai & ramah).</p>
+
+      <div className="mt-4 grid sm:grid-cols-2 gap-3">
+        {[
+          { id: "id" as const, label: t("Bahasa Indonesia"), desc: "Bahasa resmi nasional. Cocok untuk dokumen, pelaporan, dan kebutuhan formal." },
+          { id: "btw" as const, label: t("Bahasa Betawi"), desc: "Logat khas warga asli Jakarta. Ramah, hangat, dan bercita rasa lokal." },
+        ].map(opt => (
+          <button
+            key={opt.id}
+            type="button"
+            onClick={() => setLang(opt.id)}
+            className={`text-left rounded-2xl border p-4 transition-all ${lang === opt.id ? "border-accent ring-2 ring-accent/40 bg-accent/5" : "border-border hover:border-accent/50 hover:-translate-y-0.5"}`}
+            data-testid={`bahasa-${opt.id}`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="font-serif text-lg">{opt.label}</div>
+              {lang === opt.id && <Check className="h-4 w-4 text-accent" />}
+            </div>
+            <p className="text-[12px] text-muted-foreground mt-1.5 leading-relaxed">{opt.desc}</p>
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-5 flex gap-2">
+        <Button onClick={simpan} className="gap-1.5" data-testid="button-save-bahasa"><Sparkles className="h-4 w-4" />{t("Simpan Bahasa")}</Button>
+      </div>
+
+      <div className="mt-5 p-3 border rounded-lg bg-muted/40 text-[12px] text-muted-foreground">
+        <strong>Catatan:</strong> Pilihan bahasa berlaku untuk halaman login, navigasi sidebar, label peran, dan tombol-tombol utama. Sebagian besar konten editorial (nama dokumen, nama acara, dll.) tetap mengikuti aslinya.
+      </div>
+    </Card>
   );
 }
 

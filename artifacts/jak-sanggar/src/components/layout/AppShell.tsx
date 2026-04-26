@@ -7,10 +7,11 @@ import type { Role, ThemeMode } from "@/lib/types";
 import { load, save } from "@/lib/store";
 import { PucukRebungDivider } from "@/components/betawi/Ornaments";
 import { getBrandIcon } from "@/lib/brandIcons";
+import { useT } from "@/lib/i18n";
 
 interface NavItem { label: string; href: string; icon: ReactNode; children?: NavItem[]; }
 
-const labels: Record<Role, string> = {
+const ROLE_KEY: Record<Role, string> = {
   kurator: "Kurator",
   admin: "Admin",
   sanggar: "Sanggar",
@@ -25,12 +26,18 @@ function applyTheme(theme: ThemeMode) {
   root.classList.toggle("luxury", theme === "luxury");
 }
 
+function applyLang(lang: string) {
+  if (typeof document !== "undefined") document.documentElement.dataset.lang = lang;
+}
+
 export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNode }) {
   const { user, logout } = useAuth();
   const db = useDb();
   const [loc, navigate] = useLocation();
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
+  const t = useT();
+  const labels = ROLE_KEY;
 
   useEffect(() => {
     const ap = load().appearance;
@@ -38,7 +45,8 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
     if (ap.accentHsl) document.documentElement.style.setProperty("--accent", ap.accentHsl);
     const theme: ThemeMode = ap.theme ?? (ap.dark ? "dark" : "light");
     applyTheme(theme);
-  }, [db.appearance.theme, db.appearance.primaryHsl, db.appearance.accentHsl, db.appearance.dark]);
+    applyLang(ap.language ?? "id");
+  }, [db.appearance.theme, db.appearance.primaryHsl, db.appearance.accentHsl, db.appearance.dark, db.appearance.language]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -60,12 +68,21 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
   const footer2 = brand?.sidebarFooterLine2 || "Digital Tanpa Batas";
   const BrandIcon = getBrandIcon(brand?.iconKey);
   const backdrop = db.appearance.backdrop;
+  const customTheme = db.appearance.customTheme;
 
   const currentTheme: ThemeMode = db.appearance.theme ?? (db.appearance.dark ? "dark" : "light");
   const cycleTheme = () => {
     const order: ThemeMode[] = ["light", "dark", "luxury"];
     const next = order[(order.indexOf(currentTheme) + 1) % order.length];
-    save(d => { d.appearance.theme = next; d.appearance.dark = next !== "light"; });
+    save(d => {
+      d.appearance.theme = next;
+      d.appearance.themePreset = next;
+      d.appearance.dark = next !== "light";
+      if (d.appearance.customTheme?.enabled) {
+        d.appearance.customTheme.enabled = false;
+        d.appearance.customTheme.previousBaseline = undefined;
+      }
+    });
   };
 
   const profilePath =
@@ -109,7 +126,7 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
           )}
           <div className="min-w-0">
             <div className="font-serif text-lg leading-tight truncate">{appName}</div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-sidebar-foreground/55">{labels[user.role]}</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-sidebar-foreground/55">{t(labels[user.role])}</div>
           </div>
         </div>
 
@@ -211,7 +228,7 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
                   <BrandIcon className="h-4 w-4" />
                 </div>
               )}
-              <div className="font-serif text-base truncate">{appName} · {labels[user.role]}</div>
+              <div className="font-serif text-base truncate">{appName} · {t(labels[user.role])}</div>
             </div>
 
             {/* Central compact nav (desktop only) — shows top 5 nav items with gold underline on active */}
@@ -253,8 +270,8 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
                 type="button"
                 data-tradisi="silent"
                 className="relative h-9 w-9 grid place-items-center rounded-md hover:bg-muted transition-colors text-foreground/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
-                aria-label="Notifikasi"
-                title="Notifikasi"
+                aria-label={t("Notifikasi")}
+                title={t("Notifikasi")}
               >
                 <Bell className="h-4 w-4" />
                 <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-destructive" />
@@ -265,7 +282,7 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
                 data-tradisi="silent"
                 onClick={cycleTheme}
                 className="h-9 w-9 grid place-items-center rounded-md hover:bg-muted transition-colors text-foreground/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
-                aria-label={`Ganti tema (sekarang: ${currentTheme})`}
+                aria-label={`${t("Tema diperbarui")} (${currentTheme})`}
                 title={`Tema: ${currentTheme}`}
               >
                 {currentTheme === "light" ? <Sun className="h-4 w-4" /> :
@@ -278,7 +295,7 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
                   type="button"
                   data-tradisi="silent"
                   onClick={() => setProfileOpen(o => !o)}
-                  aria-label="Menu profil"
+                  aria-label={t("Profil Saya")}
                   aria-expanded={profileOpen}
                   className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-md hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
                 >
@@ -296,7 +313,7 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
                   <div className="absolute right-0 mt-2 w-60 rounded-xl glass shadow-lg overflow-hidden p-1 animate-in fade-in slide-in-from-top-2 duration-150">
                     <div className="px-3 py-2.5 border-b border-border/60">
                       <div className="text-sm font-medium truncate">{displayName}</div>
-                      <div className="text-xs text-muted-foreground truncate">@{user.username} · {labels[user.role]}</div>
+                      <div className="text-xs text-muted-foreground truncate">@{user.username} · {t(labels[user.role])}</div>
                     </div>
                     {profilePath && (
                       <button
@@ -305,7 +322,7 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
                         onClick={() => { setProfileOpen(false); navigate(profilePath); }}
                         className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-muted text-left"
                       >
-                        <UserCog className="h-4 w-4" /> Profil Saya
+                        <UserCog className="h-4 w-4" /> {t("Profil Saya")}
                       </button>
                     )}
                     <button
@@ -315,7 +332,7 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-destructive/10 text-destructive text-left"
                       data-testid="button-logout"
                     >
-                      <LogOut className="h-4 w-4" /> Keluar
+                      <LogOut className="h-4 w-4" /> {t("Keluar")}
                     </button>
                   </div>
                 )}
@@ -326,6 +343,18 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
         </header>
 
         <main className="relative flex-1 overflow-y-auto betawi-watermark">
+          {customTheme?.enabled && customTheme.bgImageDataUrl && (
+            <div
+              aria-hidden="true"
+              className="pointer-events-none fixed inset-0 z-0"
+              style={{
+                backgroundImage: `url(${customTheme.bgImageDataUrl})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                opacity: Math.max(0, Math.min(1, customTheme.bgOpacity ?? 0.22)),
+              }}
+            />
+          )}
           {backdrop?.enabled && backdrop.imageDataUrl && (
             <div
               aria-hidden="true"

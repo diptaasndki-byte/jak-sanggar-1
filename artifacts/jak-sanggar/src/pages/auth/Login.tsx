@@ -8,6 +8,7 @@ import { Eye, EyeOff, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { GoldDustField, OndelOndelSilhouette, PucukRebungDivider, TumpalSpinner } from "@/components/betawi/Ornaments";
 import { getBrandIcon } from "@/lib/brandIcons";
+import { useT } from "@/lib/i18n";
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -23,6 +24,7 @@ export default function Login() {
   const BrandIcon = getBrandIcon(brand?.iconKey);
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const t = useT();
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,10 +34,10 @@ export default function Login() {
       const u = login(username.trim(), password);
       if (!u) {
         setBusy(false);
-        toast({ title: "Gagal masuk", description: "Username atau password tidak cocok.", variant: "destructive" });
+        toast({ title: t("Gagal masuk"), description: t("Username atau password tidak cocok."), variant: "destructive" });
         return;
       }
-      toast({ title: `Selamat datang, ${(u as any).nama || (u as any).namaSanggar || u.username}` });
+      toast({ title: `${t("Selamat Datang Kembali")}, ${(u as any).nama || (u as any).namaSanggar || u.username}` });
       navigate(`/${u.role}`);
     }, 380);
   };
@@ -94,7 +96,7 @@ export default function Login() {
         </div>
 
         <div className="relative max-w-xl">
-          <div className="text-amber-200/60 text-[11px] uppercase tracking-[0.32em] mb-3">— Tagline Resmi —</div>
+          <div className="text-amber-200/60 text-[11px] uppercase tracking-[0.32em] mb-3">— {t("Tagline Resmi")} —</div>
           <h2
             className="font-serif text-4xl xl:text-[58px] leading-[1.05] gold-glow"
             style={{
@@ -119,7 +121,7 @@ export default function Login() {
           <div>© {new Date().getFullYear()} Jak Sanggar · Pemerintah Provinsi DKI Jakarta</div>
           <div className="hidden xl:flex items-center gap-2 uppercase tracking-[0.18em]">
             <span className="h-1 w-1 rounded-full bg-amber-300/60" />
-            Edisi Premium
+            {t("Edisi Premium")}
           </div>
         </div>
       </div>
@@ -152,34 +154,34 @@ export default function Login() {
 
             <div className="flex items-center gap-2 mb-1">
               <span className="h-1 w-6 rounded-full bg-accent" />
-              <span className="text-[10px] uppercase tracking-[0.24em] text-accent">Masuk Akun</span>
+              <span className="text-[10px] uppercase tracking-[0.24em] text-accent">{t("Masuk Akun")}</span>
             </div>
-            <h1 className="font-serif text-3xl">Selamat Datang Kembali</h1>
-            <p className="text-sm text-muted-foreground mt-1.5">Gunakan kredensial yang terdaftar untuk melanjutkan.</p>
+            <h1 className="font-serif text-3xl">{t("Selamat Datang Kembali")}</h1>
+            <p className="text-sm text-muted-foreground mt-1.5">{t("Gunakan kredensial yang terdaftar untuk melanjutkan.")}</p>
 
             <form onSubmit={onSubmit} className="mt-6 space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="u" className="text-xs uppercase tracking-wider text-muted-foreground">Username / Email</Label>
+                <Label htmlFor="u" className="text-xs uppercase tracking-wider text-muted-foreground">{t("Username / Email")}</Label>
                 <Input id="u" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="contoh: betawi.merah" required data-testid="input-username" />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="p" className="text-xs uppercase tracking-wider text-muted-foreground">Password</Label>
+                <Label htmlFor="p" className="text-xs uppercase tracking-wider text-muted-foreground">{t("Password")}</Label>
                 <div className="relative">
                   <Input id="p" type={show ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required data-testid="input-password" className="pr-10" />
-                  <button type="button" data-tradisi="silent" onClick={() => setShow(s => !s)} aria-label={show ? "Sembunyikan password" : "Tampilkan password"} aria-pressed={show} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1.5 rounded-md hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50">
+                  <button type="button" data-tradisi="silent" onClick={() => setShow(s => !s)} aria-label={show ? t("Sembunyikan password") : t("Tampilkan password")} aria-pressed={show} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1.5 rounded-md hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50">
                     {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
               </div>
               <Button type="submit" disabled={busy} className="w-full btn-gold border-0 h-11 text-sm font-semibold tracking-wide" data-testid="button-login">
                 {busy ? <TumpalSpinner size={18} /> : <Lock className="h-4 w-4" />}
-                {busy ? "Memverifikasi..." : "Masuk Aman"}
+                {busy ? t("Memverifikasi...") : t("Masuk Aman")}
               </Button>
             </form>
 
             <div className="mt-5 flex items-center justify-between text-sm">
-              <Link href="/lupa-password" className="text-foreground/70 hover:text-accent hover:underline transition-colors">Lupa Password?</Link>
-              <Link href="/daftar" className="text-foreground/70 hover:text-accent hover:underline transition-colors">Daftar Akun</Link>
+              <Link href="/lupa-password" className="text-foreground/70 hover:text-accent hover:underline transition-colors">{t("Lupa Password?")}</Link>
+              <Link href="/daftar" className="text-foreground/70 hover:text-accent hover:underline transition-colors">{t("Daftar Akun")}</Link>
             </div>
 
             <div className="mt-6 relative">
@@ -192,7 +194,7 @@ export default function Login() {
                 }}
               >
                 <div className="font-medium text-foreground mb-1.5 flex items-center gap-1.5">
-                  <span className="h-1 w-1 rounded-full bg-accent" />Akun Demo
+                  <span className="h-1 w-1 rounded-full bg-accent" />{t("Akun Demo")}
                 </div>
                 Kurator: <code className="text-foreground">Penguasa jak1</code> / <code className="text-foreground">ayamayaman</code><br />
                 Sanggar: <code className="text-foreground">betawi.merah</code> / <code className="text-foreground">sanggar123</code><br />

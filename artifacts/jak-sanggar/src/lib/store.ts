@@ -205,6 +205,9 @@ function seed(): DBShape {
       accentHsl: "42 65% 53%",
       dark: false,
       theme: "light",
+      themePreset: "light",
+      language: "id",
+      customTheme: { enabled: false, mode: "light", primaryHsl: "220 55% 18%", accentHsl: "42 65% 53%", bgOpacity: 0.22 },
       brand: {
         appName: "Jak Sanggar",
         appTagline: "Budaya Naik Kelas, Digital Tanpa Batas",
@@ -255,6 +258,9 @@ function migrate(db: DBShape): DBShape {
   db.bast ||= [];
   db.ratings ||= [];
   db.appearance ||= { primaryHsl: "220 55% 18%", accentHsl: "42 65% 53%", dark: false, theme: "light" };
+  db.appearance.themePreset ||= db.appearance.theme ?? "light";
+  db.appearance.language ||= "id";
+  db.appearance.customTheme = { enabled: false, mode: "light", primaryHsl: "220 55% 18%", accentHsl: "42 65% 53%", bgOpacity: 0.22, ...(db.appearance.customTheme ?? {}) };
   const defBrand = {
     appName: "Jak Sanggar",
     appTagline: "Budaya Naik Kelas, Digital Tanpa Batas",

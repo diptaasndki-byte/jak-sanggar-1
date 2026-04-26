@@ -476,12 +476,33 @@ export interface LayoutBackdropSettings {
   blendMode: "normal" | "overlay" | "multiply" | "screen" | "soft-light";
 }
 
+export type Language = "id" | "btw";
+
+export interface CustomThemeSettings {
+  enabled: boolean;
+  mode: ThemeMode;
+  primaryHsl: string;
+  accentHsl: string;
+  bgImageDataUrl?: string;
+  bgOpacity?: number;
+  previousBaseline?: {
+    theme: ThemeMode;
+    themePreset: string;
+    primaryHsl: string;
+    accentHsl: string;
+    dark: boolean;
+  };
+}
+
 export interface AppearanceSettings {
   primaryHsl: string;
   accentHsl: string;
   dark: boolean;
   theme?: ThemeMode;
+  themePreset?: string;
+  language?: Language;
   brand?: BrandSettings;
   backdrop?: LayoutBackdropSettings;
   tradisi?: TradisiSettings;
+  customTheme?: CustomThemeSettings;
 }
