@@ -51,8 +51,8 @@ const POOL: Tradisi[] = [
   { kategori: "Lenong", judul: "Lawakan Lenong", isi: "“Mpok, kenape klik tombolnye lame banget?”\n“Sabar Bang, namenye juga teknologi.”\n“Ye kalo gini terus, tuker hape ane gadget!”\n“Eh udah, klik aje terus, nanti juge jalan sendiri.”", sumber: "Lenong Preman" },
 ];
 
-const COOLDOWN_MS = 700;
-const AUTO_HIDE_MS = 6500;
+const COOLDOWN_MS = 2200;
+const AUTO_HIDE_MS = 4200;
 
 const KATEGORI_COLOR: Record<Kategori, string> = {
   "Pantun Betawi": "#e3b864",
@@ -64,31 +64,6 @@ const KATEGORI_COLOR: Record<Kategori, string> = {
   "Rancag": "#daa44e",
   "Lenong": "#9d7bc0",
 };
-
-function BatikOrnament({ color = "currentColor" }: { color?: string }) {
-  return (
-    <svg viewBox="0 0 200 14" className="w-full h-3.5" preserveAspectRatio="none" aria-hidden>
-      <g fill={color} opacity="0.85">
-        <circle cx="6" cy="7" r="1.5" />
-        <path d="M14 7 Q20 0 26 7 Q20 14 14 7 Z" />
-        <circle cx="34" cy="7" r="1.5" />
-        <path d="M44 4 L48 7 L44 10 L40 7 Z" />
-        <circle cx="56" cy="7" r="1.5" />
-        <path d="M64 7 Q72 1 80 7 Q72 13 64 7 Z" />
-        <circle cx="88" cy="7" r="2.4" />
-        <circle cx="88" cy="7" r="0.9" fill="hsl(var(--background))" />
-        <path d="M100 7 Q108 1 116 7 Q108 13 100 7 Z" />
-        <circle cx="124" cy="7" r="1.5" />
-        <path d="M134 4 L138 7 L134 10 L130 7 Z" />
-        <circle cx="146" cy="7" r="1.5" />
-        <path d="M156 7 Q162 0 168 7 Q162 14 156 7 Z" />
-        <circle cx="176" cy="7" r="1.5" />
-        <path d="M184 4 L188 7 L184 10 L180 7 Z" />
-        <circle cx="196" cy="7" r="1.5" />
-      </g>
-    </svg>
-  );
-}
 
 export function TradisiLisanProvider() {
   const [active, setActive] = useState<Tradisi | null>(null);
@@ -138,16 +113,16 @@ export function TradisiLisanProvider() {
   }, []);
 
   return (
-    <div data-tradisi-popup="root" className="pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex justify-center sm:justify-end p-4 sm:p-6">
+    <div data-tradisi-popup="root" className="pointer-events-none fixed right-0 bottom-0 z-[60] p-3 sm:p-4">
       <AnimatePresence mode="wait">
         {active && (
           <motion.div
             key={tick}
-            initial={{ opacity: 0, y: 36, scale: 0.96 }}
+            initial={{ opacity: 0, y: 18, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 24, scale: 0.97 }}
-            transition={{ type: "spring", stiffness: 320, damping: 28, mass: 0.8 }}
-            className="pointer-events-auto w-full max-w-md"
+            exit={{ opacity: 0, y: 12, scale: 0.97 }}
+            transition={{ type: "spring", stiffness: 360, damping: 30, mass: 0.7 }}
+            className="pointer-events-auto w-[260px] sm:w-[280px]"
           >
             <Card item={active} onClose={dismiss} progressKey={tick} />
           </motion.div>
@@ -162,63 +137,58 @@ function Card({ item, onClose, progressKey }: { item: Tradisi; onClose: () => vo
 
   return (
     <div
-      className="relative overflow-hidden rounded-2xl shadow-2xl backdrop-blur-md border"
+      className="group relative overflow-hidden rounded-xl backdrop-blur-md border"
       style={{
-        background: "linear-gradient(140deg, hsl(222 60% 10% / 0.96) 0%, hsl(222 55% 14% / 0.96) 50%, hsl(268 40% 18% / 0.97) 100%)",
-        borderColor: `${accent}66`,
-        boxShadow: `0 25px 50px -10px rgba(0,0,0,0.6), 0 0 0 1px ${accent}22, 0 0 40px ${accent}18, inset 0 1px 0 rgba(255,255,255,0.07)`,
+        background: "linear-gradient(140deg, hsl(222 60% 10% / 0.92) 0%, hsl(222 55% 14% / 0.92) 60%, hsl(268 40% 18% / 0.93) 100%)",
+        borderColor: `${accent}55`,
+        boxShadow: `0 12px 30px -10px rgba(0,0,0,0.5), 0 0 0 1px ${accent}1a, inset 0 1px 0 rgba(255,255,255,0.05)`,
       }}
     >
-      <div className="absolute inset-x-0 top-0 h-[3px]" style={{ background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }} />
+      <div className="absolute inset-x-0 top-0 h-[2px]" style={{ background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }} />
 
       <button
         type="button"
         onClick={onClose}
         data-tradisi="silent"
         aria-label="Tutup"
-        className="absolute right-3 top-3 grid place-items-center h-7 w-7 rounded-full text-amber-100/60 hover:text-amber-100 hover:bg-white/10 transition z-10"
+        className="absolute right-1.5 top-1.5 grid place-items-center h-5 w-5 rounded-full text-amber-100/40 opacity-0 group-hover:opacity-100 hover:text-amber-100 hover:bg-white/10 transition z-10"
       >
-        <X className="h-3.5 w-3.5" />
+        <X className="h-3 w-3" />
       </button>
 
-      <div className="px-6 pt-5 pb-2 flex items-center gap-2">
+      <div className="px-3.5 pt-3 pb-1 flex items-center gap-1.5">
         <span
-          className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] px-2.5 py-1 rounded-full"
-          style={{ background: `${accent}26`, color: accent, border: `1px solid ${accent}55` }}
+          className="inline-flex items-center gap-1 text-[8.5px] font-semibold uppercase tracking-[0.14em] px-1.5 py-0.5 rounded-full"
+          style={{ background: `${accent}1f`, color: accent, border: `1px solid ${accent}44` }}
         >
-          <span className="h-1 w-1 rounded-full" style={{ background: accent }} />
+          <span className="h-[3px] w-[3px] rounded-full" style={{ background: accent }} />
           {item.kategori}
         </span>
-        <span className="text-[10px] uppercase tracking-[0.18em] text-amber-100/40">Tradisi Lisan Betawi</span>
       </div>
 
-      <div className="px-6 pt-1 pb-1">
-        <h3 className="font-serif text-[20px] leading-tight text-amber-50">{item.judul}</h3>
+      <div className="px-3.5 pb-0.5">
+        <h3 className="font-serif text-[13px] leading-tight text-amber-50/95">{item.judul}</h3>
       </div>
 
-      <div className="px-6 py-2 text-amber-100/40">
-        <BatikOrnament color={accent} />
-      </div>
-
-      <div className="px-6 pb-5">
-        <p className="font-serif italic text-[15px] leading-[1.7] text-amber-50/95 whitespace-pre-line">
+      <div className="px-3.5 pb-3 pt-1">
+        <p className="font-serif italic text-[11.5px] leading-[1.55] text-amber-50/85 whitespace-pre-line line-clamp-4">
           {item.isi}
         </p>
         {item.sumber && (
-          <div className="mt-3 text-[11px] uppercase tracking-[0.16em] text-amber-100/45 text-right">
+          <div className="mt-1.5 text-[8.5px] uppercase tracking-[0.14em] text-amber-100/40 text-right">
             — {item.sumber}
           </div>
         )}
       </div>
 
-      <div className="h-[3px] w-full bg-white/5">
+      <div className="h-[2px] w-full bg-white/5">
         <motion.div
           key={`bar-${progressKey}`}
           initial={{ width: "100%" }}
           animate={{ width: "0%" }}
           transition={{ duration: AUTO_HIDE_MS / 1000, ease: "linear" }}
           className="h-full"
-          style={{ background: `linear-gradient(90deg, ${accent}, ${accent}99)` }}
+          style={{ background: `linear-gradient(90deg, ${accent}, ${accent}88)` }}
         />
       </div>
     </div>
