@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { useAuth } from "@/lib/auth";
+import { useAuth, useDb } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sparkles, Eye, EyeOff, Lock } from "lucide-react";
+import { Eye, EyeOff, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { GoldDustField, OndelOndelSilhouette, PucukRebungDivider, TumpalSpinner } from "@/components/betawi/Ornaments";
+import { getBrandIcon } from "@/lib/brandIcons";
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -14,6 +15,12 @@ export default function Login() {
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
   const { login } = useAuth();
+  const db = useDb();
+  const brand = db.appearance.brand;
+  const appName = brand?.appName || "Jak Sanggar";
+  const tagline = brand?.appTagline || "Budaya Naik Kelas, Digital Tanpa Batas";
+  const eyebrow = brand?.loginEyebrow || "Konsorsium Sanggar Betawi";
+  const BrandIcon = getBrandIcon(brand?.iconKey);
   const [, navigate] = useLocation();
   const { toast } = useToast();
 
@@ -73,11 +80,15 @@ export default function Login() {
                 boxShadow: "0 0 30px hsl(42 75% 50% / 0.55), 0 1px 0 hsl(42 90% 80%) inset",
               }}
             >
-              <Sparkles className="h-6 w-6" style={{ color: "hsl(222 60% 10%)" }} />
+              {brand?.logoDataUrl ? (
+                <img src={brand.logoDataUrl} alt={appName} className="h-10 w-10 rounded-md object-cover" />
+              ) : (
+                <BrandIcon className="h-6 w-6" style={{ color: "hsl(222 60% 10%)" }} />
+              )}
             </div>
             <div>
-              <div className="font-serif text-2xl tracking-tight">Jak Sanggar</div>
-              <div className="text-[10px] uppercase tracking-[0.28em] text-amber-100/55 mt-0.5">Sistem Manajemen Kesenian Jakarta</div>
+              <div className="font-serif text-2xl tracking-tight">{appName}</div>
+              <div className="text-[10px] uppercase tracking-[0.28em] text-amber-100/55 mt-0.5">{eyebrow}</div>
             </div>
           </div>
         </div>
@@ -93,8 +104,7 @@ export default function Login() {
               backgroundClip: "text",
             }}
           >
-            Budaya Naik Kelas,<br />
-            <span className="italic">Digital Tanpa Batas.</span>
+            {tagline}
           </h2>
           <div className="mt-6 max-w-md">
             <PucukRebungDivider className="opacity-70" />
@@ -130,10 +140,14 @@ export default function Login() {
             }}
           >
             <div className="lg:hidden mb-5 flex items-center gap-2.5">
-              <div className="h-9 w-9 rounded-md grid place-items-center btn-gold">
-                <Sparkles className="h-5 w-5" />
-              </div>
-              <div className="font-serif text-xl">Jak Sanggar</div>
+              {brand?.logoDataUrl ? (
+                <img src={brand.logoDataUrl} alt={appName} className="h-9 w-9 rounded-md object-cover" />
+              ) : (
+                <div className="h-9 w-9 rounded-md grid place-items-center btn-gold">
+                  <BrandIcon className="h-5 w-5" />
+                </div>
+              )}
+              <div className="font-serif text-xl">{appName}</div>
             </div>
 
             <div className="flex items-center gap-2 mb-1">

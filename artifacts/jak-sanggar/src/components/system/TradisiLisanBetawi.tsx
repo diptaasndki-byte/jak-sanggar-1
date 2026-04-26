@@ -1,60 +1,40 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
+import { useDb } from "@/lib/auth";
+import type { TradisiItem, TradisiKategori, TradisiPosition, TradisiSettings } from "@/lib/types";
 
-type Kategori = "Pantun Betawi" | "Peribahasa" | "Palang Pintu" | "Sahibul Hikayat" | "Cerita Rakyat" | "Salam Betawi" | "Rancag" | "Lenong";
-
-interface Tradisi { kategori: Kategori; judul: string; isi: string; sumber?: string; }
-
-const POOL: Tradisi[] = [
-  // Pantun Betawi
-  { kategori: "Pantun Betawi", judul: "Pantun Sanggar", isi: "Anak Betawi menabuh rebana,\nIramanya merdu di kala senja.\nKlik tombolmu penuh makna,\nJak Sanggar siap bekerja." },
-  { kategori: "Pantun Betawi", judul: "Pantun Klik", isi: "Pergi ke pasar membeli kain,\nKain batik corak melati.\nSetiap karya seniman lain,\nMenyatu indah di sanggar ini." },
-  { kategori: "Pantun Betawi", judul: "Pantun Honor", isi: "Ke Monas sore naik bajaj,\nLewat Sudirman macetnya panjang.\nHonor cair tepat di hari gajian,\nHati tenang kerja pun lapang." },
-  { kategori: "Pantun Betawi", judul: "Pantun Latihan", isi: "Ondel-ondel berjalan beriring,\nMengikuti irama gendang pengantin.\nLatihan rutin jangan dimiringin,\nBakat tumbuh menjadi terlatih." },
-  { kategori: "Pantun Betawi", judul: "Pantun Tari Topeng", isi: "Kembang kelapa dipasang tinggi,\nMenghias panggung di hari raya.\nTari Betawi penuh berseri,\nMelestarikan budaya pusaka." },
-
-  // Peribahasa Betawi
-  { kategori: "Peribahasa", judul: "Tau Diri", isi: "“Aer beriak tande tak dalem,\naer tenang bukan berarti gak ade ikannye.”", sumber: "Peribahasa Betawi" },
-  { kategori: "Peribahasa", judul: "Kerja Bareng", isi: "“Berate same dipikul,\nringen same dijinjing.”", sumber: "Peribahasa Betawi" },
-  { kategori: "Peribahasa", judul: "Hemat", isi: "“Hemat pangkel kaye,\nrajin pangkel pinter.”", sumber: "Petitih Betawi" },
-  { kategori: "Peribahasa", judul: "Sopan Santun", isi: "“Kalo ngomong kudu pake ati,\nkalo ketawe jangan lupe diri.”", sumber: "Peribahasa Betawi" },
-  { kategori: "Peribahasa", judul: "Kebersamaan", isi: "“Same-same ngerasain pait,\nsame-same nikmatin manis.”", sumber: "Peribahasa Betawi" },
-
-  // Palang Pintu (rhymed verbal duel from Betawi weddings)
-  { kategori: "Palang Pintu", judul: "Sambutan Tamu", isi: "Bang, lewat sini kudu permisi,\nrumah kami punye aturan.\nKlik tombolnye dengen hati,\nbiar berkah dapet sambutan.", sumber: "Buka Palang Pintu" },
-  { kategori: "Palang Pintu", judul: "Tantangan Halus", isi: "Burung kuthilang di atas dahan,\nbersuara nyaring sebelum subuh.\nKalo emang punya kemampuan,\nlanjutin terus jangan berkeluh.", sumber: "Buka Palang Pintu" },
-  { kategori: "Palang Pintu", judul: "Salam Hormat", isi: "Assalamualaikum kami ucapkan,\nsalam hormat penuh ketulusan.\nDi sanggar ini kite kerjakan,\namanat budaye jadi pusaka warisan.", sumber: "Buka Palang Pintu" },
-
-  // Sahibul Hikayat (storytelling tradition)
-  { kategori: "Sahibul Hikayat", judul: "Pembuka Cerita", isi: "“Pade jaman dahulu kale,\ndi tanah Betawi nan permai…”\nBegitulah tukang cerite mulai,\nmenuturkan hikayat yang ramai.", sumber: "Tradisi Sahibul Hikayat" },
-  { kategori: "Sahibul Hikayat", judul: "Pesan Tetua", isi: "“Anak muda, dengerin baek-baek,\nilmu itu bukan sekadar tau.\nDikerjain baru jadi berkat,\nbukan cuman omongan doang lho.”", sumber: "Tutur Tetua Betawi" },
-  { kategori: "Sahibul Hikayat", judul: "Penutup Hikayat", isi: "“Demikianlah cerite ini berakhir,\nambil hikmahnye buat bekal.\nYang baek dipegang kuat-kuat,\nyang buruk dibuang jangan kekal.”", sumber: "Tradisi Sahibul Hikayat" },
-
-  // Cerita Rakyat
-  { kategori: "Cerita Rakyat", judul: "Si Pitung", isi: "Si Pitung jago dari Rawabelong,\nbela rakyat kecil tanpa pamrih.\nSemangatnye hidup terus tertolong,\nbiar generasi muda gak letih.", sumber: "Legende Si Pitung" },
-  { kategori: "Cerita Rakyat", judul: "Nyai Dasimah", isi: "Nyai Dasimah cantik jelita,\nkisahnye masyhur sampe sekarang.\nDari die kite belajar nyate,\npilihan hidup mesti dipikir matang.", sumber: "Legende Betawi" },
-  { kategori: "Cerita Rakyat", judul: "Mirah dari Marunda", isi: "Mirah jago silat dari Marunda,\nperempuan Betawi yang berani.\nKarya budaye kudu dijaga,\nbiar tetep idup di hati nurani.", sumber: "Legende Betawi" },
-
-  // Salam Betawi
-  { kategori: "Salam Betawi", judul: "Salam Akrab", isi: "“Eh, ape kabar ente, Bang?\nMudah-mudahan sehat selalu ye.\nDi sanggar ini kite berjuang,\nlestariin seni jakartanye.”", sumber: "Ungkapan Sehari-hari" },
-  { kategori: "Salam Betawi", judul: "Doa Mulai Kerja", isi: "“Bismillah, mulai kerja kite,\nmoga lancar gak ade halangan.\nNiat lurus ati senang,\nrejeki dateng dari Tuhan.”", sumber: "Doa Sederhana Betawi" },
-  { kategori: "Salam Betawi", judul: "Pamit", isi: "“Mari Bang, ane permisi dulu,\nente terusin kerjaan ente.\nNanti kalo ade kabar baru,\nente kabarin ane lewat sini.”", sumber: "Ungkapan Pamit" },
-
-  // Rancag (sung rhyming verse, classic Betawi)
-  { kategori: "Rancag", judul: "Rancag Pembuka", isi: "Anak Jakarta naik MRT,\nturun di Bunderan HI yang ramai.\nKalo udah niat jadi seniman sejati,\njangan setengah-setengah ye, sampe rampung sampai.", sumber: "Rancag Tradisi Betawi" },
-  { kategori: "Rancag", judul: "Rancag Tekun", isi: "Burung dare terbang berdua,\nhinggap sebentar di pucuk pohon kelape.\nTekun belajar jangan ade dua,\nfokus satu biar berkah doanye.", sumber: "Rancag Tradisi Betawi" },
-  { kategori: "Rancag", judul: "Rancag Syukur", isi: "Hujan rintik di Kota Tua,\npayung warna-warni meneduhi jalan.\nApe yang ade tetap disyukuri,\nrejeki dikit tetep berkah pamungkas.", sumber: "Rancag Tradisi Betawi" },
-
-  // Lenong (theater dialogue)
-  { kategori: "Lenong", judul: "Dialog Lenong", isi: "“Bang Jampang, ngapain lo bengong?”\n“Nih Mpok, gue lagi mikirin Sanggar.”\n“Pikirin yang bener dong, jangan ngelong,\nbiar Jak Sanggar makin gencar.”", sumber: "Lenong Denes" },
-  { kategori: "Lenong", judul: "Lawakan Lenong", isi: "“Mpok, kenape klik tombolnye lame banget?”\n“Sabar Bang, namenye juga teknologi.”\n“Ye kalo gini terus, tuker hape ane gadget!”\n“Eh udah, klik aje terus, nanti juge jalan sendiri.”", sumber: "Lenong Preman" },
+const DEFAULT_POOL: TradisiItem[] = [
+  { id: "d-pb-1", kategori: "Pantun Betawi", judul: "Pantun Sanggar", isi: "Anak Betawi menabuh rebana,\nIramanya merdu di kala senja.\nKlik tombolmu penuh makna,\nJak Sanggar siap bekerja." },
+  { id: "d-pb-2", kategori: "Pantun Betawi", judul: "Pantun Klik", isi: "Pergi ke pasar membeli kain,\nKain batik corak melati.\nSetiap karya seniman lain,\nMenyatu indah di sanggar ini." },
+  { id: "d-pb-3", kategori: "Pantun Betawi", judul: "Pantun Honor", isi: "Ke Monas sore naik bajaj,\nLewat Sudirman macetnya panjang.\nHonor cair tepat di hari gajian,\nHati tenang kerja pun lapang." },
+  { id: "d-pb-4", kategori: "Pantun Betawi", judul: "Pantun Latihan", isi: "Ondel-ondel berjalan beriring,\nMengikuti irama gendang pengantin.\nLatihan rutin jangan dimiringin,\nBakat tumbuh menjadi terlatih." },
+  { id: "d-pb-5", kategori: "Pantun Betawi", judul: "Pantun Tari Topeng", isi: "Kembang kelapa dipasang tinggi,\nMenghias panggung di hari raya.\nTari Betawi penuh berseri,\nMelestarikan budaya pusaka." },
+  { id: "d-pr-1", kategori: "Peribahasa", judul: "Tau Diri", isi: "“Aer beriak tande tak dalem,\naer tenang bukan berarti gak ade ikannye.”", sumber: "Peribahasa Betawi" },
+  { id: "d-pr-2", kategori: "Peribahasa", judul: "Kerja Bareng", isi: "“Berate same dipikul,\nringen same dijinjing.”", sumber: "Peribahasa Betawi" },
+  { id: "d-pr-3", kategori: "Peribahasa", judul: "Hemat", isi: "“Hemat pangkel kaye,\nrajin pangkel pinter.”", sumber: "Petitih Betawi" },
+  { id: "d-pr-4", kategori: "Peribahasa", judul: "Sopan Santun", isi: "“Kalo ngomong kudu pake ati,\nkalo ketawe jangan lupe diri.”", sumber: "Peribahasa Betawi" },
+  { id: "d-pr-5", kategori: "Peribahasa", judul: "Kebersamaan", isi: "“Same-same ngerasain pait,\nsame-same nikmatin manis.”", sumber: "Peribahasa Betawi" },
+  { id: "d-pp-1", kategori: "Palang Pintu", judul: "Sambutan Tamu", isi: "Bang, lewat sini kudu permisi,\nrumah kami punye aturan.\nKlik tombolnye dengen hati,\nbiar berkah dapet sambutan.", sumber: "Buka Palang Pintu" },
+  { id: "d-pp-2", kategori: "Palang Pintu", judul: "Tantangan Halus", isi: "Burung kuthilang di atas dahan,\nbersuara nyaring sebelum subuh.\nKalo emang punya kemampuan,\nlanjutin terus jangan berkeluh.", sumber: "Buka Palang Pintu" },
+  { id: "d-pp-3", kategori: "Palang Pintu", judul: "Salam Hormat", isi: "Assalamualaikum kami ucapkan,\nsalam hormat penuh ketulusan.\nDi sanggar ini kite kerjakan,\namanat budaye jadi pusaka warisan.", sumber: "Buka Palang Pintu" },
+  { id: "d-sh-1", kategori: "Sahibul Hikayat", judul: "Pembuka Cerita", isi: "“Pade jaman dahulu kale,\ndi tanah Betawi nan permai…”\nBegitulah tukang cerite mulai,\nmenuturkan hikayat yang ramai.", sumber: "Tradisi Sahibul Hikayat" },
+  { id: "d-sh-2", kategori: "Sahibul Hikayat", judul: "Pesan Tetua", isi: "“Anak muda, dengerin baek-baek,\nilmu itu bukan sekadar tau.\nDikerjain baru jadi berkat,\nbukan cuman omongan doang lho.”", sumber: "Tutur Tetua Betawi" },
+  { id: "d-sh-3", kategori: "Sahibul Hikayat", judul: "Penutup Hikayat", isi: "“Demikianlah cerite ini berakhir,\nambil hikmahnye buat bekal.\nYang baek dipegang kuat-kuat,\nyang buruk dibuang jangan kekal.”", sumber: "Tradisi Sahibul Hikayat" },
+  { id: "d-cr-1", kategori: "Cerita Rakyat", judul: "Si Pitung", isi: "Si Pitung jago dari Rawabelong,\nbela rakyat kecil tanpa pamrih.\nSemangatnye hidup terus tertolong,\nbiar generasi muda gak letih.", sumber: "Legende Si Pitung" },
+  { id: "d-cr-2", kategori: "Cerita Rakyat", judul: "Nyai Dasimah", isi: "Nyai Dasimah cantik jelita,\nkisahnye masyhur sampe sekarang.\nDari die kite belajar nyate,\npilihan hidup mesti dipikir matang.", sumber: "Legende Betawi" },
+  { id: "d-cr-3", kategori: "Cerita Rakyat", judul: "Mirah dari Marunda", isi: "Mirah jago silat dari Marunda,\nperempuan Betawi yang berani.\nKarya budaye kudu dijaga,\nbiar tetep idup di hati nurani.", sumber: "Legende Betawi" },
+  { id: "d-sb-1", kategori: "Salam Betawi", judul: "Salam Akrab", isi: "“Eh, ape kabar ente, Bang?\nMudah-mudahan sehat selalu ye.\nDi sanggar ini kite berjuang,\nlestariin seni jakartanye.”", sumber: "Ungkapan Sehari-hari" },
+  { id: "d-sb-2", kategori: "Salam Betawi", judul: "Doa Mulai Kerja", isi: "“Bismillah, mulai kerja kite,\nmoga lancar gak ade halangan.\nNiat lurus ati senang,\nrejeki dateng dari Tuhan.”", sumber: "Doa Sederhana Betawi" },
+  { id: "d-sb-3", kategori: "Salam Betawi", judul: "Pamit", isi: "“Mari Bang, ane permisi dulu,\nente terusin kerjaan ente.\nNanti kalo ade kabar baru,\nente kabarin ane lewat sini.”", sumber: "Ungkapan Pamit" },
+  { id: "d-rc-1", kategori: "Rancag", judul: "Rancag Pembuka", isi: "Anak Jakarta naik MRT,\nturun di Bunderan HI yang ramai.\nKalo udah niat jadi seniman sejati,\njangan setengah-setengah ye, sampe rampung sampai.", sumber: "Rancag Tradisi Betawi" },
+  { id: "d-rc-2", kategori: "Rancag", judul: "Rancag Tekun", isi: "Burung dare terbang berdua,\nhinggap sebentar di pucuk pohon kelape.\nTekun belajar jangan ade dua,\nfokus satu biar berkah doanye.", sumber: "Rancag Tradisi Betawi" },
+  { id: "d-rc-3", kategori: "Rancag", judul: "Rancag Syukur", isi: "Hujan rintik di Kota Tua,\npayung warna-warni meneduhi jalan.\nApe yang ade tetap disyukuri,\nrejeki dikit tetep berkah pamungkas.", sumber: "Rancag Tradisi Betawi" },
+  { id: "d-ln-1", kategori: "Lenong", judul: "Dialog Lenong", isi: "“Bang Jampang, ngapain lo bengong?”\n“Nih Mpok, gue lagi mikirin Sanggar.”\n“Pikirin yang bener dong, jangan ngelong,\nbiar Jak Sanggar makin gencar.”", sumber: "Lenong Denes" },
+  { id: "d-ln-2", kategori: "Lenong", judul: "Lawakan Lenong", isi: "“Mpok, kenape klik tombolnye lame banget?”\n“Sabar Bang, namenye juga teknologi.”\n“Ye kalo gini terus, tuker hape ane gadget!”\n“Eh udah, klik aje terus, nanti juge jalan sendiri.”", sumber: "Lenong Preman" },
 ];
 
-const COOLDOWN_MS = 2200;
-const AUTO_HIDE_MS = 4200;
-
-const KATEGORI_COLOR: Record<Kategori, string> = {
+export const DEFAULT_KATEGORI_COLOR: Record<TradisiKategori, string> = {
   "Pantun Betawi": "#e3b864",
   "Peribahasa": "#d4a64e",
   "Palang Pintu": "#c2784a",
@@ -65,8 +45,29 @@ const KATEGORI_COLOR: Record<Kategori, string> = {
   "Lenong": "#9d7bc0",
 };
 
+export const DEFAULT_TRADISI_POOL = DEFAULT_POOL;
+
+const POSITION_CLASS: Record<TradisiPosition, string> = {
+  br: "right-0 bottom-0",
+  bl: "left-0 bottom-0",
+  tr: "right-0 top-0",
+  tl: "left-0 top-0",
+};
+
 export function TradisiLisanProvider() {
-  const [active, setActive] = useState<Tradisi | null>(null);
+  const db = useDb();
+  const settings: TradisiSettings = db.appearance?.tradisi ?? {
+    enabled: true, position: "br", cooldownMs: 2200, autoHideMs: 4200,
+    cardWidth: 280, showCloseButton: true, source: "default", custom: [],
+  };
+
+  const pool = useMemo<TradisiItem[]>(() => {
+    if (settings.source === "custom") return settings.custom.length ? settings.custom : DEFAULT_POOL;
+    if (settings.source === "merge") return [...DEFAULT_POOL, ...settings.custom];
+    return DEFAULT_POOL;
+  }, [settings.source, settings.custom]);
+
+  const [active, setActive] = useState<TradisiItem | null>(null);
   const [tick, setTick] = useState(0);
   const lastShownRef = useRef<number>(0);
   const lastIndexRef = useRef<number>(-1);
@@ -78,6 +79,11 @@ export function TradisiLisanProvider() {
   }, []);
 
   useEffect(() => {
+    if (!settings.enabled) {
+      setActive(null);
+      if (hideTimerRef.current) { window.clearTimeout(hideTimerRef.current); hideTimerRef.current = null; }
+      return;
+    }
     const handler = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null;
       if (!target) return;
@@ -91,18 +97,19 @@ export function TradisiLisanProvider() {
       if (btn.closest('[data-tradisi="silent"]')) return;
       if (btn.getAttribute("aria-disabled") === "true" || (btn as HTMLButtonElement).disabled) return;
 
+      if (pool.length === 0) return;
       const now = Date.now();
-      if (now - lastShownRef.current < COOLDOWN_MS) return;
+      if (now - lastShownRef.current < settings.cooldownMs) return;
       lastShownRef.current = now;
 
-      let idx = Math.floor(Math.random() * POOL.length);
-      if (idx === lastIndexRef.current) idx = (idx + 1) % POOL.length;
+      let idx = Math.floor(Math.random() * pool.length);
+      if (idx === lastIndexRef.current && pool.length > 1) idx = (idx + 1) % pool.length;
       lastIndexRef.current = idx;
 
-      setActive(POOL[idx]);
+      setActive(pool[idx]);
       setTick(t => t + 1);
       if (hideTimerRef.current) window.clearTimeout(hideTimerRef.current);
-      hideTimerRef.current = window.setTimeout(() => setActive(null), AUTO_HIDE_MS);
+      hideTimerRef.current = window.setTimeout(() => setActive(null), settings.autoHideMs);
     };
 
     document.addEventListener("click", handler, true);
@@ -110,21 +117,24 @@ export function TradisiLisanProvider() {
       document.removeEventListener("click", handler, true);
       if (hideTimerRef.current) window.clearTimeout(hideTimerRef.current);
     };
-  }, []);
+  }, [settings.enabled, settings.cooldownMs, settings.autoHideMs, pool]);
+
+  if (!settings.enabled) return null;
 
   return (
-    <div data-tradisi-popup="root" className="pointer-events-none fixed right-0 bottom-0 z-[60] p-3 sm:p-4">
+    <div data-tradisi-popup="root" className={`pointer-events-none fixed z-[60] p-3 sm:p-4 ${POSITION_CLASS[settings.position]}`}>
       <AnimatePresence mode="wait">
         {active && (
           <motion.div
             key={tick}
-            initial={{ opacity: 0, y: 18, scale: 0.97 }}
+            initial={{ opacity: 0, y: settings.position.startsWith("t") ? -18 : 18, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 12, scale: 0.97 }}
+            exit={{ opacity: 0, y: settings.position.startsWith("t") ? -12 : 12, scale: 0.97 }}
             transition={{ type: "spring", stiffness: 360, damping: 30, mass: 0.7 }}
-            className="pointer-events-auto w-[260px] sm:w-[280px]"
+            className="pointer-events-auto"
+            style={{ width: Math.max(220, Math.min(420, settings.cardWidth)) }}
           >
-            <Card item={active} onClose={dismiss} progressKey={tick} />
+            <Card item={active} onClose={dismiss} progressKey={tick} settings={settings} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -132,8 +142,8 @@ export function TradisiLisanProvider() {
   );
 }
 
-function Card({ item, onClose, progressKey }: { item: Tradisi; onClose: () => void; progressKey: number }) {
-  const accent = KATEGORI_COLOR[item.kategori];
+function Card({ item, onClose, progressKey, settings }: { item: TradisiItem; onClose: () => void; progressKey: number; settings: TradisiSettings }) {
+  const accent = settings.kategoriColors?.[item.kategori] ?? DEFAULT_KATEGORI_COLOR[item.kategori];
 
   return (
     <div
@@ -146,15 +156,17 @@ function Card({ item, onClose, progressKey }: { item: Tradisi; onClose: () => vo
     >
       <div className="absolute inset-x-0 top-0 h-[2px]" style={{ background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }} />
 
-      <button
-        type="button"
-        onClick={onClose}
-        data-tradisi="silent"
-        aria-label="Tutup"
-        className="absolute right-1.5 top-1.5 grid place-items-center h-5 w-5 rounded-full text-amber-100/40 opacity-0 group-hover:opacity-100 hover:text-amber-100 hover:bg-white/10 transition z-10"
-      >
-        <X className="h-3 w-3" />
-      </button>
+      {settings.showCloseButton && (
+        <button
+          type="button"
+          onClick={onClose}
+          data-tradisi="silent"
+          aria-label="Tutup"
+          className="absolute right-1.5 top-1.5 grid place-items-center h-5 w-5 rounded-full text-amber-100/40 opacity-0 group-hover:opacity-100 hover:text-amber-100 hover:bg-white/10 transition z-10"
+        >
+          <X className="h-3 w-3" />
+        </button>
+      )}
 
       <div className="px-3.5 pt-3 pb-1 flex items-center gap-1.5">
         <span
@@ -186,7 +198,7 @@ function Card({ item, onClose, progressKey }: { item: Tradisi; onClose: () => vo
           key={`bar-${progressKey}`}
           initial={{ width: "100%" }}
           animate={{ width: "0%" }}
-          transition={{ duration: AUTO_HIDE_MS / 1000, ease: "linear" }}
+          transition={{ duration: settings.autoHideMs / 1000, ease: "linear" }}
           className="h-full"
           style={{ background: `linear-gradient(90deg, ${accent}, ${accent}88)` }}
         />

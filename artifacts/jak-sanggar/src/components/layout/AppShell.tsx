@@ -6,6 +6,7 @@ import { Bell, LogOut, Sun, Moon, Sparkles, ChevronDown, UserCog } from "lucide-
 import type { Role, ThemeMode } from "@/lib/types";
 import { load, save } from "@/lib/store";
 import { PucukRebungDivider } from "@/components/betawi/Ornaments";
+import { getBrandIcon } from "@/lib/brandIcons";
 
 interface NavItem { label: string; href: string; icon: ReactNode; children?: NavItem[]; }
 
@@ -52,6 +53,14 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
     .split(" ").map((s: string) => s[0]).join("").slice(0, 2).toUpperCase();
   const displayName = (user as any).namaSanggar || (user as any).nama || user.username;
 
+  const brand = db.appearance.brand;
+  const appName = brand?.appName || "Jak Sanggar";
+  const tagline = brand?.appTagline || "Budaya Naik Kelas, Digital Tanpa Batas";
+  const footer1 = brand?.sidebarFooterLine1 || "Budaya Naik Kelas,";
+  const footer2 = brand?.sidebarFooterLine2 || "Digital Tanpa Batas";
+  const BrandIcon = getBrandIcon(brand?.iconKey);
+  const backdrop = db.appearance.backdrop;
+
   const currentTheme: ThemeMode = db.appearance.theme ?? (db.appearance.dark ? "dark" : "light");
   const cycleTheme = () => {
     const order: ThemeMode[] = ["light", "dark", "luxury"];
@@ -80,17 +89,26 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
           }}
         />
         <div className="relative px-5 py-5 flex items-center gap-3 border-b border-sidebar-border">
-          <div
-            className="h-10 w-10 rounded-lg grid place-items-center"
-            style={{
-              background: "linear-gradient(135deg, hsl(42 80% 60%) 0%, hsl(38 65% 42%) 100%)",
-              boxShadow: "0 0 20px hsl(42 75% 50% / 0.4), 0 1px 0 hsl(42 90% 80%) inset",
-            }}
-          >
-            <Sparkles className="h-5 w-5" style={{ color: "hsl(222 60% 10%)" }} />
-          </div>
+          {brand?.logoDataUrl ? (
+            <div
+              className="h-10 w-10 rounded-lg overflow-hidden grid place-items-center bg-white/5"
+              style={{ boxShadow: "0 0 18px hsl(42 75% 50% / 0.3), 0 0 0 1px hsl(42 60% 50% / 0.25)" }}
+            >
+              <img src={brand.logoDataUrl} alt={appName} className="h-full w-full object-cover" />
+            </div>
+          ) : (
+            <div
+              className="h-10 w-10 rounded-lg grid place-items-center"
+              style={{
+                background: "linear-gradient(135deg, hsl(42 80% 60%) 0%, hsl(38 65% 42%) 100%)",
+                boxShadow: "0 0 20px hsl(42 75% 50% / 0.4), 0 1px 0 hsl(42 90% 80%) inset",
+              }}
+            >
+              <BrandIcon className="h-5 w-5" style={{ color: "hsl(222 60% 10%)" }} />
+            </div>
+          )}
           <div className="min-w-0">
-            <div className="font-serif text-lg leading-tight truncate">Jak Sanggar</div>
+            <div className="font-serif text-lg leading-tight truncate">{appName}</div>
             <div className="text-[10px] uppercase tracking-[0.2em] text-sidebar-foreground/55">{labels[user.role]}</div>
           </div>
         </div>
@@ -177,8 +195,8 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
         </nav>
 
         <div className="relative border-t border-sidebar-border p-3">
-          <div className="text-[10px] uppercase tracking-widest text-sidebar-foreground/45 px-2">Budaya Naik Kelas,</div>
-          <div className="text-[10px] uppercase tracking-widest text-sidebar-foreground/45 px-2">Digital Tanpa Batas</div>
+          <div className="text-[10px] uppercase tracking-widest text-sidebar-foreground/45 px-2">{footer1}</div>
+          <div className="text-[10px] uppercase tracking-widest text-sidebar-foreground/45 px-2">{footer2}</div>
         </div>
       </aside>
 
@@ -186,10 +204,14 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
         <header className="sticky top-0 z-30 glass border-b border-border/60">
           <div className="h-14 px-4 sm:px-6 flex items-center justify-between gap-3">
             <div className="md:hidden flex items-center gap-2.5 min-w-0">
-              <div className="h-8 w-8 rounded-md bg-primary text-primary-foreground grid place-items-center shrink-0">
-                <Sparkles className="h-4 w-4" />
-              </div>
-              <div className="font-serif text-base truncate">Jak Sanggar · {labels[user.role]}</div>
+              {brand?.logoDataUrl ? (
+                <img src={brand.logoDataUrl} alt={appName} className="h-8 w-8 rounded-md object-cover shrink-0" />
+              ) : (
+                <div className="h-8 w-8 rounded-md bg-primary text-primary-foreground grid place-items-center shrink-0">
+                  <BrandIcon className="h-4 w-4" />
+                </div>
+              )}
+              <div className="font-serif text-base truncate">{appName} · {labels[user.role]}</div>
             </div>
 
             {/* Central compact nav (desktop only) — shows top 5 nav items with gold underline on active */}
@@ -223,7 +245,7 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
             </nav>
 
             <div className="hidden md:block lg:hidden text-sm text-muted-foreground">
-              <span className="font-serif italic">"Budaya Naik Kelas, Digital Tanpa Batas"</span>
+              <span className="font-serif italic">"{tagline}"</span>
             </div>
 
             <div className="flex items-center gap-1.5 sm:gap-2">
@@ -303,8 +325,21 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
           <PucukRebungDivider className="opacity-50" />
         </header>
 
-        <main className="flex-1 overflow-y-auto betawi-watermark">
-          <div key={loc} className="page-enter max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">{children}</div>
+        <main className="relative flex-1 overflow-y-auto betawi-watermark">
+          {backdrop?.enabled && backdrop.imageDataUrl && (
+            <div
+              aria-hidden="true"
+              className="pointer-events-none fixed inset-0 z-0"
+              style={{
+                backgroundImage: `url(${backdrop.imageDataUrl})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                opacity: Math.max(0, Math.min(1, backdrop.opacity ?? 0.18)),
+                mixBlendMode: backdrop.blendMode ?? "soft-light",
+              }}
+            />
+          )}
+          <div key={loc} className="relative page-enter max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">{children}</div>
         </main>
       </div>
     </div>

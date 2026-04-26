@@ -13,8 +13,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import type { AdminUser, JuriUser, SanggarUser, PelatihUser, SenimanUser, Indikator, Variabel, AdminPermissions } from "@/lib/types";
-import { Trash2, Eye, FileDown, Plus, Palette, Clock, Shield, X, Crown, Users, GraduationCap, UserCog, Wallet } from "lucide-react";
+import type { AdminUser, JuriUser, SanggarUser, PelatihUser, SenimanUser, Indikator, Variabel, AdminPermissions, TradisiKategori, TradisiItem } from "@/lib/types";
+import { Trash2, Eye, FileDown, Plus, Palette, Clock, Shield, X, Crown, Users, GraduationCap, UserCog, Wallet, Image as ImageIcon, Upload, RotateCcw, Type, Sparkles, ScrollText } from "lucide-react";
+import { BRAND_ICON_KEYS, getBrandIcon } from "@/lib/brandIcons";
+import { DEFAULT_KATEGORI_COLOR, DEFAULT_TRADISI_POOL } from "@/components/system/TradisiLisanBetawi";
+import { Textarea } from "@/components/ui/textarea";
 import { PremiumHero } from "@/components/system/PremiumHero";
 import { AnimatedCounter } from "@/components/system/AnimatedCounter";
 import { NewsSlider } from "@/components/system/NewsSlider";
@@ -420,11 +423,24 @@ const THEMES: { id: "light" | "dark" | "luxury"; name: string; desc: string; pre
   { id: "luxury", name: "Dark Luxury", desc: "Navy paling pekat + glow emas premium.", preview: "linear-gradient(135deg, hsl(224 60% 5%) 0%, hsl(268 40% 14%) 60%, hsl(42 55% 25%) 100%)" },
 ];
 
+const KATEGORI_LIST: TradisiKategori[] = ["Pantun Betawi", "Peribahasa", "Palang Pintu", "Sahibul Hikayat", "Cerita Rakyat", "Salam Betawi", "Rancag", "Lenong"];
+
+function readImageFile(file: File, maxBytes = 2_000_000): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (file.size > maxBytes) return reject(new Error(`Ukuran file melebihi ${Math.round(maxBytes / 1_000_000)} MB.`));
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result));
+    r.onerror = () => reject(r.error ?? new Error("Gagal membaca file"));
+    r.readAsDataURL(file);
+  });
+}
+
 export function KuratorAppearance() {
   const db = useDb();
   const { toast } = useToast();
   const ap = db.appearance;
   const currentTheme = ap.theme ?? (ap.dark ? "dark" : "light");
+
   const apply = (primary: string, accent: string) => {
     save(d => { d.appearance.primaryHsl = primary; d.appearance.accentHsl = accent; });
     document.documentElement.style.setProperty("--primary", primary);
@@ -438,51 +454,494 @@ export function KuratorAppearance() {
     root.classList.toggle("luxury", t === "luxury");
     toast({ title: `Tema: ${t === "light" ? "Terang" : t === "dark" ? "Gelap" : "Dark Luxury"}` });
   };
+
   return (
     <div>
-      <PageHeader title="Pengaturan Tampilan" subtitle="Kustomisasi tema warna dan mode aplikasi." />
+      <PageHeader title="Pengaturan Tampilan" subtitle="Kustomisasi identitas brand, warna, latar belakang, hingga isi & perilaku pop-up Tradisi Betawi." />
 
-      <Card className="p-5 mb-6">
-        <h3 className="font-serif text-lg flex items-center gap-2"><Palette className="h-5 w-5" />Mode Tampilan</h3>
-        <p className="text-sm text-muted-foreground mt-1">Pilih atmosfer yang paling nyaman. Berlaku untuk semua pengguna.</p>
-        <div className="mt-4 grid sm:grid-cols-3 gap-3">
-          {THEMES.map(t => (
-            <button
-              key={t.id}
-              onClick={() => setTheme(t.id)}
-              className={`text-left rounded-2xl border p-3 transition-all ${
-                currentTheme === t.id
-                  ? "border-accent ring-2 ring-accent/40"
-                  : "border-border hover:border-accent/50 hover:-translate-y-0.5"
-              }`}
-            >
-              <div
-                className="h-20 w-full rounded-xl mb-3 relative overflow-hidden"
-                style={{ background: t.preview, border: "1px solid hsl(var(--border))" }}
-              >
-                <div className="absolute inset-x-3 top-3 h-2 rounded-full" style={{ background: "hsl(42 75% 60%)" }} />
-                <div className="absolute left-3 right-1/2 bottom-3 h-1.5 rounded-full bg-white/40" />
-                <div className="absolute right-3 left-2/3 bottom-3 h-1.5 rounded-full bg-white/20" />
+      <Tabs defaultValue="brand" className="space-y-4">
+        <TabsList className="flex flex-wrap h-auto">
+          <TabsTrigger value="brand" className="gap-1.5"><Sparkles className="h-3.5 w-3.5" />Brand & Logo</TabsTrigger>
+          <TabsTrigger value="tema" className="gap-1.5"><Palette className="h-3.5 w-3.5" />Tema & Warna</TabsTrigger>
+          <TabsTrigger value="backdrop" className="gap-1.5"><ImageIcon className="h-3.5 w-3.5" />Backdrop</TabsTrigger>
+          <TabsTrigger value="tradisi" className="gap-1.5"><ScrollText className="h-3.5 w-3.5" />Pop-up Tradisi</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="brand"><BrandTab /></TabsContent>
+
+        <TabsContent value="tema">
+          <Card className="p-5 mb-4">
+            <h3 className="font-serif text-lg flex items-center gap-2"><Palette className="h-5 w-5" />Mode Tampilan</h3>
+            <p className="text-sm text-muted-foreground mt-1">Pilih atmosfer yang paling nyaman. Berlaku untuk semua pengguna.</p>
+            <div className="mt-4 grid sm:grid-cols-3 gap-3">
+              {THEMES.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => setTheme(t.id)}
+                  className={`text-left rounded-2xl border p-3 transition-all ${
+                    currentTheme === t.id
+                      ? "border-accent ring-2 ring-accent/40"
+                      : "border-border hover:border-accent/50 hover:-translate-y-0.5"
+                  }`}
+                  data-testid={`theme-${t.id}`}
+                >
+                  <div className="h-20 w-full rounded-xl mb-3 relative overflow-hidden" style={{ background: t.preview, border: "1px solid hsl(var(--border))" }}>
+                    <div className="absolute inset-x-3 top-3 h-2 rounded-full" style={{ background: "hsl(42 75% 60%)" }} />
+                    <div className="absolute left-3 right-1/2 bottom-3 h-1.5 rounded-full bg-white/40" />
+                    <div className="absolute right-3 left-2/3 bottom-3 h-1.5 rounded-full bg-white/20" />
+                  </div>
+                  <div className="text-sm font-medium">{t.name}</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{t.desc}</div>
+                </button>
+              ))}
+            </div>
+          </Card>
+
+          <Card className="p-5">
+            <h3 className="font-serif text-lg flex items-center gap-2"><Palette className="h-5 w-5" />Aksen Warna</h3>
+            <p className="text-sm text-muted-foreground mt-1">Atur warna primer & aksen secara opsional. Gunakan default <b>Navy Emas</b> untuk identitas Jak Sanggar.</p>
+            <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              {SWATCHES.map(s => (
+                <button key={s.name} onClick={() => apply(s.primary, s.accent)} className={`text-left rounded-xl border p-3 transition hover:-translate-y-0.5 ${ap.primaryHsl === s.primary ? "ring-2 ring-accent border-accent" : "hover:border-accent/40"}`}>
+                  <div className="flex gap-1.5"><div className="h-9 flex-1 rounded-md" style={{ background: `hsl(${s.primary})` }} /><div className="h-9 flex-1 rounded-md" style={{ background: `hsl(${s.accent})` }} /></div>
+                  <div className="text-sm mt-2 font-medium">{s.name}</div>
+                </button>
+              ))}
+            </div>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="backdrop"><BackdropTab /></TabsContent>
+        <TabsContent value="tradisi"><TradisiTab /></TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+function BrandTab() {
+  const db = useDb();
+  const { toast } = useToast();
+  const b = db.appearance.brand ?? { appName: "Jak Sanggar", appTagline: "", sidebarFooterLine1: "", sidebarFooterLine2: "", iconKey: "Sparkles" };
+  const [draft, setDraft] = useState(b);
+  const [busy, setBusy] = useState(false);
+
+  const onUpload = async (file: File) => {
+    try {
+      setBusy(true);
+      const url = await readImageFile(file, 1_500_000);
+      setDraft(d => ({ ...d, logoDataUrl: url }));
+      toast({ title: "Logo siap. Tekan Simpan untuk menerapkan." });
+    } catch (e: any) {
+      toast({ title: "Gagal memuat gambar", description: e?.message ?? "", variant: "destructive" });
+    } finally { setBusy(false); }
+  };
+
+  const removeLogo = () => setDraft(d => ({ ...d, logoDataUrl: undefined }));
+
+  const simpan = () => {
+    if (!draft.appName.trim()) { toast({ title: "Nama aplikasi wajib diisi", variant: "destructive" }); return; }
+    try {
+      save(d => { d.appearance.brand = { ...draft, appName: draft.appName.trim() }; });
+      toast({ title: "Identitas brand disimpan" });
+    } catch (e: any) {
+      toast({ title: "Gagal menyimpan", description: e?.message ?? "", variant: "destructive" });
+    }
+  };
+
+  const reset = () => {
+    if (!confirm("Kembalikan semua identitas brand ke default Jak Sanggar?")) return;
+    const def = {
+      appName: "Jak Sanggar",
+      appTagline: "Budaya Naik Kelas, Digital Tanpa Batas",
+      sidebarFooterLine1: "Budaya Naik Kelas,",
+      sidebarFooterLine2: "Digital Tanpa Batas",
+      iconKey: "Sparkles",
+      loginEyebrow: "Konsorsium Sanggar Betawi",
+    };
+    try {
+      save(d => { d.appearance.brand = def; });
+      setDraft(def);
+      toast({ title: "Brand dikembalikan ke default" });
+    } catch (e: any) {
+      toast({ title: "Gagal menyimpan", description: e?.message ?? "", variant: "destructive" });
+    }
+  };
+
+  const PreviewIcon = getBrandIcon(draft.iconKey);
+
+  return (
+    <div className="grid lg:grid-cols-[1fr_320px] gap-4">
+      <div className="space-y-4">
+        <Card className="p-5 space-y-4">
+          <h3 className="font-serif text-lg flex items-center gap-2"><Type className="h-5 w-5" />Teks Identitas</h3>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5"><Label>Nama Aplikasi</Label><Input value={draft.appName} onChange={e => setDraft({ ...draft, appName: e.target.value })} data-testid="input-brand-name" /></div>
+            <div className="space-y-1.5"><Label>Eyebrow Login</Label><Input value={draft.loginEyebrow ?? ""} onChange={e => setDraft({ ...draft, loginEyebrow: e.target.value })} placeholder="mis. Konsorsium Sanggar Betawi" /></div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Tagline Utama (ditampilkan di halaman login & header)</Label>
+            <Textarea rows={2} value={draft.appTagline} onChange={e => setDraft({ ...draft, appTagline: e.target.value })} placeholder="Budaya Naik Kelas, Digital Tanpa Batas" />
+          </div>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5"><Label>Footer Sidebar — Baris 1</Label><Input value={draft.sidebarFooterLine1} onChange={e => setDraft({ ...draft, sidebarFooterLine1: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Footer Sidebar — Baris 2</Label><Input value={draft.sidebarFooterLine2} onChange={e => setDraft({ ...draft, sidebarFooterLine2: e.target.value })} /></div>
+          </div>
+        </Card>
+
+        <Card className="p-5 space-y-4">
+          <h3 className="font-serif text-lg flex items-center gap-2"><Sparkles className="h-5 w-5" />Ikon Brand</h3>
+          <p className="text-xs text-muted-foreground">Pilih satu ikon untuk identitas. Jika logo diunggah, logo otomatis menggantikan ikon.</p>
+          <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+            {BRAND_ICON_KEYS.map(({ key, label }) => {
+              const Ico = getBrandIcon(key);
+              const active = draft.iconKey === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setDraft({ ...draft, iconKey: key })}
+                  className={`flex flex-col items-center gap-1 rounded-lg border p-2.5 transition ${active ? "border-accent ring-2 ring-accent/40 bg-accent/10" : "border-border hover:border-accent/50"}`}
+                  title={label}
+                  data-testid={`icon-${key}`}
+                >
+                  <Ico className="h-5 w-5" />
+                  <span className="text-[9.5px] leading-tight text-muted-foreground">{label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </Card>
+
+        <Card className="p-5 space-y-4">
+          <h3 className="font-serif text-lg flex items-center gap-2"><Upload className="h-5 w-5" />Logo (PNG/JPG, maks 1.5 MB)</h3>
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="h-16 w-16 rounded-lg border bg-muted/30 grid place-items-center overflow-hidden">
+              {draft.logoDataUrl ? <img src={draft.logoDataUrl} alt="logo" className="h-full w-full object-cover" /> : <PreviewIcon className="h-7 w-7 text-muted-foreground" />}
+            </div>
+            <label className="inline-flex items-center gap-2 px-3 py-2 border rounded-md text-sm cursor-pointer hover-elevate">
+              <Upload className="h-4 w-4" />{busy ? "Memproses..." : (draft.logoDataUrl ? "Ganti Logo" : "Unggah Logo")}
+              <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && onUpload(e.target.files[0])} />
+            </label>
+            {draft.logoDataUrl && <Button variant="outline" size="sm" onClick={removeLogo} className="gap-1"><X className="h-3.5 w-3.5" />Hapus Logo</Button>}
+          </div>
+        </Card>
+
+        <div className="flex gap-2 flex-wrap">
+          <Button onClick={simpan} className="gap-1.5" data-testid="button-save-brand"><Sparkles className="h-4 w-4" />Simpan Identitas</Button>
+          <Button variant="outline" onClick={reset} className="gap-1.5"><RotateCcw className="h-4 w-4" />Kembalikan Default</Button>
+        </div>
+      </div>
+
+      <Card className="p-4 h-fit lg:sticky lg:top-4">
+        <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground mb-2">Pratinjau</div>
+        <div className="rounded-xl p-4 text-amber-50" style={{ background: "linear-gradient(135deg, hsl(222 60% 8%) 0%, hsl(268 40% 18%) 100%)" }}>
+          <div className="flex items-center gap-2.5">
+            <div className="h-10 w-10 rounded-lg overflow-hidden grid place-items-center" style={{ background: "linear-gradient(135deg, hsl(42 80% 60%), hsl(38 65% 42%))" }}>
+              {draft.logoDataUrl ? <img src={draft.logoDataUrl} alt="" className="h-full w-full object-cover" /> : <PreviewIcon className="h-5 w-5" style={{ color: "hsl(222 60% 10%)" }} />}
+            </div>
+            <div className="min-w-0">
+              <div className="font-serif text-base truncate">{draft.appName || "—"}</div>
+              <div className="text-[9px] uppercase tracking-[0.22em] text-amber-100/55 truncate">{draft.loginEyebrow || "—"}</div>
+            </div>
+          </div>
+          <div className="mt-3 text-[12px] italic text-amber-100/80 leading-snug min-h-[36px]">"{draft.appTagline || "—"}"</div>
+          <div className="mt-3 pt-3 border-t border-white/10">
+            <div className="text-[9px] uppercase tracking-widest text-amber-100/45">{draft.sidebarFooterLine1 || "—"}</div>
+            <div className="text-[9px] uppercase tracking-widest text-amber-100/45">{draft.sidebarFooterLine2 || "—"}</div>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function BackdropTab() {
+  const db = useDb();
+  const { toast } = useToast();
+  const bd = db.appearance.backdrop ?? { enabled: false, opacity: 0.18, blendMode: "soft-light" as const };
+  const [draft, setDraft] = useState(bd);
+  const [busy, setBusy] = useState(false);
+
+  const onUpload = async (file: File) => {
+    try {
+      setBusy(true);
+      const url = await readImageFile(file, 2_000_000);
+      setDraft(d => ({ ...d, imageDataUrl: url, enabled: true }));
+      toast({ title: "Backdrop siap. Tekan Simpan untuk menerapkan." });
+    } catch (e: any) {
+      toast({ title: "Gagal memuat gambar", description: e?.message ?? "", variant: "destructive" });
+    } finally { setBusy(false); }
+  };
+
+  const simpan = () => {
+    try {
+      save(d => { d.appearance.backdrop = draft; });
+      toast({ title: "Backdrop disimpan" });
+    } catch (e: any) {
+      toast({ title: "Gagal menyimpan", description: e?.message ?? "Gambar terlalu besar untuk penyimpanan lokal.", variant: "destructive" });
+    }
+  };
+
+  const reset = () => {
+    if (!confirm("Hapus backdrop & kembalikan ke default?")) return;
+    const def = { enabled: false, opacity: 0.18, blendMode: "soft-light" as const, imageDataUrl: undefined };
+    try {
+      save(d => { d.appearance.backdrop = def; });
+      setDraft(def);
+      toast({ title: "Backdrop dihapus" });
+    } catch (e: any) {
+      toast({ title: "Gagal menyimpan", description: e?.message ?? "", variant: "destructive" });
+    }
+  };
+
+  return (
+    <div className="grid lg:grid-cols-[1fr_320px] gap-4">
+      <Card className="p-5 space-y-4">
+        <h3 className="font-serif text-lg flex items-center gap-2"><ImageIcon className="h-5 w-5" />Gambar Latar Belakang</h3>
+        <p className="text-sm text-muted-foreground">Unggah gambar yang akan menjadi backdrop semi-transparan di seluruh halaman setelah login. Ideal: 1920×1080 atau lebih, maks 2 MB.</p>
+
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="h-20 w-32 rounded-md border bg-muted/30 grid place-items-center overflow-hidden">
+            {draft.imageDataUrl ? <img src={draft.imageDataUrl} alt="backdrop" className="h-full w-full object-cover" /> : <span className="text-[11px] text-muted-foreground">Belum ada</span>}
+          </div>
+          <label className="inline-flex items-center gap-2 px-3 py-2 border rounded-md text-sm cursor-pointer hover-elevate">
+            <Upload className="h-4 w-4" />{busy ? "Memproses..." : (draft.imageDataUrl ? "Ganti Gambar" : "Unggah Gambar")}
+            <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && onUpload(e.target.files[0])} />
+          </label>
+          {draft.imageDataUrl && <Button size="sm" variant="outline" onClick={() => setDraft(d => ({ ...d, imageDataUrl: undefined, enabled: false }))} className="gap-1"><X className="h-3.5 w-3.5" />Hapus</Button>}
+        </div>
+
+        <label className="flex items-center justify-between border rounded-md px-3 py-2.5 text-sm">
+          <div>
+            <div className="font-medium">Aktifkan Backdrop</div>
+            <div className="text-[11px] text-muted-foreground">Hanya berlaku jika gambar sudah diunggah.</div>
+          </div>
+          <Switch checked={!!draft.enabled} disabled={!draft.imageDataUrl} onCheckedChange={c => setDraft({ ...draft, enabled: c })} data-testid="switch-backdrop" />
+        </label>
+
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <Label>Opasitas</Label>
+            <span className="text-xs text-muted-foreground tabular-nums">{Math.round((draft.opacity ?? 0.18) * 100)}%</span>
+          </div>
+          <input type="range" min={0} max={100} value={Math.round((draft.opacity ?? 0.18) * 100)} onChange={e => setDraft({ ...draft, opacity: Number(e.target.value) / 100 })} className="w-full" />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label>Mode Pencampuran</Label>
+          <Select value={draft.blendMode ?? "soft-light"} onValueChange={(v: any) => setDraft({ ...draft, blendMode: v })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="normal">Normal</SelectItem>
+              <SelectItem value="soft-light">Soft Light (lembut)</SelectItem>
+              <SelectItem value="overlay">Overlay (dramatis)</SelectItem>
+              <SelectItem value="multiply">Multiply (gelap)</SelectItem>
+              <SelectItem value="screen">Screen (terang)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex gap-2">
+          <Button onClick={simpan} className="gap-1.5"><Sparkles className="h-4 w-4" />Simpan Backdrop</Button>
+          <Button variant="outline" onClick={reset} className="gap-1.5"><RotateCcw className="h-4 w-4" />Reset</Button>
+        </div>
+      </Card>
+
+      <Card className="p-4 h-fit lg:sticky lg:top-4">
+        <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground mb-2">Pratinjau Halaman</div>
+        <div className="relative rounded-xl overflow-hidden border h-56 bg-background">
+          {draft.imageDataUrl && draft.enabled && (
+            <div className="absolute inset-0" style={{ backgroundImage: `url(${draft.imageDataUrl})`, backgroundSize: "cover", backgroundPosition: "center", opacity: draft.opacity ?? 0.18, mixBlendMode: (draft.blendMode ?? "soft-light") as any }} />
+          )}
+          <div className="relative p-3 space-y-2">
+            <div className="h-3 w-32 rounded bg-foreground/20" />
+            <div className="h-2 w-48 rounded bg-foreground/10" />
+            <div className="grid grid-cols-3 gap-2 mt-3">
+              {[0, 1, 2].map(i => <div key={i} className="h-12 rounded-md border bg-card/70 backdrop-blur-sm" />)}
+            </div>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function TradisiTab() {
+  const db = useDb();
+  const { toast } = useToast();
+  const t = db.appearance.tradisi ?? { enabled: true, position: "br" as const, cooldownMs: 2200, autoHideMs: 4200, cardWidth: 280, showCloseButton: true, source: "default" as const, custom: [] as TradisiItem[], kategoriColors: {} };
+  const [draft, setDraft] = useState(t);
+
+  const dirty = JSON.stringify(draft) !== JSON.stringify(t);
+
+  const simpanSemua = () => {
+    try {
+      save(d => { d.appearance.tradisi = { ...draft }; });
+      toast({ title: "Pengaturan tradisi disimpan" });
+    } catch (e: any) {
+      toast({ title: "Gagal menyimpan", description: e?.message ?? "", variant: "destructive" });
+    }
+  };
+  const batalkan = () => { setDraft(t); toast({ title: "Perubahan dibatalkan" }); };
+
+  const setKategoriColor = (k: TradisiKategori, color: string) => {
+    setDraft(d => ({ ...d, kategoriColors: { ...d.kategoriColors, [k]: color } }));
+  };
+  const resetWarna = () => {
+    setDraft(d => ({ ...d, kategoriColors: { ...DEFAULT_KATEGORI_COLOR } }));
+  };
+
+  const addItem = () => {
+    const next: TradisiItem = { id: uid(), kategori: "Pantun Betawi", judul: "Judul Baru", isi: "Tulis isi pantun di sini...", sumber: "" };
+    setDraft(d => ({ ...d, custom: [next, ...d.custom] }));
+  };
+  const updateItem = (id: string, patch: Partial<TradisiItem>) => {
+    setDraft(d => ({ ...d, custom: d.custom.map(x => x.id === id ? { ...x, ...patch } : x) }));
+  };
+  const removeItem = (id: string) => {
+    if (!confirm("Hapus pantun ini? (Belum tersimpan permanen sampai Anda menekan Simpan)")) return;
+    setDraft(d => ({ ...d, custom: d.custom.filter(x => x.id !== id) }));
+  };
+  const importDefault = () => {
+    if (!confirm(`Salin ${DEFAULT_TRADISI_POOL.length} pantun bawaan ke daftar custom (untuk diedit)?`)) return;
+    const copied: TradisiItem[] = DEFAULT_TRADISI_POOL.map(x => ({ ...x, id: uid() }));
+    setDraft(d => ({ ...d, custom: [...copied, ...d.custom] }));
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card className="p-5 space-y-4">
+        <h3 className="font-serif text-lg flex items-center gap-2"><ScrollText className="h-5 w-5" />Perilaku Pop-up</h3>
+
+        <label className="flex items-center justify-between border rounded-md px-3 py-2.5 text-sm">
+          <div>
+            <div className="font-medium">Aktifkan Pop-up Tradisi Betawi</div>
+            <div className="text-[11px] text-muted-foreground">Muncul ketika pengguna mengklik tombol/tautan apa pun.</div>
+          </div>
+          <Switch checked={!!draft.enabled} onCheckedChange={c => setDraft({ ...draft, enabled: c })} data-testid="switch-tradisi-enabled" />
+        </label>
+
+        <div className="grid sm:grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label>Posisi Pop-up</Label>
+            <Select value={draft.position} onValueChange={(v: any) => setDraft({ ...draft, position: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="br">Kanan Bawah</SelectItem>
+                <SelectItem value="bl">Kiri Bawah</SelectItem>
+                <SelectItem value="tr">Kanan Atas</SelectItem>
+                <SelectItem value="tl">Kiri Atas</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Sumber Pantun</Label>
+            <Select value={draft.source} onValueChange={(v: any) => setDraft({ ...draft, source: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default">Bawaan (28 pantun)</SelectItem>
+                <SelectItem value="custom">Hanya Custom</SelectItem>
+                <SelectItem value="merge">Bawaan + Custom</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="grid sm:grid-cols-3 gap-3">
+          <div className="space-y-1.5">
+            <Label>Jeda Antar Pop-up (ms)</Label>
+            <Input type="number" min={500} max={20000} step={100} value={draft.cooldownMs} onChange={e => setDraft({ ...draft, cooldownMs: Number(e.target.value) || 2200 })} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Durasi Tampil (ms)</Label>
+            <Input type="number" min={1000} max={30000} step={100} value={draft.autoHideMs} onChange={e => setDraft({ ...draft, autoHideMs: Number(e.target.value) || 4200 })} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Lebar Kartu (px)</Label>
+            <Input type="number" min={220} max={420} step={10} value={draft.cardWidth} onChange={e => setDraft({ ...draft, cardWidth: Number(e.target.value) || 280 })} />
+          </div>
+        </div>
+
+        <label className="flex items-center justify-between border rounded-md px-3 py-2.5 text-sm">
+          <div>
+            <div className="font-medium">Tampilkan Tombol Tutup (×)</div>
+            <div className="text-[11px] text-muted-foreground">Muncul saat pop-up dihover.</div>
+          </div>
+          <Switch checked={!!draft.showCloseButton} onCheckedChange={c => setDraft({ ...draft, showCloseButton: c })} />
+        </label>
+
+      </Card>
+
+      <Card className="p-5 space-y-4">
+        <div className="flex items-start justify-between flex-wrap gap-2">
+          <div>
+            <h3 className="font-serif text-lg flex items-center gap-2"><Palette className="h-5 w-5" />Warna per Kategori</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">Tentukan warna aksen untuk setiap kategori pantun.</p>
+          </div>
+          <Button size="sm" variant="outline" onClick={resetWarna} className="gap-1"><RotateCcw className="h-3.5 w-3.5" />Reset Warna</Button>
+        </div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {KATEGORI_LIST.map(k => {
+            const c = draft.kategoriColors?.[k] ?? DEFAULT_KATEGORI_COLOR[k];
+            return (
+              <div key={k} className="border rounded-lg p-3 space-y-2">
+                <div className="text-xs font-medium">{k}</div>
+                <div className="flex items-center gap-2">
+                  <input type="color" value={c} onChange={e => setKategoriColor(k, e.target.value)} className="h-9 w-12 rounded cursor-pointer" />
+                  <Input value={c} onChange={e => setKategoriColor(k, e.target.value)} className="font-mono text-xs" />
+                </div>
+                <div className="rounded-md px-2 py-1 text-[10px] uppercase tracking-wider inline-block" style={{ background: `${c}1f`, color: c, border: `1px solid ${c}55` }}>contoh</div>
               </div>
-              <div className="text-sm font-medium">{t.name}</div>
-              <div className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{t.desc}</div>
-            </button>
+            );
+          })}
+        </div>
+      </Card>
+
+      <Card className="p-5 space-y-3">
+        <div className="flex items-start justify-between flex-wrap gap-2">
+          <div>
+            <h3 className="font-serif text-lg flex items-center gap-2"><ScrollText className="h-5 w-5" />Daftar Pantun Custom ({draft.custom.length})</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">Kelola isi tradisi lisan. Aktif sesuai pilihan "Sumber Pantun" di atas.</p>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={importDefault} className="gap-1"><FileDown className="h-3.5 w-3.5" />Salin Bawaan</Button>
+            <Button size="sm" onClick={addItem} className="gap-1" data-testid="button-add-pantun"><Plus className="h-3.5 w-3.5" />Tambah</Button>
+          </div>
+        </div>
+
+        {draft.custom.length === 0 && (
+          <div className="text-center py-10 text-sm text-muted-foreground border border-dashed rounded-lg">
+            Belum ada pantun custom. Klik "Tambah" atau "Salin Bawaan" untuk memulai.
+          </div>
+        )}
+
+        <div className="space-y-3">
+          {draft.custom.map(item => (
+            <div key={item.id} className="border rounded-lg p-3 space-y-2">
+              <div className="grid sm:grid-cols-[180px_1fr_auto] gap-2 items-start">
+                <Select value={item.kategori} onValueChange={(v: any) => updateItem(item.id, { kategori: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{KATEGORI_LIST.map(k => <SelectItem key={k} value={k}>{k}</SelectItem>)}</SelectContent>
+                </Select>
+                <Input value={item.judul} onChange={e => updateItem(item.id, { judul: e.target.value })} placeholder="Judul" />
+                <Button size="icon" variant="outline" onClick={() => removeItem(item.id)} title="Hapus"><Trash2 className="h-4 w-4" /></Button>
+              </div>
+              <Textarea rows={3} value={item.isi} onChange={e => updateItem(item.id, { isi: e.target.value })} placeholder="Isi pantun (gunakan Enter untuk baris baru)" className="font-serif" />
+              <Input value={item.sumber ?? ""} onChange={e => updateItem(item.id, { sumber: e.target.value })} placeholder="Sumber (opsional)" />
+            </div>
           ))}
         </div>
       </Card>
 
-      <Card className="p-5">
-        <h3 className="font-serif text-lg flex items-center gap-2"><Palette className="h-5 w-5" />Aksen Warna</h3>
-        <p className="text-sm text-muted-foreground mt-1">Atur warna primer & aksen secara opsional. Gunakan default <b>Navy Emas</b> untuk identitas Jak Sanggar.</p>
-        <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          {SWATCHES.map(s => (
-            <button key={s.name} onClick={() => apply(s.primary, s.accent)} className={`text-left rounded-xl border p-3 transition hover:-translate-y-0.5 ${ap.primaryHsl === s.primary ? "ring-2 ring-accent border-accent" : "hover:border-accent/40"}`}>
-              <div className="flex gap-1.5"><div className="h-9 flex-1 rounded-md" style={{ background: `hsl(${s.primary})` }} /><div className="h-9 flex-1 rounded-md" style={{ background: `hsl(${s.accent})` }} /></div>
-              <div className="text-sm mt-2 font-medium">{s.name}</div>
-            </button>
-          ))}
+      <div className="sticky bottom-2 z-10 flex items-center justify-between gap-3 rounded-xl border bg-card/95 backdrop-blur px-4 py-3 shadow-lg">
+        <div className="text-xs text-muted-foreground">
+          {dirty ? <span className="text-amber-600 dark:text-amber-400">● Ada perubahan belum tersimpan</span> : <span>Semua tersimpan</span>}
         </div>
-      </Card>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={batalkan} disabled={!dirty} className="gap-1.5"><RotateCcw className="h-3.5 w-3.5" />Batalkan</Button>
+          <Button onClick={simpanSemua} disabled={!dirty} className="gap-1.5" data-testid="button-save-tradisi"><Sparkles className="h-4 w-4" />Simpan Semua</Button>
+        </div>
+      </div>
     </div>
   );
 }

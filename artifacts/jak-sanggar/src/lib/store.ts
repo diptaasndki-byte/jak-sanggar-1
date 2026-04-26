@@ -200,7 +200,41 @@ function seed(): DBShape {
     kurasiSubmissions: [], sertifikat: [], activity: [],
     jamPembinaan: { pagiMax: "08:00", siangStart: "13:00", siangEnd: "17:00", pulangStart: "17:00", pulangEnd: "21:00" },
     absensiPembinaan: [], pendaftaranPembinaan: [],
-    appearance: { primaryHsl: "220 55% 18%", accentHsl: "42 65% 53%", dark: false, theme: "light" },
+    appearance: {
+      primaryHsl: "220 55% 18%",
+      accentHsl: "42 65% 53%",
+      dark: false,
+      theme: "light",
+      brand: {
+        appName: "Jak Sanggar",
+        appTagline: "Budaya Naik Kelas, Digital Tanpa Batas",
+        sidebarFooterLine1: "Budaya Naik Kelas,",
+        sidebarFooterLine2: "Digital Tanpa Batas",
+        iconKey: "Sparkles",
+        loginEyebrow: "Konsorsium Sanggar Betawi",
+      },
+      backdrop: { enabled: false, opacity: 0.18, blendMode: "soft-light" },
+      tradisi: {
+        enabled: true,
+        position: "br",
+        cooldownMs: 2200,
+        autoHideMs: 4200,
+        cardWidth: 280,
+        showCloseButton: true,
+        source: "default",
+        custom: [],
+        kategoriColors: {
+          "Pantun Betawi": "#e3b864",
+          "Peribahasa": "#d4a64e",
+          "Palang Pintu": "#c2784a",
+          "Sahibul Hikayat": "#b89460",
+          "Cerita Rakyat": "#c45a72",
+          "Salam Betawi": "#caa86a",
+          "Rancag": "#daa44e",
+          "Lenong": "#9d7bc0",
+        },
+      },
+    },
     exportPassword: "kurator123",
     honorPerSesiDefault: 250_000,
     aset, sarpras, kerjasama: [], chatMessages: [], negosiasi: [], invoices: [],
@@ -220,6 +254,46 @@ function migrate(db: DBShape): DBShape {
   db.contracts ||= [];
   db.bast ||= [];
   db.ratings ||= [];
+  db.appearance ||= { primaryHsl: "220 55% 18%", accentHsl: "42 65% 53%", dark: false, theme: "light" };
+  const defBrand = {
+    appName: "Jak Sanggar",
+    appTagline: "Budaya Naik Kelas, Digital Tanpa Batas",
+    sidebarFooterLine1: "Budaya Naik Kelas,",
+    sidebarFooterLine2: "Digital Tanpa Batas",
+    iconKey: "Sparkles",
+    loginEyebrow: "Konsorsium Sanggar Betawi",
+  };
+  db.appearance.brand = { ...defBrand, ...(db.appearance.brand ?? {}) };
+  const defBackdrop = { enabled: false, opacity: 0.18, blendMode: "soft-light" as const };
+  db.appearance.backdrop = { ...defBackdrop, ...(db.appearance.backdrop ?? {}) };
+  const defKategoriColors = {
+    "Pantun Betawi": "#e3b864",
+    "Peribahasa": "#d4a64e",
+    "Palang Pintu": "#c2784a",
+    "Sahibul Hikayat": "#b89460",
+    "Cerita Rakyat": "#c45a72",
+    "Salam Betawi": "#caa86a",
+    "Rancag": "#daa44e",
+    "Lenong": "#9d7bc0",
+  };
+  const defTradisi = {
+    enabled: true,
+    position: "br" as const,
+    cooldownMs: 2200,
+    autoHideMs: 4200,
+    cardWidth: 280,
+    showCloseButton: true,
+    source: "default" as const,
+    custom: [],
+    kategoriColors: defKategoriColors,
+  };
+  const existingTradisi = db.appearance.tradisi ?? {} as any;
+  db.appearance.tradisi = {
+    ...defTradisi,
+    ...existingTradisi,
+    custom: Array.isArray(existingTradisi.custom) ? existingTradisi.custom : [],
+    kategoriColors: { ...defKategoriColors, ...(existingTradisi.kategoriColors ?? {}) },
+  };
   return db;
 }
 
@@ -244,10 +318,31 @@ const subs = new Set<() => void>();
 export function subscribe(fn: () => void) { subs.add(fn); return () => subs.delete(fn); }
 function notify() { subs.forEach(fn => fn()); }
 
+export class StorageQuotaError extends Error {
+  constructor(message = "Penyimpanan lokal penuh.") { super(message); this.name = "StorageQuotaError"; }
+}
+
+let lastSerialized: string | null = null;
+
 export function save(updater: (db: DBShape) => void) {
   const db = load();
+  const before = lastSerialized ?? JSON.stringify(db);
   updater(db);
-  localStorage.setItem(KEY, JSON.stringify(db));
+  const next = JSON.stringify(db);
+  try {
+    localStorage.setItem(KEY, next);
+    lastSerialized = next;
+  } catch (err: any) {
+    // Roll back the in-memory mutation by re-parsing the previous snapshot
+    try {
+      const prev = JSON.parse(before) as DBShape;
+      Object.assign(db, prev);
+    } catch { /* keep mutated state if rollback fails */ }
+    if (err && (err.name === "QuotaExceededError" || /quota/i.test(String(err.message ?? "")))) {
+      throw new StorageQuotaError("Penyimpanan lokal melebihi kapasitas. Kurangi ukuran logo / backdrop, atau hapus data yang tidak terpakai.");
+    }
+    throw err;
+  }
   cache = { ...db };
   notify();
 }

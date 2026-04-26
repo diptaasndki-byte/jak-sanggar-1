@@ -435,9 +435,53 @@ export interface Rating {
 
 export type ThemeMode = "light" | "dark" | "luxury";
 
+export type TradisiKategori = "Pantun Betawi" | "Peribahasa" | "Palang Pintu" | "Sahibul Hikayat" | "Cerita Rakyat" | "Salam Betawi" | "Rancag" | "Lenong";
+
+export interface TradisiItem {
+  id: string;
+  kategori: TradisiKategori;
+  judul: string;
+  isi: string;
+  sumber?: string;
+}
+
+export type TradisiPosition = "br" | "bl" | "tr" | "tl";
+
+export interface TradisiSettings {
+  enabled: boolean;
+  position: TradisiPosition;
+  cooldownMs: number;
+  autoHideMs: number;
+  cardWidth: number;
+  showCloseButton: boolean;
+  source: "default" | "custom" | "merge";
+  custom: TradisiItem[];
+  kategoriColors?: Partial<Record<TradisiKategori, string>>;
+}
+
+export interface BrandSettings {
+  appName: string;
+  appTagline: string;
+  sidebarFooterLine1: string;
+  sidebarFooterLine2: string;
+  iconKey: string;
+  logoDataUrl?: string;
+  loginEyebrow?: string;
+}
+
+export interface LayoutBackdropSettings {
+  enabled: boolean;
+  imageDataUrl?: string;
+  opacity: number;
+  blendMode: "normal" | "overlay" | "multiply" | "screen" | "soft-light";
+}
+
 export interface AppearanceSettings {
   primaryHsl: string;
   accentHsl: string;
   dark: boolean;
   theme?: ThemeMode;
+  brand?: BrandSettings;
+  backdrop?: LayoutBackdropSettings;
+  tradisi?: TradisiSettings;
 }
