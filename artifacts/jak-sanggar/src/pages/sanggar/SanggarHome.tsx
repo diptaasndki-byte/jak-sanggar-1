@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { useAuth, useDb } from "@/lib/auth";
 import { fmtRp, fmtDate } from "@/lib/store";
 import { Card } from "@/components/ui/card";
@@ -6,10 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
 import type { SanggarUser } from "@/lib/types";
 import { XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid, ComposedChart, Bar, Line } from "recharts";
-import { Users, CalendarDays, Wallet, Award, Bell, ArrowRight } from "lucide-react";
+import { Users, CalendarDays, Wallet, Bell, ArrowRight, GraduationCap, Boxes, Handshake } from "lucide-react";
 import { AnimatedCounter } from "@/components/system/AnimatedCounter";
 import { PucukRebungDivider, BatikCorner } from "@/components/betawi/Ornaments";
-import { BudayaSlider } from "@/components/system/BudayaSlider";
 
 export default function SanggarHome() {
   const { user } = useAuth();
@@ -25,11 +23,19 @@ export default function SanggarHome() {
   const pendingHonor = db.pengajuanHonor.filter(h => h.sanggarId === sg.id && h.status === "pending").length;
   const banner = db.banners.find(b => b.active);
 
+  const asetCount = db.aset.filter(a => a.sanggarId === sg.id).length + db.sarpras.filter(s => s.sanggarId === sg.id).length;
+  const kerjasamaPending = db.kerjasama.filter(k =>
+    (k.sanggarPenyediaId === sg.id || k.sanggarPeminjamId === sg.id) &&
+    (k.status === "menunggu" || k.status === "negosiasi")
+  ).length;
+
   const tiles = [
     { href: "/sanggar/keanggotaan", label: "Keanggotaan", icon: Users, count: members.length },
     { href: "/sanggar/latihan", label: "Latihan", icon: CalendarDays, count: db.latihan.filter(l => l.sanggarId === sg.id).length },
+    { href: "/sanggar/pembinaan", label: "Pembinaan", icon: GraduationCap, count: 0 },
+    { href: "/sanggar/aset", label: "Aset & Sarana", icon: Boxes, count: asetCount },
+    { href: "/sanggar/kerjasama", label: "Kerjasama", icon: Handshake, count: kerjasamaPending },
     { href: "/sanggar/buku-kas", label: "Buku Kas", icon: Wallet, count: pendingIuran + pendingHonor },
-    { href: "/sanggar/kurasi", label: "Kurasi", icon: Award, count: 0 },
   ];
 
   return (
@@ -102,8 +108,8 @@ export default function SanggarHome() {
         <Stat label="Validasi Tertunda" value={pendingIuran + pendingHonor} pending={(pendingIuran + pendingHonor) > 0} />
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-4">
-        <Card className="lg:col-span-2 p-5">
+      <div>
+        <Card className="p-5">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-serif text-lg">Grafik Kas</h3>
@@ -165,28 +171,26 @@ export default function SanggarHome() {
           </div>
         </Card>
 
-        {/* Informasi Kebudayaan slider — diatur oleh kurator/admin */}
-        <BudayaSlider items={db.infoBudaya} />
       </div>
 
       <div>
         <h3 className="font-serif text-lg mb-3">Menu Cepat</h3>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {tiles.map(t => (
             <Link key={t.href} href={t.href}>
-              <Card className="p-5 cursor-pointer h-full">
+              <Card data-testid={`tile-${t.href.split("/").pop()}`} className="p-4 cursor-pointer h-full hover:border-accent/50 transition-colors">
                 <div className="flex items-start justify-between">
                   <div
-                    className="h-11 w-11 rounded-xl grid place-items-center"
+                    className="h-12 w-12 rounded-xl grid place-items-center"
                     style={{
                       background: "linear-gradient(135deg, hsl(var(--accent) / 0.18), hsl(var(--accent) / 0.05))",
                       border: "1px solid hsl(var(--accent) / 0.3)",
                       color: "hsl(var(--accent))",
                     }}
-                  ><t.icon className="h-5 w-5" /></div>
+                  ><t.icon className="h-6 w-6" /></div>
                   {t.count > 0 && <Badge variant="secondary">{t.count}</Badge>}
                 </div>
-                <div className="mt-3 font-medium">{t.label}</div>
+                <div className="mt-3 font-medium leading-tight">{t.label}</div>
                 <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1 group">
                   Buka <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
                 </div>
