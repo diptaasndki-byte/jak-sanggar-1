@@ -181,7 +181,7 @@ const ROLE_LABEL: Record<Role, string> = {
   juri: "Juri",
 };
 const BANK_OPTIONS: Bank[] = ["BCA", "Mandiri", "DKI", "BRI", "BNI", "BSI", "CIMB"];
-const JENIS_OPTIONS: JenisKesenian[] = ["Tari", "Musik", "Teater", "Rupa", "Sastra"];
+const JENIS_OPTIONS: JenisKesenian[] = ["Tari", "Musik", "Teater", "Rupa", "Sastra", "Silat"];
 const LEGALITAS_OPTIONS: Legalitas[] = ["Yayasan", "PT", "CV", "Non-Badan Hukum"];
 
 function getDisplayName(u: AnyUser): string {

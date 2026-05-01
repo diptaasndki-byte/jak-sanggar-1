@@ -17,7 +17,7 @@ import { GaleriUploader } from "@/components/profile/GaleriUploader";
 import { RekeningEditor } from "@/components/profile/RekeningEditor";
 import { downloadLockedPdf } from "@/lib/pdf";
 
-const KESENIAN: JenisKesenian[] = ["Tari", "Musik", "Teater", "Rupa", "Sastra"];
+const KESENIAN: JenisKesenian[] = ["Tari", "Musik", "Teater", "Rupa", "Sastra", "Silat"];
 
 export default function SenimanProfile() {
   const { user } = useAuth();

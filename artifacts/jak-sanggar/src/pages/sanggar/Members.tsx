@@ -224,7 +224,7 @@ function DirectAddDialog({ sg }: { sg: SanggarUser }) {
           <div className="space-y-1.5"><Label>Jenis Kesenian</Label>
             <Select value={f.jenisKesenian} onValueChange={(v: JenisKesenian) => setF({ ...f, jenisKesenian: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{(["Tari", "Musik", "Teater", "Rupa", "Sastra"] as JenisKesenian[]).map(k => <SelectItem key={k} value={k}>{k}</SelectItem>)}</SelectContent>
+              <SelectContent>{(["Tari", "Musik", "Teater", "Rupa", "Sastra", "Silat"] as JenisKesenian[]).map(k => <SelectItem key={k} value={k}>{k}</SelectItem>)}</SelectContent>
             </Select>
           </div>
         </div>

@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { JenisKesenian, Bank, Legalitas, SanggarUser, PelatihUser, SenimanUser } from "@/lib/types";
 import { MapPin } from "lucide-react";
 
-const KESENIAN: JenisKesenian[] = ["Tari", "Musik", "Teater", "Rupa", "Sastra"];
+const KESENIAN: JenisKesenian[] = ["Tari", "Musik", "Teater", "Rupa", "Sastra", "Silat"];
 const BANKS: Bank[] = ["BCA", "Mandiri", "DKI", "BRI", "BNI", "BSI", "CIMB"];
 const PENDIDIKAN = ["SD", "SMP", "SMA", "D3", "S1", "S2", "S3"];
 

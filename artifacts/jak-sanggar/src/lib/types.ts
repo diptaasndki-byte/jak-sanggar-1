@@ -1,6 +1,6 @@
 export type Role = "kurator" | "admin" | "sanggar" | "pelatih" | "seniman" | "juri";
 
-export type JenisKesenian = "Tari" | "Musik" | "Teater" | "Rupa" | "Sastra";
+export type JenisKesenian = "Tari" | "Musik" | "Teater" | "Rupa" | "Sastra" | "Silat";
 export type Bank = "BCA" | "Mandiri" | "DKI" | "BRI" | "BNI" | "BSI" | "CIMB";
 export type Legalitas = "Yayasan" | "PT" | "CV" | "Non-Badan Hukum";
 
