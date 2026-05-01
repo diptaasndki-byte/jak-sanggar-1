@@ -11,7 +11,7 @@ import type { ReactNode } from "react";
 import Login from "@/pages/auth/Login";
 import ForgotPassword from "@/pages/auth/ForgotPassword";
 import RegisterChoice from "@/pages/auth/RegisterChoice";
-import { RegisterSanggar, RegisterPelatih, RegisterSeniman } from "@/pages/auth/RegisterForms";
+import { RegisterSanggar, RegisterPelatih, RegisterSeniman, RegisterSewa } from "@/pages/auth/RegisterForms";
 
 import SanggarHome from "@/pages/sanggar/SanggarHome";
 import SanggarProfile from "@/pages/sanggar/Profile";
@@ -35,6 +35,7 @@ import { JuriHome, JuriScoring } from "@/pages/juri/JuriPages";
 import JuriProfile from "@/pages/juri/Profile";
 import { AdminHome, AdminBerita, AdminBanner, AdminSlider } from "@/pages/admin/AdminPages";
 import { KuratorHome, KuratorAccounts, KuratorMatriks, KuratorAssign, KuratorStaff, KuratorAppearance, KuratorWaktu } from "@/pages/kurator/KuratorPages";
+import { SewaHome, SewaKatalog } from "@/pages/sewa/SewaPages";
 import KuratorKerjasama from "@/pages/kurator/KuratorKerjasama";
 import { KuratorManajemenData } from "@/pages/kurator/KuratorManajemenData";
 import InfoBudayaManager from "@/pages/shared/InfoBudayaManager";
@@ -43,7 +44,7 @@ import {
   LayoutDashboard, Users, Calendar, Wallet, BookOpen, Award, GraduationCap,
   Receipt, ScrollText, FileText, Send, Newspaper, Image as ImageIcon, MessageSquare,
   Sliders, Clock, Palette, Shield, ClipboardList, Trophy, UserCog,
-  Package, Building2, Handshake, Inbox, Landmark, Database,
+  Package, Building2, Handshake, Inbox, Landmark, Database, ShoppingBag,
 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -142,6 +143,14 @@ const adminNav = [
     ],
   },
 ];
+const sewaNav = [
+  { label: "Beranda Katalog", href: "/sewa", icon: <LayoutDashboard className="h-4 w-4" /> },
+  { label: "Sanggar", href: "/sewa/katalog/sanggar", icon: <Building2 className="h-4 w-4" /> },
+  { label: "SDM", href: "/sewa/katalog/sdm", icon: <Users className="h-4 w-4" /> },
+  { label: "Perlengkapan", href: "/sewa/katalog/perlengkapan", icon: <Package className="h-4 w-4" /> },
+  { label: "Kostum", href: "/sewa/katalog/kostum", icon: <ShoppingBag className="h-4 w-4" /> },
+  { label: "Tempat Latihan", href: "/sewa/katalog/tempat", icon: <Landmark className="h-4 w-4" /> },
+];
 const kuratorNav = [
   { label: "Dasbor", href: "/kurator", icon: <LayoutDashboard className="h-4 w-4" /> },
   { label: "Akun Pengguna", href: "/kurator/akun", icon: <Users className="h-4 w-4" /> },
@@ -164,6 +173,7 @@ function Router() {
       <Route path="/daftar/sanggar" component={RegisterSanggar} />
       <Route path="/daftar/pelatih" component={RegisterPelatih} />
       <Route path="/daftar/seniman" component={RegisterSeniman} />
+      <Route path="/daftar/sewa" component={RegisterSewa} />
 
       <Route path="/sanggar" >{() => <Guard role="sanggar"><AppShell nav={sanggarNav}><SanggarHome /></AppShell></Guard>}</Route>
       <Route path="/sanggar/profil" >{() => <Guard role="sanggar"><AppShell nav={sanggarNav}><SanggarProfile /></AppShell></Guard>}</Route>
@@ -216,6 +226,9 @@ function Router() {
       <Route path="/kurator/staff" >{() => <Guard role="kurator"><AppShell nav={kuratorNav}><KuratorStaff /></AppShell></Guard>}</Route>
       <Route path="/kurator/tampilan" >{() => <Guard role="kurator"><AppShell nav={kuratorNav}><KuratorAppearance /></AppShell></Guard>}</Route>
       <Route path="/kurator/waktu" >{() => <Guard role="kurator"><AppShell nav={kuratorNav}><KuratorWaktu /></AppShell></Guard>}</Route>
+
+      <Route path="/sewa" >{() => <Guard role="sewa"><AppShell nav={sewaNav}><SewaHome /></AppShell></Guard>}</Route>
+      <Route path="/sewa/katalog/:kategori" >{() => <Guard role="sewa"><AppShell nav={sewaNav}><SewaKatalog /></AppShell></Guard>}</Route>
 
       <Route component={NotFound} />
     </Switch>

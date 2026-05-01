@@ -195,10 +195,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!(err instanceof ApiError) || err.status !== 401) {
           console.warn("auth.me gagal", err);
         }
-        localStorage.removeItem(SESSION_KEY);
-        writeImpersonation(null);
-        setImpersonatedFromId(null);
-        setUser(null);
+        // Sebelum menghapus sesi, periksa apakah sesi lokal milik akun "sewa"
+        // (akun lokal-saja yang tidak dikenal API server). Jika ya, pertahankan
+        // agar tetap login setelah refresh.
+        const sid = localStorage.getItem(SESSION_KEY);
+        const localUser = sid ? load().users.find((u) => u.id === sid) ?? null : null;
+        if (localUser && localUser.role === "sewa") {
+          setUser(localUser);
+        } else {
+          localStorage.removeItem(SESSION_KEY);
+          writeImpersonation(null);
+          setImpersonatedFromId(null);
+          setUser(null);
+        }
       } finally {
         if (!cancelled) setReady(true);
       }
@@ -218,12 +227,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (username: string, password: string) => {
-    try {
-      const api = await authApi.login(username.trim(), password);
-      // Naikkan versi state supaya hidrasi awal me() yang lambat tidak
-      // menimpa hasil login ini bila baru kembali setelahnya.
+    const uname = username.trim();
+    // Helper: login lokal HANYA untuk role "sewa" (akun client-side yang
+    // tidak dikenal API server). Cegah bypass auth server untuk role lain.
+    const tryLocalSewaLogin = (): AnyUser | null => {
+      const db = load();
+      const found = db.users.find(
+        (u) =>
+          u.role === "sewa" &&
+          u.username.toLowerCase() === uname.toLowerCase() &&
+          (u as { password?: string }).password === password,
+      );
+      if (!found) return null;
       stateVersionRef.current += 1;
-      // Login baru → bersihkan impersonation lama (mencegah stale state).
+      writeImpersonation(null);
+      setImpersonatedFromId(null);
+      localStorage.setItem(SESSION_KEY, found.id);
+      setUser(found);
+      setReady(true);
+      logActivity(found.id, found.role, "login");
+      return found;
+    };
+
+    try {
+      const api = await authApi.login(uname, password);
+      stateVersionRef.current += 1;
       writeImpersonation(null);
       setImpersonatedFromId(null);
       const local = reconcileLocalUser(api);
@@ -234,8 +262,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return local;
     } catch (err) {
       if (err instanceof ApiError && (err.status === 401 || err.status === 400)) {
-        return null;
+        // API tolak — coba sebagai akun "sewa" lokal saja.
+        return tryLocalSewaLogin();
       }
+      // Jaringan/error lain: izinkan login sewa offline supaya tidak terblokir.
+      const localOk = tryLocalSewaLogin();
+      if (localOk) return localOk;
       throw err;
     }
   };

@@ -108,6 +108,7 @@ const ROLE_KEY: Record<Role, string> = {
   pelatih: "Pelatih",
   seniman: "Seniman",
   juri: "Juri",
+  sewa: "Sewa Jasa",
 };
 
 function applyTheme(theme: ThemeMode) {

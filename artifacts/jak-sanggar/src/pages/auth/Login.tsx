@@ -222,7 +222,8 @@ export default function Login() {
                 Sanggar: <code className="text-foreground">betawi.merah</code> / <code className="text-foreground">sanggar123</code><br />
                 Pelatih: <code className="text-foreground">pelatih.iwan</code> / <code className="text-foreground">pelatih123</code><br />
                 Seniman: <code className="text-foreground">ayu.tari</code> / <code className="text-foreground">seniman123</code><br />
-                Juri: <code className="text-foreground">juri1</code> / <code className="text-foreground">juri123</code> · Admin: <code className="text-foreground">admin1</code> / <code className="text-foreground">admin123</code>
+                Juri: <code className="text-foreground">juri1</code> / <code className="text-foreground">juri123</code> · Admin: <code className="text-foreground">admin1</code> / <code className="text-foreground">admin123</code><br />
+                Sewa Jasa: <code className="text-foreground">sewa.demo</code> / <code className="text-foreground">sewa1234</code>
               </div>
             </div>
 

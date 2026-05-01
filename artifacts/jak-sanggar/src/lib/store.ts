@@ -1,5 +1,5 @@
 import type {
-  AnyUser, KuratorUser, AdminUser, SanggarUser, PelatihUser, SenimanUser, JuriUser,
+  AnyUser, KuratorUser, AdminUser, SanggarUser, PelatihUser, SenimanUser, JuriUser, SewaUser,
   News, Banner, SliderImage, Latihan, Iuran, PengajuanHonor, DistribusiHonor,
   TransaksiManual, KasEntry, KurasiMatrix, PenugasanJuri, KurasiSubmission,
   Sertifikat, ActivityLog, JamPembinaan, AbsensiPembinaan, PendaftaranPembinaan,
@@ -128,6 +128,15 @@ function seed(): DBShape {
     rekening: { bank: "BSI", nomor: "7700123456", atasNama: "Citra Wulandari" },
     createdAt: now,
   };
+  const sewaDemo: SewaUser = {
+    id: uid(), role: "sewa", username: "sewa.demo", password: "sewa1234",
+    email: "sewa.demo@example.com", noHp: "081200001234",
+    nama: "EO Cahaya Jakarta",
+    alamat: "Jl. Sudirman No. 21, Jakarta Pusat",
+    jenisInstansi: "Korporat",
+    createdAt: now,
+  };
+
   const senimanPending: SenimanUser = {
     id: uid(), role: "seniman", username: "dewi.calon", password: "seniman123",
     nama: "Dewi Maharani", noHp: "081377889903",
@@ -269,7 +278,7 @@ function seed(): DBShape {
   ];
 
   return {
-    users: [kurator, admin, juri, sanggar1, sanggar2, pelatih1, pelatih2, seniman1, seniman2, seniman3, senimanPending],
+    users: [kurator, admin, juri, sanggar1, sanggar2, pelatih1, pelatih2, seniman1, seniman2, seniman3, senimanPending, sewaDemo],
     news, banners, slider, latihan: [], iuran, pengajuanHonor, distribusi: [],
     transaksi: [], kas: kasEntries, kurasiMatrix: matrix, penugasanJuri,
     kurasiSubmissions: [], sertifikat: [], activity: [],
@@ -347,6 +356,19 @@ function migrate(db: DBShape): DBShape {
         kelolaInfoBudaya: existing.kelolaInfoBudaya ?? true,
       };
     }
+  }
+  // Backfill akun demo "Sewa Jasa" untuk localStorage lama.
+  if (!db.users.some(u => u.role === "sewa" && u.username === "sewa.demo")) {
+    const demo: SewaUser = {
+      id: `sewa_demo_${Date.now()}`,
+      role: "sewa", username: "sewa.demo", password: "sewa1234",
+      email: "sewa.demo@example.com", noHp: "081200001234",
+      nama: "EO Cahaya Jakarta",
+      alamat: "Jl. Sudirman No. 21, Jakarta Pusat",
+      jenisInstansi: "Korporat",
+      createdAt: Date.now(),
+    };
+    db.users.push(demo);
   }
   db.appearance ||= { primaryHsl: "220 55% 18%", accentHsl: "42 65% 53%", dark: false, theme: "light" };
   db.appearance.themePreset ||= db.appearance.theme ?? "light";

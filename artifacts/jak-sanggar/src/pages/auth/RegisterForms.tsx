@@ -247,6 +247,89 @@ function RegisterMember({ kind }: { kind: "pelatih" | "seniman" }) {
   );
 }
 
+const JENIS_INSTANSI: SewaUser["jenisInstansi"][] = ["Pribadi", "Komunitas", "Sekolah", "Korporat", "Pemerintah"];
+
+export function RegisterSewa() {
+  const db = useDb();
+  const { setSession } = useAuth();
+  const { toast } = useToast();
+  const [, navigate] = useLocation();
+  const [f, setF] = useState({
+    nama: "", username: "", email: "", password: "", noHp: "",
+    alamat: "", jenisInstansi: "Pribadi" as NonNullable<SewaUser["jenisInstansi"]>,
+  });
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!f.nama.trim() || !f.username.trim() || f.password.length < 6) {
+      toast({ title: "Lengkapi data", description: "Nama, username, dan sandi (≥6 karakter) wajib.", variant: "destructive" });
+      return;
+    }
+    if (db.users.some(u => u.username.toLowerCase() === f.username.toLowerCase())) {
+      toast({ title: "Username sudah digunakan", variant: "destructive" }); return;
+    }
+    const newUser: SewaUser = {
+      id: uid(),
+      role: "sewa",
+      username: f.username.trim(),
+      password: f.password,
+      email: f.email.trim() || undefined,
+      noHp: f.noHp.trim() || undefined,
+      nama: f.nama.trim(),
+      alamat: f.alamat.trim() || undefined,
+      jenisInstansi: f.jenisInstansi,
+      createdAt: Date.now(),
+    };
+    save(d => { d.users.push(newUser); });
+    logActivity(newUser.id, "sewa", "register");
+    setSession(newUser);
+    toast({ title: "Akun siap pakai", description: "Telusuri katalog jasa kesenian sekarang." });
+    navigate("/sewa");
+  };
+
+  return (
+    <div className="min-h-screen bg-background px-4 py-10">
+      <div className="max-w-3xl mx-auto">
+        <BackButton to="/daftar" label="Kembali ke Pilihan Peran" />
+        <h1 className="mt-3 font-serif text-3xl">Pendaftaran Sewa Jasa</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Akun untuk pemesan jasa: telusuri katalog SDM, perlengkapan, kostum, dan tempat latihan dari sanggar manapun.
+        </p>
+        <Card className="mt-6 p-6 sm:p-8">
+          <form onSubmit={submit} className="space-y-8">
+            <Section title="Identitas Pemesan">
+              <Field label="Nama Lengkap / Instansi" required value={f.nama} onChange={v => setF({ ...f, nama: v })} />
+              <div className="space-y-1.5">
+                <Label>Jenis Instansi</Label>
+                <Select value={f.jenisInstansi} onValueChange={(v) => setF({ ...f, jenisInstansi: v as NonNullable<SewaUser["jenisInstansi"]> })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{JENIS_INSTANSI.map(j => <SelectItem key={j!} value={j!}>{j}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="sm:col-span-2">
+                <Label>Alamat</Label>
+                <Textarea rows={2} value={f.alamat} onChange={e => setF({ ...f, alamat: e.target.value })} />
+              </div>
+            </Section>
+
+            <Section title="Akun & Kontak">
+              <Field label="Username" required value={f.username} onChange={v => setF({ ...f, username: v })} />
+              <Field label="Email" type="email" value={f.email} onChange={v => setF({ ...f, email: v })} />
+              <Field label="Password (≥6 karakter)" type="password" required value={f.password} onChange={v => setF({ ...f, password: v })} />
+              <Field label="No. HP / WhatsApp" value={f.noHp} onChange={v => setF({ ...f, noHp: v })} />
+            </Section>
+
+            <div className="flex justify-between gap-2 pt-4 border-t">
+              <BackButton to="/daftar" />
+              <Button type="submit">Daftar</Button>
+            </div>
+          </form>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
 function Field({ label, value, onChange, required, type = "text" }: {
   label: string; value: string; onChange: (v: string) => void; required?: boolean; type?: string;
 }) {

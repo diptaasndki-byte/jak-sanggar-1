@@ -13,13 +13,14 @@ Aplikasi web Bahasa Indonesia untuk mengelola sanggar kesenian Jakarta secara te
 - **Tahap 2+ (berikutnya):** pindahkan modul lain (sanggar profile, latihan, kas, kurasi, dst.) dari localStorage ke API.
 - **Tahap 6:** deploy ke VPS Bizznet — lihat `artifacts/jak-sanggar/deploy/BACKEND.md`.
 
-## Peran Pengguna (6)
+## Peran Pengguna (7)
 1. Kurator (super admin, kredensial tetap `Penguasa jak1` / `ayamayaman`)
 2. Admin staff (hak akses dapat di-toggle Kurator)
 3. Sanggar (registrasi mandiri)
 4. Pelatih (registrasi mandiri, harus diterima Sanggar)
 5. Seniman (registrasi mandiri, harus diterima Sanggar)
 6. Juri (dibuat Kurator)
+7. Sewa Jasa (registrasi mandiri publik — penyewa umum / EO / instansi yang menelusuri katalog jasa sanggar; client-side only, tidak melalui API server)
 
 ## Kredensial Demo
 - Kurator: `Penguasa jak1` / `ayamayaman`
@@ -28,11 +29,12 @@ Aplikasi web Bahasa Indonesia untuk mengelola sanggar kesenian Jakarta secara te
 - Seniman: `ayu.tari` / `seniman123`
 - Juri: `juri1` / `juri123`
 - Admin: `admin1` / `admin123`
+- Sewa Jasa: `sewa.demo` / `sewa1234`
 
 ## Struktur
 - `src/lib/{types,store,auth}.ts(x)` — model data, DB lokal, AuthProvider
 - `src/components/layout/{AppShell,PageHeader,BackButton}.tsx`
-- `src/pages/{auth,sanggar,pelatih,seniman,juri,admin,kurator}/`
+- `src/pages/{auth,sanggar,pelatih,seniman,juri,admin,kurator,sewa}/`
 - `src/App.tsx` — semua route + Guard per peran
 
 ## Identitas Visual (Redesign Apr 2026)

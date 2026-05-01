@@ -171,7 +171,7 @@ function Stat({ label, value, icon }: { label: string; value: number; icon?: Rea
   );
 }
 
-type EditableRole = Exclude<Role, "kurator">;
+type EditableRole = Exclude<Role, "kurator" | "sewa">;
 const ROLE_LABEL: Record<Role, string> = {
   kurator: "Kurator",
   admin: "Admin",
@@ -179,6 +179,7 @@ const ROLE_LABEL: Record<Role, string> = {
   pelatih: "Pelatih",
   seniman: "Seniman",
   juri: "Juri",
+  sewa: "Sewa Jasa",
 };
 const BANK_OPTIONS: Bank[] = ["BCA", "Mandiri", "DKI", "BRI", "BNI", "BSI", "CIMB"];
 const JENIS_OPTIONS: JenisKesenian[] = ["Tari", "Musik", "Teater", "Rupa", "Sastra", "Silat"];
