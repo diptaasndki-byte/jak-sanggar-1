@@ -133,7 +133,7 @@ function seed(): DBShape {
     email: "sewa.demo@example.com", noHp: "081200001234",
     nama: "EO Cahaya Jakarta",
     alamat: "Jl. Sudirman No. 21, Jakarta Pusat",
-    jenisInstansi: "Korporat",
+    jenisInstansi: "Daerah",
     createdAt: now,
   };
 
@@ -365,7 +365,7 @@ function migrate(db: DBShape): DBShape {
       email: "sewa.demo@example.com", noHp: "081200001234",
       nama: "EO Cahaya Jakarta",
       alamat: "Jl. Sudirman No. 21, Jakarta Pusat",
-      jenisInstansi: "Korporat",
+      jenisInstansi: "Daerah",
       createdAt: Date.now(),
     };
     db.users.push(demo);

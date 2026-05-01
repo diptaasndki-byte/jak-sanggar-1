@@ -11,8 +11,16 @@ import { BackButton } from "@/components/layout/BackButton";
 import { useDb, save, useAuth } from "@/lib/auth";
 import { uid, logActivity } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
-import type { JenisKesenian, Bank, Legalitas, SanggarUser, PelatihUser, SenimanUser, SewaUser } from "@/lib/types";
+import type { JenisKesenian, Bank, Legalitas, SanggarUser, PelatihUser, SenimanUser, SewaUser, JenisInstansiSewa, AlamatTerstruktur } from "@/lib/types";
 import { MapPin } from "lucide-react";
+import { RegionSelector } from "@/components/RegionSelector";
+import { formatAlamatWilayah } from "@/lib/regions";
+
+const EMPTY_WILAYAH: AlamatTerstruktur = {};
+
+function isWilayahLengkap(w: AlamatTerstruktur): boolean {
+  return Boolean(w.provinsiId && w.kotaId && w.kecamatanId && w.kelurahanId);
+}
 
 const KESENIAN: JenisKesenian[] = ["Tari", "Musik", "Teater", "Rupa", "Sastra", "Silat"];
 const BANKS: Bank[] = ["BCA", "Mandiri", "DKI", "BRI", "BNI", "BSI", "CIMB"];
@@ -37,6 +45,7 @@ export function RegisterSanggar() {
     legalitas: "Yayasan" as Legalitas, namaBadanHukum: "",
     jenisKesenian: [] as JenisKesenian[],
     alamat: "", lat: 0, lng: 0,
+    wilayah: EMPTY_WILAYAH,
     noHp: "",
     bank: "BCA" as Bank, nomor: "", atasNama: "",
   });
@@ -47,11 +56,16 @@ export function RegisterSanggar() {
       toast({ title: "Username sudah digunakan", variant: "destructive" }); return;
     }
     if (f.jenisKesenian.length === 0) { toast({ title: "Pilih minimal 1 jenis kesenian", variant: "destructive" }); return; }
+    if (!isWilayahLengkap(f.wilayah)) {
+      toast({ title: "Lengkapi alamat wilayah", description: "Pilih kota, kecamatan, dan kelurahan.", variant: "destructive" }); return;
+    }
+    const alamatGabungan = formatAlamatWilayah(f.wilayah, f.alamat);
     const newUser: SanggarUser = {
       id: uid(), role: "sanggar", username: f.username, password: f.password, email: f.email, noHp: f.noHp,
       namaSanggar: f.namaSanggar, namaKetua: f.namaKetua,
       legalitas: f.legalitas, namaBadanHukum: f.legalitas !== "Non-Badan Hukum" ? f.namaBadanHukum : undefined,
-      jenisKesenian: f.jenisKesenian, alamat: f.alamat, lat: f.lat || -6.2, lng: f.lng || 106.8,
+      jenisKesenian: f.jenisKesenian, alamat: alamatGabungan, wilayah: f.wilayah,
+      lat: f.lat || -6.2, lng: f.lng || 106.8,
       rekening: { bank: f.bank, nomor: f.nomor, atasNama: f.atasNama },
       saldo: 0, editCount: 0, editPeriodStart: Date.now(), createdAt: Date.now(),
     };
@@ -103,9 +117,15 @@ export function RegisterSanggar() {
               <Field label="Email" type="email" required value={f.email} onChange={v => setF({ ...f, email: v })} />
               <Field label="Password" type="password" required value={f.password} onChange={v => setF({ ...f, password: v })} />
               <Field label="No. HP / WhatsApp" required value={f.noHp} onChange={v => setF({ ...f, noHp: v })} />
+              <RegionSelector
+                mode="dki-only"
+                value={f.wilayah}
+                onChange={(w) => setF((prev) => ({ ...prev, wilayah: w }))}
+                required
+              />
               <div className="sm:col-span-2 space-y-1.5">
-                <Label>Alamat Lengkap <span className="text-destructive">*</span></Label>
-                <Textarea required rows={2} value={f.alamat} onChange={e => setF({ ...f, alamat: e.target.value })} placeholder="Jl. ..." />
+                <Label>Alamat Detail (Jalan, RT/RW, No.) <span className="text-destructive">*</span></Label>
+                <Textarea required rows={2} value={f.alamat} onChange={e => setF({ ...f, alamat: e.target.value })} placeholder="Jl. Mawar No. 12, RT 03/RW 05" />
                 <Button type="button" variant="outline" size="sm" className="gap-2" onClick={() => {
                   setF({ ...f, lat: -6.2 + Math.random() * 0.1, lng: 106.8 + Math.random() * 0.1 });
                   toast({ title: "Lokasi berhasil dibagikan", description: "Koordinat tersimpan." });
@@ -150,6 +170,8 @@ function RegisterMember({ kind }: { kind: "pelatih" | "seniman" }) {
     nama: "", username: "", email: "", password: "", noHp: "",
     usia: 25, pendidikan: "S1", jenisKesenian: "Tari" as JenisKesenian,
     sanggarId: sanggarList[0]?.id ?? "",
+    alamatDetail: "",
+    wilayah: EMPTY_WILAYAH,
     bank: "BCA" as Bank, nomor: "", atasNama: "",
   });
 
@@ -158,10 +180,15 @@ function RegisterMember({ kind }: { kind: "pelatih" | "seniman" }) {
     if (db.users.some(u => u.username.toLowerCase() === f.username.toLowerCase())) {
       toast({ title: "Username sudah digunakan", variant: "destructive" }); return;
     }
+    if (!isWilayahLengkap(f.wilayah)) {
+      toast({ title: "Lengkapi alamat wilayah", description: "Pilih kota, kecamatan, dan kelurahan.", variant: "destructive" }); return;
+    }
+    const alamatGabungan = formatAlamatWilayah(f.wilayah, f.alamatDetail);
     const base = {
       id: uid(), username: f.username, password: f.password, email: f.email, noHp: f.noHp,
       nama: f.nama, usia: Number(f.usia), pendidikan: f.pendidikan,
       jenisKesenian: f.jenisKesenian, sanggarId: f.sanggarId,
+      alamat: alamatGabungan, wilayah: f.wilayah,
       status: "pending" as const,
       rekening: { bank: f.bank, nomor: f.nomor, atasNama: f.atasNama },
       createdAt: Date.now(),
@@ -211,6 +238,19 @@ function RegisterMember({ kind }: { kind: "pelatih" | "seniman" }) {
               <Field label="No. HP / WhatsApp" required value={f.noHp} onChange={v => setF({ ...f, noHp: v })} />
             </Section>
 
+            <Section title="Alamat (DKI Jakarta)">
+              <RegionSelector
+                mode="dki-only"
+                value={f.wilayah}
+                onChange={(w) => setF((prev) => ({ ...prev, wilayah: w }))}
+                required
+              />
+              <div className="sm:col-span-2 space-y-1.5">
+                <Label>Alamat Detail (Jalan, RT/RW, No.) <span className="text-destructive">*</span></Label>
+                <Textarea required rows={2} value={f.alamatDetail} onChange={e => setF({ ...f, alamatDetail: e.target.value })} placeholder="Jl. Mawar No. 12, RT 03/RW 05" />
+              </div>
+            </Section>
+
             <Section title="Pilih Sanggar">
               <div className="sm:col-span-2 space-y-1.5">
                 <Label>Sanggar Tujuan</Label>
@@ -247,7 +287,14 @@ function RegisterMember({ kind }: { kind: "pelatih" | "seniman" }) {
   );
 }
 
-const JENIS_INSTANSI: SewaUser["jenisInstansi"][] = ["Pribadi", "Komunitas", "Sekolah", "Korporat", "Pemerintah"];
+const JENIS_INSTANSI: JenisInstansiSewa[] = ["Pusat", "Daerah", "SKPD", "UKPD"];
+
+const JENIS_INSTANSI_DESC: Record<JenisInstansiSewa, string> = {
+  Pusat: "Kementerian / lembaga pemerintah pusat",
+  Daerah: "Pemerintah Provinsi / Kabupaten / Kota",
+  SKPD: "Satuan Kerja Perangkat Daerah",
+  UKPD: "Unit Kerja Perangkat Daerah",
+};
 
 export function RegisterSewa() {
   const db = useDb();
@@ -256,7 +303,9 @@ export function RegisterSewa() {
   const [, navigate] = useLocation();
   const [f, setF] = useState({
     nama: "", username: "", email: "", password: "", noHp: "",
-    alamat: "", jenisInstansi: "Pribadi" as NonNullable<SewaUser["jenisInstansi"]>,
+    alamatDetail: "",
+    wilayah: EMPTY_WILAYAH,
+    jenisInstansi: "Pusat" as JenisInstansiSewa,
   });
 
   const submit = (e: React.FormEvent) => {
@@ -268,6 +317,10 @@ export function RegisterSewa() {
     if (db.users.some(u => u.username.toLowerCase() === f.username.toLowerCase())) {
       toast({ title: "Username sudah digunakan", variant: "destructive" }); return;
     }
+    if (!isWilayahLengkap(f.wilayah)) {
+      toast({ title: "Lengkapi alamat wilayah", description: "Pilih provinsi, kota, kecamatan, dan kelurahan.", variant: "destructive" }); return;
+    }
+    const alamatGabungan = formatAlamatWilayah(f.wilayah, f.alamatDetail);
     const newUser: SewaUser = {
       id: uid(),
       role: "sewa",
@@ -276,7 +329,8 @@ export function RegisterSewa() {
       email: f.email.trim() || undefined,
       noHp: f.noHp.trim() || undefined,
       nama: f.nama.trim(),
-      alamat: f.alamat.trim() || undefined,
+      alamat: alamatGabungan || undefined,
+      wilayah: f.wilayah,
       jenisInstansi: f.jenisInstansi,
       createdAt: Date.now(),
     };
@@ -300,15 +354,29 @@ export function RegisterSewa() {
             <Section title="Identitas Pemesan">
               <Field label="Nama Lengkap / Instansi" required value={f.nama} onChange={v => setF({ ...f, nama: v })} />
               <div className="space-y-1.5">
-                <Label>Jenis Instansi</Label>
-                <Select value={f.jenisInstansi} onValueChange={(v) => setF({ ...f, jenisInstansi: v as NonNullable<SewaUser["jenisInstansi"]> })}>
+                <Label>Jenis Instansi <span className="text-destructive">*</span></Label>
+                <Select value={f.jenisInstansi} onValueChange={(v) => setF({ ...f, jenisInstansi: v as JenisInstansiSewa })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{JENIS_INSTANSI.map(j => <SelectItem key={j!} value={j!}>{j}</SelectItem>)}</SelectContent>
+                  <SelectContent>
+                    {JENIS_INSTANSI.map(j => (
+                      <SelectItem key={j} value={j}>{j}</SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
+                <p className="text-[11px] text-muted-foreground">{JENIS_INSTANSI_DESC[f.jenisInstansi]}</p>
               </div>
-              <div className="sm:col-span-2">
-                <Label>Alamat</Label>
-                <Textarea rows={2} value={f.alamat} onChange={e => setF({ ...f, alamat: e.target.value })} />
+            </Section>
+
+            <Section title="Alamat (Seluruh Indonesia)">
+              <RegionSelector
+                mode="all-id"
+                value={f.wilayah}
+                onChange={(w) => setF((prev) => ({ ...prev, wilayah: w }))}
+                required
+              />
+              <div className="sm:col-span-2 space-y-1.5">
+                <Label>Alamat Detail (Jalan, RT/RW, No.) <span className="text-destructive">*</span></Label>
+                <Textarea required rows={2} value={f.alamatDetail} onChange={e => setF({ ...f, alamatDetail: e.target.value })} placeholder="Jl. Sudirman No. 21" />
               </div>
             </Section>
 

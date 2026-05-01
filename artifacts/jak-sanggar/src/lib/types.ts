@@ -37,6 +37,17 @@ export interface AdminUser extends BaseUser {
 
 export interface FotoGaleriItem { id: string; dataUrl: string; caption?: string; createdAt: number; }
 
+export interface AlamatTerstruktur {
+  provinsi?: string;
+  provinsiId?: string;
+  kota?: string;
+  kotaId?: string;
+  kecamatan?: string;
+  kecamatanId?: string;
+  kelurahan?: string;
+  kelurahanId?: string;
+}
+
 export interface SanggarUser extends BaseUser {
   role: "sanggar";
   namaSanggar: string;
@@ -45,6 +56,7 @@ export interface SanggarUser extends BaseUser {
   namaBadanHukum?: string;
   jenisKesenian: JenisKesenian[];
   alamat: string;
+  wilayah?: AlamatTerstruktur;
   lat?: number;
   lng?: number;
   rekening: Rekening;
@@ -74,6 +86,7 @@ export interface PelatihUser extends BaseUser {
   fotoGaleri?: FotoGaleriItem[];
   bio?: string;
   alamat?: string;
+  wilayah?: AlamatTerstruktur;
   npwp?: string;
 }
 
@@ -91,6 +104,7 @@ export interface SenimanUser extends BaseUser {
   fotoGaleri?: FotoGaleriItem[];
   bio?: string;
   alamat?: string;
+  wilayah?: AlamatTerstruktur;
   jenisKelamin?: "Laki-laki" | "Perempuan";
   tanggalLahir?: string;
   npwp?: string;
@@ -112,11 +126,14 @@ export interface JuriUser extends BaseUser {
 
 // Akun penyewa jasa (umum / EO / korporat) — hanya bisa menelusuri katalog
 // dan mengirim permintaan. Tidak punya sanggar / aset / saldo.
+export type JenisInstansiSewa = "Pusat" | "Daerah" | "SKPD" | "UKPD";
+
 export interface SewaUser extends BaseUser {
   role: "sewa";
   nama: string;            // nama pemesan / institusi
   alamat?: string;
-  jenisInstansi?: "Pribadi" | "Komunitas" | "Sekolah" | "Korporat" | "Pemerintah";
+  wilayah?: AlamatTerstruktur;
+  jenisInstansi?: JenisInstansiSewa;
   fotoProfileDataUrl?: string;
 }
 
