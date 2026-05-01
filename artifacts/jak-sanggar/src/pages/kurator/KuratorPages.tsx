@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth, useDb } from "@/lib/auth";
 import { save, uid, fmtDate, logActivity } from "@/lib/store";
+import { usersApi, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import type { AdminUser, JuriUser, SanggarUser, PelatihUser, SenimanUser, Indikator, Variabel, AdminPermissions, TradisiKategori, TradisiItem, ThemeMode, StudioSettings } from "@/lib/types";
+import { useLocation } from "wouter";
+import type { AdminUser, JuriUser, SanggarUser, PelatihUser, SenimanUser, Indikator, Variabel, AdminPermissions, TradisiKategori, TradisiItem, ThemeMode, StudioSettings, AnyUser, Role, Bank, JenisKesenian, Legalitas } from "@/lib/types";
 import { Trash2, Eye, FileDown, Plus, Palette, Clock, Shield, X, Crown, Users, GraduationCap, UserCog, Wallet, Image as ImageIcon, Upload, RotateCcw, Type, Sparkles, ScrollText, Languages, Check, Wand2, LayoutTemplate, LogIn } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import { BRAND_ICON_KEYS, getBrandIcon } from "@/lib/brandIcons";
@@ -169,55 +171,716 @@ function Stat({ label, value, icon }: { label: string; value: number; icon?: Rea
   );
 }
 
+type EditableRole = Exclude<Role, "kurator">;
+const ROLE_LABEL: Record<Role, string> = {
+  kurator: "Kurator",
+  admin: "Admin",
+  sanggar: "Sanggar",
+  pelatih: "Pelatih",
+  seniman: "Seniman",
+  juri: "Juri",
+};
+const BANK_OPTIONS: Bank[] = ["BCA", "Mandiri", "DKI", "BRI", "BNI", "BSI", "CIMB"];
+const JENIS_OPTIONS: JenisKesenian[] = ["Tari", "Musik", "Teater", "Rupa", "Sastra"];
+const LEGALITAS_OPTIONS: Legalitas[] = ["Yayasan", "PT", "CV", "Non-Badan Hukum"];
+
+function getDisplayName(u: AnyUser): string {
+  if (u.role === "sanggar") return (u as SanggarUser).namaSanggar;
+  if ("nama" in u && typeof (u as { nama?: unknown }).nama === "string") {
+    return (u as { nama: string }).nama;
+  }
+  return u.username;
+}
+
+function EditUserDialog({
+  user,
+  open,
+  onOpenChange,
+}: {
+  user: AnyUser;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}) {
+  const { toast } = useToast();
+  const [draft, setDraft] = useState<AnyUser>(user);
+  const [newPassword, setNewPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (open) {
+      setDraft(user);
+      setNewPassword("");
+    }
+  }, [open, user]);
+
+  const upd = <K extends keyof AnyUser>(key: K, value: unknown) => {
+    setDraft((d) => ({ ...d, [key]: value }) as AnyUser);
+  };
+  const updRekening = (patch: Partial<{ bank: Bank; nomor: string; atasNama: string }>) => {
+    setDraft((d) => {
+      const base = ("rekening" in d ? (d as { rekening?: { bank: Bank; nomor: string; atasNama: string } }).rekening : null) ?? { bank: "BCA" as Bank, nomor: "", atasNama: "" };
+      return { ...d, rekening: { ...base, ...patch } } as AnyUser;
+    });
+  };
+
+  const handleSave = async () => {
+    setBusy(true);
+    try {
+      // Update local store fully (UI authoritative for profile fields).
+      save((db) => {
+        db.users = db.users.map((u) => (u.id === draft.id ? { ...draft } : u));
+      });
+      // Reset password: try API if user has u_api_<id> mapping.
+      if (newPassword.trim().length > 0) {
+        const apiId = draft.id.startsWith("u_api_") ? draft.id.slice("u_api_".length) : null;
+        if (apiId) {
+          try {
+            await usersApi.update(apiId, { password: newPassword.trim() });
+          } catch (err) {
+            const msg = err instanceof ApiError ? err.message : "Gagal reset password di server";
+            toast({ title: "Gagal reset password", description: msg, variant: "destructive" });
+            setBusy(false);
+            return;
+          }
+        } else {
+          // Akun lokal saja — perbarui field password lokal (tidak mengubah autentikasi server).
+          save((db) => {
+            db.users = db.users.map((u) =>
+              u.id === draft.id ? ({ ...u, password: newPassword.trim() } as AnyUser) : u,
+            );
+          });
+        }
+      }
+      logActivity(draft.id, draft.role, "kurator-edit-profil", { byKurator: true });
+      toast({
+        title: "Akun diperbarui",
+        description: newPassword ? "Profil & kata sandi disimpan." : "Profil disimpan.",
+      });
+      onOpenChange(false);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const role = draft.role;
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Edit {ROLE_LABEL[role]} — {getDisplayName(draft)}</DialogTitle>
+        </DialogHeader>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <Label>Username</Label>
+            <Input
+              value={draft.username}
+              onChange={(e) => upd("username", e.target.value)}
+              data-testid="input-edit-username"
+              disabled={draft.id.startsWith("u_api_")}
+            />
+            {draft.id.startsWith("u_api_") && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Username terkunci karena akun terhubung ke server (mencegah duplikasi identitas).
+              </p>
+            )}
+          </div>
+          <div>
+            <Label>Email</Label>
+            <Input
+              type="email"
+              value={draft.email ?? ""}
+              onChange={(e) => upd("email", e.target.value)}
+              data-testid="input-edit-email"
+            />
+          </div>
+          <div>
+            <Label>No HP</Label>
+            <Input
+              value={draft.noHp ?? ""}
+              onChange={(e) => upd("noHp", e.target.value)}
+              data-testid="input-edit-nohp"
+            />
+          </div>
+          {role === "sanggar" && (
+            <>
+              <div>
+                <Label>Nama Sanggar</Label>
+                <Input
+                  value={(draft as SanggarUser).namaSanggar}
+                  onChange={(e) => upd("namaSanggar" as keyof AnyUser, e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>Nama Ketua</Label>
+                <Input
+                  value={(draft as SanggarUser).namaKetua}
+                  onChange={(e) => upd("namaKetua" as keyof AnyUser, e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>Legalitas</Label>
+                <Select
+                  value={(draft as SanggarUser).legalitas}
+                  onValueChange={(v) => upd("legalitas" as keyof AnyUser, v)}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {LEGALITAS_OPTIONS.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="md:col-span-2">
+                <Label>Alamat</Label>
+                <Textarea
+                  value={(draft as SanggarUser).alamat}
+                  onChange={(e) => upd("alamat" as keyof AnyUser, e.target.value)}
+                  rows={2}
+                />
+              </div>
+              <div>
+                <Label>Tahun Berdiri</Label>
+                <Input
+                  type="number"
+                  value={(draft as SanggarUser).tahunBerdiri ?? ""}
+                  onChange={(e) => upd("tahunBerdiri" as keyof AnyUser, Number(e.target.value) || undefined)}
+                />
+              </div>
+              <div>
+                <Label>NPWP</Label>
+                <Input
+                  value={(draft as SanggarUser).npwp ?? ""}
+                  onChange={(e) => upd("npwp" as keyof AnyUser, e.target.value)}
+                />
+              </div>
+            </>
+          )}
+          {(role === "pelatih" || role === "seniman") && (
+            <>
+              <div>
+                <Label>Nama</Label>
+                <Input
+                  value={(draft as PelatihUser | SenimanUser).nama}
+                  onChange={(e) => upd("nama" as keyof AnyUser, e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>Usia</Label>
+                <Input
+                  type="number"
+                  value={(draft as PelatihUser | SenimanUser).usia}
+                  onChange={(e) => upd("usia" as keyof AnyUser, Number(e.target.value) || 0)}
+                />
+              </div>
+              <div>
+                <Label>Pendidikan</Label>
+                <Input
+                  value={(draft as PelatihUser | SenimanUser).pendidikan}
+                  onChange={(e) => upd("pendidikan" as keyof AnyUser, e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>Jenis Kesenian</Label>
+                <Select
+                  value={(draft as PelatihUser | SenimanUser).jenisKesenian}
+                  onValueChange={(v) => upd("jenisKesenian" as keyof AnyUser, v)}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {JENIS_OPTIONS.map((j) => <SelectItem key={j} value={j}>{j}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Status</Label>
+                <Select
+                  value={(draft as PelatihUser | SenimanUser).status}
+                  onValueChange={(v) => upd("status" as keyof AnyUser, v)}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {["pending", "aktif", "ditolak", "keluar"].map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="md:col-span-2">
+                <Label>Alamat</Label>
+                <Textarea
+                  value={(draft as PelatihUser | SenimanUser).alamat ?? ""}
+                  onChange={(e) => upd("alamat" as keyof AnyUser, e.target.value)}
+                  rows={2}
+                />
+              </div>
+              <div>
+                <Label>NPWP</Label>
+                <Input
+                  value={(draft as PelatihUser | SenimanUser).npwp ?? ""}
+                  onChange={(e) => upd("npwp" as keyof AnyUser, e.target.value)}
+                />
+              </div>
+              {role === "pelatih" && (
+                <div>
+                  <Label>Honor / Sesi</Label>
+                  <Input
+                    type="number"
+                    value={(draft as PelatihUser).honorPerSesi}
+                    onChange={(e) => upd("honorPerSesi" as keyof AnyUser, Number(e.target.value) || 0)}
+                  />
+                </div>
+              )}
+              {role === "seniman" && (
+                <div>
+                  <Label>Profesi</Label>
+                  <Input
+                    value={(draft as SenimanUser).profesi ?? ""}
+                    onChange={(e) => upd("profesi" as keyof AnyUser, e.target.value)}
+                  />
+                </div>
+              )}
+            </>
+          )}
+          {role === "juri" && (
+            <>
+              <div>
+                <Label>Nama</Label>
+                <Input
+                  value={(draft as JuriUser).nama}
+                  onChange={(e) => upd("nama" as keyof AnyUser, e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>Keahlian</Label>
+                <Input
+                  value={(draft as JuriUser).keahlian}
+                  onChange={(e) => upd("keahlian" as keyof AnyUser, e.target.value)}
+                />
+              </div>
+              <div className="md:col-span-2">
+                <Label>Alamat</Label>
+                <Textarea
+                  value={(draft as JuriUser).alamat ?? ""}
+                  onChange={(e) => upd("alamat" as keyof AnyUser, e.target.value)}
+                  rows={2}
+                />
+              </div>
+            </>
+          )}
+          {role === "admin" && (
+            <div className="md:col-span-2">
+              <Label>Nama</Label>
+              <Input
+                value={(draft as AdminUser).nama}
+                onChange={(e) => upd("nama" as keyof AnyUser, e.target.value)}
+              />
+            </div>
+          )}
+          {(role === "sanggar" || role === "pelatih" || role === "seniman" || role === "juri") && (
+            <>
+              <div className="md:col-span-2 mt-2 pt-3 border-t">
+                <div className="text-sm font-semibold mb-2">Rekening Bank</div>
+              </div>
+              <div>
+                <Label>Bank</Label>
+                <Select
+                  value={(("rekening" in draft ? (draft as { rekening?: { bank: Bank } }).rekening?.bank : undefined) ?? "BCA")}
+                  onValueChange={(v) => updRekening({ bank: v as Bank })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {BANK_OPTIONS.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>No Rekening</Label>
+                <Input
+                  value={("rekening" in draft ? (draft as { rekening?: { nomor: string } }).rekening?.nomor : "") ?? ""}
+                  onChange={(e) => updRekening({ nomor: e.target.value })}
+                />
+              </div>
+              <div className="md:col-span-2">
+                <Label>Atas Nama</Label>
+                <Input
+                  value={("rekening" in draft ? (draft as { rekening?: { atasNama: string } }).rekening?.atasNama : "") ?? ""}
+                  onChange={(e) => updRekening({ atasNama: e.target.value })}
+                />
+              </div>
+            </>
+          )}
+          <div className="md:col-span-2 mt-2 pt-3 border-t">
+            <Label>Reset Kata Sandi (kosongkan jika tidak diubah)</Label>
+            <Input
+              type="text"
+              autoComplete="off"
+              placeholder="Sandi baru..."
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              data-testid="input-edit-newpassword"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Minimal 6 karakter. Jika akun terhubung server, sandi akan diubah di server.
+            </p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>Batal</Button>
+          <Button
+            onClick={handleSave}
+            disabled={busy || (newPassword.length > 0 && newPassword.length < 6)}
+            data-testid="button-save-edit-user"
+          >
+            {busy ? "Menyimpan..." : "Simpan Perubahan"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CreateUserDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}) {
+  const { toast } = useToast();
+  const [role, setRole] = useState<EditableRole>("sanggar");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [nama, setNama] = useState("");
+  const [email, setEmail] = useState("");
+  const [noHp, setNoHp] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setRole("sanggar");
+      setUsername("");
+      setPassword("");
+      setNama("");
+      setEmail("");
+      setNoHp("");
+    }
+  }, [open]);
+
+  const handleCreate = async () => {
+    if (!username.trim() || password.length < 6 || !nama.trim()) {
+      toast({ title: "Lengkapi data", description: "Username, sandi (>=6 huruf), dan nama wajib diisi.", variant: "destructive" });
+      return;
+    }
+    setBusy(true);
+    try {
+      // Coba buat di server agar bisa login.
+      let apiId: string | null = null;
+      let serverUnavailable = false;
+      try {
+        const created = await usersApi.create({
+          username: username.trim(),
+          password,
+          role,
+          status: "aktif",
+          profile: { nama },
+        });
+        apiId = created.id;
+      } catch (err) {
+        if (err instanceof ApiError) {
+          // Logical error (validation/conflict/forbidden) — jangan diam-diam buat lokal,
+          // agar tidak ada akun "hantu" yang tidak bisa login.
+          toast({
+            title: "Gagal buat akun",
+            description: err.message,
+            variant: "destructive",
+          });
+          setBusy(false);
+          return;
+        }
+        // Network / server tak terjangkau → lanjut buat lokal sebagai fallback.
+        serverUnavailable = true;
+        toast({
+          title: "Server tidak terjangkau",
+          description: "Akun dibuat lokal dahulu — sinkronkan saat server tersedia.",
+          variant: "destructive",
+        });
+      }
+      const baseId = apiId ? `u_api_${apiId}` : uid();
+      void serverUnavailable;
+      save((db) => {
+        const now = Date.now();
+        const baseFields = {
+          id: baseId,
+          username: username.trim(),
+          password,
+          email: email.trim() || undefined,
+          noHp: noHp.trim() || undefined,
+          createdAt: now,
+        };
+        let newUser: AnyUser;
+        if (role === "sanggar") {
+          newUser = {
+            ...baseFields,
+            role: "sanggar",
+            namaSanggar: nama.trim(),
+            namaKetua: nama.trim(),
+            legalitas: "Non-Badan Hukum",
+            jenisKesenian: ["Tari"],
+            alamat: "",
+            rekening: { bank: "BCA", nomor: "", atasNama: nama.trim() },
+            saldo: 0,
+            editCount: 0,
+            editPeriodStart: now,
+          } as SanggarUser;
+        } else if (role === "pelatih") {
+          newUser = {
+            ...baseFields,
+            role: "pelatih",
+            nama: nama.trim(),
+            usia: 0,
+            pendidikan: "",
+            jenisKesenian: "Tari",
+            status: "aktif",
+            rekening: { bank: "BCA", nomor: "", atasNama: nama.trim() },
+            honorPerSesi: 0,
+          } as PelatihUser;
+        } else if (role === "seniman") {
+          newUser = {
+            ...baseFields,
+            role: "seniman",
+            nama: nama.trim(),
+            usia: 0,
+            pendidikan: "",
+            jenisKesenian: "Tari",
+            status: "aktif",
+            rekening: { bank: "BCA", nomor: "", atasNama: nama.trim() },
+          } as SenimanUser;
+        } else if (role === "juri") {
+          newUser = {
+            ...baseFields,
+            role: "juri",
+            nama: nama.trim(),
+            keahlian: "",
+          } as JuriUser;
+        } else {
+          newUser = {
+            ...baseFields,
+            role: "admin",
+            nama: nama.trim(),
+            permissions: {
+              kelolaBerita: true,
+              kelolaBanner: true,
+              kelolaSlider: true,
+              kelolaJamPembinaan: true,
+              kelolaInfoBudaya: true,
+            },
+          } as AdminUser;
+        }
+        db.users.push(newUser);
+      });
+      logActivity(baseId, role, "kurator-create-akun", { username: username.trim() });
+      toast({ title: "Akun dibuat", description: `${ROLE_LABEL[role]} ${nama} berhasil dibuat.` });
+      onOpenChange(false);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader><DialogTitle>Tambah Akun Baru</DialogTitle></DialogHeader>
+        <div className="grid gap-3">
+          <div>
+            <Label>Peran</Label>
+            <Select value={role} onValueChange={(v) => setRole(v as EditableRole)}>
+              <SelectTrigger data-testid="select-create-role"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sanggar">Sanggar</SelectItem>
+                <SelectItem value="pelatih">Pelatih</SelectItem>
+                <SelectItem value="seniman">Seniman</SelectItem>
+                <SelectItem value="juri">Juri</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Nama {role === "sanggar" ? "Sanggar" : "Lengkap"}</Label>
+            <Input value={nama} onChange={(e) => setNama(e.target.value)} data-testid="input-create-nama" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Username</Label>
+              <Input value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="off" data-testid="input-create-username" />
+            </div>
+            <div>
+              <Label>Sandi Awal</Label>
+              <Input type="text" autoComplete="off" value={password} onChange={(e) => setPassword(e.target.value)} data-testid="input-create-password" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Email (opsional)</Label>
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            </div>
+            <div>
+              <Label>No HP (opsional)</Label>
+              <Input value={noHp} onChange={(e) => setNoHp(e.target.value)} />
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>Batal</Button>
+          <Button onClick={handleCreate} disabled={busy} data-testid="button-confirm-create-user">
+            {busy ? "Membuat..." : "Buat Akun"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function KuratorAccounts() {
   const db = useDb();
   const { toast } = useToast();
+  const { impersonate } = useAuth();
+  const [, navigate] = useLocation();
   const [q, setQ] = useState("");
-  const [filter, setFilter] = useState<"all" | "sanggar" | "pelatih" | "seniman">("all");
-  const items = db.users.filter(u => ["sanggar", "pelatih", "seniman"].includes(u.role))
-    .filter(u => filter === "all" || u.role === filter)
-    .filter(u => !q || ((u as any).nama || (u as any).namaSanggar || u.username).toLowerCase().includes(q.toLowerCase()));
+  const [filter, setFilter] = useState<"all" | Role>("all");
+  const [editing, setEditing] = useState<AnyUser | null>(null);
+  const [creating, setCreating] = useState(false);
+  const items = db.users
+    .filter((u) => filter === "all" || u.role === filter)
+    .filter((u) => {
+      if (!q) return true;
+      const name = getDisplayName(u).toLowerCase();
+      return name.includes(q.toLowerCase()) || u.username.toLowerCase().includes(q.toLowerCase());
+    });
   const hapus = (id: string) => {
-    if (!confirm("Hapus akun ini?")) return;
-    save(d => { d.users = d.users.filter(u => u.id !== id); });
+    if (!confirm("Hapus akun ini? Tindakan ini tidak bisa dibatalkan.")) return;
+    save((d) => {
+      d.users = d.users.filter((u) => u.id !== id);
+    });
     toast({ title: "Akun dihapus" });
+  };
+  const handleLoginAs = (target: AnyUser) => {
+    if (target.role === "kurator") {
+      toast({ title: "Tidak bisa login-as kurator lain", variant: "destructive" });
+      return;
+    }
+    if (impersonate(target.id)) {
+      toast({
+        title: `Masuk sebagai ${getDisplayName(target)}`,
+        description: `Peran: ${ROLE_LABEL[target.role]}. Pakai banner emas untuk kembali.`,
+      });
+      navigate(`/${target.role}`);
+    } else {
+      toast({ title: "Gagal login-as", variant: "destructive" });
+    }
   };
   return (
     <div>
-      <PageHeader title="Pengelolaan Akun" subtitle="Pantau seluruh akun publik (Sanggar, Pelatih, Seniman)." />
-      <div className="flex gap-2 mb-4 flex-wrap">
-        <Input placeholder="Cari nama / username..." className="max-w-xs" value={q} onChange={e => setQ(e.target.value)} />
-        <Select value={filter} onValueChange={(v: any) => setFilter(v)}>
-          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-          <SelectContent><SelectItem value="all">Semua</SelectItem><SelectItem value="sanggar">Sanggar</SelectItem><SelectItem value="pelatih">Pelatih</SelectItem><SelectItem value="seniman">Seniman</SelectItem></SelectContent>
+      <PageHeader
+        title="Pengelolaan Akun"
+        subtitle="Kurator: kelola seluruh akun (Sanggar, Pelatih, Seniman, Juri, Admin) — edit profil, reset sandi, login-as."
+      />
+      <div className="flex gap-2 mb-4 flex-wrap items-center">
+        <Input
+          placeholder="Cari nama / username..."
+          className="max-w-xs"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          data-testid="input-search-akun"
+        />
+        <Select value={filter} onValueChange={(v) => setFilter(v as "all" | Role)}>
+          <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua Peran</SelectItem>
+            <SelectItem value="sanggar">Sanggar</SelectItem>
+            <SelectItem value="pelatih">Pelatih</SelectItem>
+            <SelectItem value="seniman">Seniman</SelectItem>
+            <SelectItem value="juri">Juri</SelectItem>
+            <SelectItem value="admin">Admin</SelectItem>
+            <SelectItem value="kurator">Kurator</SelectItem>
+          </SelectContent>
         </Select>
+        <div className="flex-1" />
+        <Button onClick={() => setCreating(true)} className="gap-1" data-testid="button-tambah-akun">
+          <Plus className="h-4 w-4" />Tambah Akun
+        </Button>
       </div>
       <Card className="overflow-hidden">
         <Table>
-          <TableHeader><TableRow><TableHead>Nama</TableHead><TableHead>Peran</TableHead><TableHead>Username</TableHead><TableHead>Kontak</TableHead><TableHead>Daftar</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nama</TableHead>
+              <TableHead>Peran</TableHead>
+              <TableHead>Username</TableHead>
+              <TableHead>Kontak</TableHead>
+              <TableHead>Daftar</TableHead>
+              <TableHead className="text-right">Aksi</TableHead>
+            </TableRow>
+          </TableHeader>
           <TableBody>
-            {items.length === 0 && <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Tidak ada akun yang cocok.</TableCell></TableRow>}
-            {items.map(u => (
-              <TableRow key={u.id}>
-                <TableCell className="font-medium">{(u as any).namaSanggar || (u as any).nama}</TableCell>
-                <TableCell><Badge variant="outline">{u.role}</Badge></TableCell>
+            {items.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  Tidak ada akun yang cocok.
+                </TableCell>
+              </TableRow>
+            )}
+            {items.map((u) => (
+              <TableRow key={u.id} data-testid={`row-akun-${u.id}`}>
+                <TableCell className="font-medium">{getDisplayName(u)}</TableCell>
+                <TableCell><Badge variant="outline">{ROLE_LABEL[u.role]}</Badge></TableCell>
                 <TableCell className="font-mono text-xs">{u.username}</TableCell>
                 <TableCell className="text-sm">{u.noHp ?? u.email ?? "-"}</TableCell>
                 <TableCell className="text-sm">{fmtDate(u.createdAt)}</TableCell>
                 <TableCell className="text-right">
-                  <Dialog>
-                    <DialogTrigger asChild><Button size="sm" variant="outline" className="gap-1 mr-2"><Eye className="h-3.5 w-3.5" />Lihat</Button></DialogTrigger>
-                    <DialogContent><DialogHeader><DialogTitle>{(u as any).namaSanggar || (u as any).nama}</DialogTitle></DialogHeader>
-                      <pre className="text-xs bg-muted p-3 rounded-md overflow-auto max-h-96">{JSON.stringify({ ...u, password: "***" }, null, 2)}</pre>
-                    </DialogContent>
-                  </Dialog>
-                  <Button size="sm" variant="destructive" onClick={() => hapus(u.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                  <div className="inline-flex gap-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1"
+                      onClick={() => setEditing(u)}
+                      data-testid={`button-edit-${u.id}`}
+                    >
+                      <UserCog className="h-3.5 w-3.5" />Edit
+                    </Button>
+                    {u.role !== "kurator" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1"
+                        onClick={() => handleLoginAs(u)}
+                        data-testid={`button-loginas-${u.id}`}
+                      >
+                        <LogIn className="h-3.5 w-3.5" />Login As
+                      </Button>
+                    )}
+                    {u.role !== "kurator" && (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => hapus(u.id)}
+                        data-testid={`button-hapus-${u.id}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </Card>
+      {editing && (
+        <EditUserDialog
+          user={editing}
+          open={!!editing}
+          onOpenChange={(v) => { if (!v) setEditing(null); }}
+        />
+      )}
+      <CreateUserDialog open={creating} onOpenChange={setCreating} />
     </div>
   );
 }

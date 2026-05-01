@@ -9,6 +9,7 @@ import { PucukRebungDivider } from "@/components/betawi/Ornaments";
 import { getBrandIcon } from "@/lib/brandIcons";
 import { useT } from "@/lib/i18n";
 import { InstallPwaCard } from "@/components/InstallPwaCard";
+import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 import { Sheet, SheetContent, SheetTitle, SheetDescription, SheetHeader } from "@/components/ui/sheet";
 
 interface NavItem { label: string; href: string; icon: ReactNode; children?: NavItem[]; }
@@ -410,6 +411,7 @@ export function AppShell({ nav, children }: { nav: NavItem[]; children: ReactNod
         </header>
 
         <main className="relative flex-1 overflow-y-auto betawi-watermark">
+          <ImpersonationBanner />
           {customTheme?.enabled && customTheme.bgImageDataUrl && (
             <div
               aria-hidden="true"

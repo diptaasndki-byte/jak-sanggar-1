@@ -66,3 +66,33 @@ export const authApi = {
     apiFetch<null>("/api/auth/logout", { method: "POST" }),
   me: () => apiFetch<ApiAuthUser>("/api/auth/me"),
 };
+
+export interface CreateApiUserBody {
+  username: string;
+  password: string;
+  role: ApiAuthUser["role"];
+  status?: string;
+  profile?: Record<string, unknown>;
+}
+
+export interface UpdateApiUserBody {
+  password?: string;
+  status?: string;
+  profile?: Record<string, unknown>;
+}
+
+export const usersApi = {
+  list: () => apiFetch<ApiAuthUser[]>("/api/users"),
+  create: (body: CreateApiUserBody) =>
+    apiFetch<ApiAuthUser>("/api/users", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  update: (id: string, body: UpdateApiUserBody) =>
+    apiFetch<ApiAuthUser>(`/api/users/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  remove: (id: string) =>
+    apiFetch<null>(`/api/users/${id}`, { method: "DELETE" }),
+};

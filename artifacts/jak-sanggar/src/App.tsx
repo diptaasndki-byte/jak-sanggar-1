@@ -36,13 +36,14 @@ import JuriProfile from "@/pages/juri/Profile";
 import { AdminHome, AdminBerita, AdminBanner, AdminSlider } from "@/pages/admin/AdminPages";
 import { KuratorHome, KuratorAccounts, KuratorMatriks, KuratorAssign, KuratorStaff, KuratorAppearance, KuratorWaktu } from "@/pages/kurator/KuratorPages";
 import KuratorKerjasama from "@/pages/kurator/KuratorKerjasama";
+import { KuratorManajemenData } from "@/pages/kurator/KuratorManajemenData";
 import InfoBudayaManager from "@/pages/shared/InfoBudayaManager";
 
 import {
   LayoutDashboard, Users, Calendar, Wallet, BookOpen, Award, GraduationCap,
   Receipt, ScrollText, FileText, Send, Newspaper, Image as ImageIcon, MessageSquare,
   Sliders, Clock, Palette, Shield, ClipboardList, Trophy, UserCog,
-  Package, Building2, Handshake, Inbox, Landmark,
+  Package, Building2, Handshake, Inbox, Landmark, Database,
 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -144,6 +145,7 @@ const adminNav = [
 const kuratorNav = [
   { label: "Dasbor", href: "/kurator", icon: <LayoutDashboard className="h-4 w-4" /> },
   { label: "Akun Pengguna", href: "/kurator/akun", icon: <Users className="h-4 w-4" /> },
+  { label: "Manajemen Data", href: "/kurator/manajemen", icon: <Database className="h-4 w-4" /> },
   { label: "Sistem Kurasi", href: "/kurator/kurasi", icon: <Sliders className="h-4 w-4" /> },
   { label: "Penugasan Juri", href: "/kurator/penugasan", icon: <Trophy className="h-4 w-4" /> },
   { label: "Pengawasan Kerjasama", href: "/kurator/kerjasama", icon: <Handshake className="h-4 w-4" /> },
@@ -206,6 +208,7 @@ function Router() {
 
       <Route path="/kurator" >{() => <Guard role="kurator"><AppShell nav={kuratorNav}><KuratorHome /></AppShell></Guard>}</Route>
       <Route path="/kurator/akun" >{() => <Guard role="kurator"><AppShell nav={kuratorNav}><KuratorAccounts /></AppShell></Guard>}</Route>
+      <Route path="/kurator/manajemen" >{() => <Guard role="kurator"><AppShell nav={kuratorNav}><KuratorManajemenData /></AppShell></Guard>}</Route>
       <Route path="/kurator/kurasi" >{() => <Guard role="kurator"><AppShell nav={kuratorNav}><KuratorMatriks /></AppShell></Guard>}</Route>
       <Route path="/kurator/penugasan" >{() => <Guard role="kurator"><AppShell nav={kuratorNav}><KuratorAssign /></AppShell></Guard>}</Route>
       <Route path="/kurator/kerjasama" >{() => <Guard role="kurator"><AppShell nav={kuratorNav}><KuratorKerjasama /></AppShell></Guard>}</Route>

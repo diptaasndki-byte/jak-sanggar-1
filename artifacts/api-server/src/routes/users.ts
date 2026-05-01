@@ -6,7 +6,10 @@ import { hashPassword, toAuthUser } from "../lib/auth";
 import { paramId, requireAuth, requireRole } from "../middlewares/auth";
 
 const router: IRouter = Router();
+// `ADMINS` boleh melihat daftar user (admin perlu untuk moderasi konten).
 const ADMINS = ["kurator", "admin"];
+// Hanya kurator yang boleh mengelola user lain (create / delete / update profil orang lain).
+const KURATORS = ["kurator"];
 
 router.use("/users", requireAuth);
 
@@ -21,7 +24,7 @@ router.get(
 
 router.post(
   "/users",
-  requireRole(ADMINS),
+  requireRole(KURATORS),
   async (req: Request, res: Response) => {
     const parsed = CreateUserBody.safeParse(req.body);
     if (!parsed.success) {
@@ -56,6 +59,7 @@ router.post(
 router.get("/users/:id", async (req: Request, res: Response) => {
   const id = paramId(req);
   const me = req.user!;
+  // Self atau admin/kurator dapat melihat detail.
   if (!ADMINS.includes(me.role) && me.id !== id) {
     res.status(403).json({ error: "Tidak punya akses" });
     return;
@@ -72,7 +76,10 @@ router.get("/users/:id", async (req: Request, res: Response) => {
 router.patch("/users/:id", async (req: Request, res: Response) => {
   const id = paramId(req);
   const me = req.user!;
-  if (!ADMINS.includes(me.role) && me.id !== id) {
+  // Self boleh edit profil sendiri (ganti sandi/profile). Mengubah user lain hanya kurator.
+  const isSelf = me.id === id;
+  const isKurator = me.role === "kurator";
+  if (!isSelf && !isKurator) {
     res.status(403).json({ error: "Tidak punya akses" });
     return;
   }
@@ -86,7 +93,8 @@ router.patch("/users/:id", async (req: Request, res: Response) => {
   if (typeof password === "string") {
     update.passwordHash = await hashPassword(password);
   }
-  if (typeof status === "string" && ADMINS.includes(me.role)) {
+  // Status hanya boleh diubah kurator (mencegah self-aktivasi atau aksi admin).
+  if (typeof status === "string" && isKurator) {
     update.status = status;
   }
   if (profile && typeof profile === "object") {
@@ -120,7 +128,7 @@ router.patch("/users/:id", async (req: Request, res: Response) => {
 
 router.delete(
   "/users/:id",
-  requireRole(ADMINS),
+  requireRole(KURATORS),
   async (req: Request, res: Response) => {
     const id = paramId(req);
     if (id === req.user!.id) {

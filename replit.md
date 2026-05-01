@@ -56,7 +56,15 @@ Aplikasi web Bahasa Indonesia untuk mengelola sanggar kesenian Jakarta secara te
 - Seniman: tagihan (upload bukti), riwayat, honor komersial, sertifikat.
 - Juri: penilaian dengan NA live + final-lock.
 - Admin: berita, banner, slider (sesuai izin Kurator).
-- Kurator: akun, matriks kurasi (template/inject CSV), penugasan juri, manajemen staff, pengaturan tampilan & jam pembinaan, password ekspor sistem.
+- Kurator (super-admin): pengelolaan akun (CRUD semua peran termasuk reset sandi & **Login As** / impersonation), Manajemen Data (Buku Kas / Latihan / Kurasi / Pembinaan / Regenerasi sanggar manapun + Recompute Saldo), matriks kurasi (template/inject CSV), penugasan juri, manajemen staff, pengaturan tampilan & jam pembinaan, password ekspor sistem.
+
+## Pasang Aplikasi (PWA + APK)
+- PWA installable: `public/manifest.webmanifest` mendaftarkan PNG 192/512 + maskable, service worker `public/sw.js` cache v2. `InstallPwaCard` deteksi `beforeinstallprompt`, fallback Android (Chrome menu) + iOS (Share → Add to Home Screen) lewat modal panduan.
+- APK Android (TWA): script `artifacts/jak-sanggar/deploy/build-apk.sh` (Bubblewrap CLI) — Android SDK ~3GB sehingga build harus dilakukan di mesin lokal/VPS, bukan di Replit. Dokumentasi langkah lengkap (JDK17, keystore, `assetlinks.json`, opsi Play Store) di `deploy/APK-BUILD.md`. Tombol "Unduh APK" di `InstallPwaCard` muncul otomatis (HEAD probe) bila `public/JakSanggar.apk` ada.
+
+## Impersonation (Login As)
+- State `jaksanggar_impersonation_v1` = `{ originalUserId, impersonatedUserId }` disimpan di localStorage. Setelah `authApi.me()` hidrasi, jika original = kurator dan target masih ada → AuthProvider switch user ke target.
+- Banner emas global `ImpersonationBanner` ditampilkan di atas `<main>` dengan tombol "Kembali ke Kurator". Tombol "Login As" tersedia per baris di `KuratorAccounts` dan tombol "Buka sebagai Sanggar Ini" di Manajemen Data. Aktivitas dicatat di `activity` (action `impersonate-start`/`impersonate-stop`).
 
 ## Konvensi
 - Seluruh teks Bahasa Indonesia, tanpa emoji.

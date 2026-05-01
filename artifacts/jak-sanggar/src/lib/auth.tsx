@@ -4,13 +4,42 @@ import type { AnyUser, Role } from "./types";
 import { authApi, ApiError, type ApiAuthUser } from "./api";
 
 const SESSION_KEY = "jaksanggar_session_v1";
+const IMPERSONATION_KEY = "jaksanggar_impersonation_v1";
+
+interface ImpersonationState {
+  originalUserId: string;
+  impersonatedUserId: string;
+}
+
+function readImpersonation(): ImpersonationState | null {
+  try {
+    const raw = localStorage.getItem(IMPERSONATION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as ImpersonationState;
+    if (!parsed.originalUserId || !parsed.impersonatedUserId) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeImpersonation(s: ImpersonationState | null) {
+  if (s) localStorage.setItem(IMPERSONATION_KEY, JSON.stringify(s));
+  else localStorage.removeItem(IMPERSONATION_KEY);
+}
 
 interface AuthCtx {
   user: AnyUser | null;
   ready: boolean;
+  /** ID asli kurator saat sedang impersonate; null kalau tidak impersonate. */
+  impersonatedFromId: string | null;
   login: (username: string, password: string) => Promise<AnyUser | null>;
   logout: () => Promise<void>;
   setSession: (u: AnyUser) => void;
+  /** Switch UI to act as another user. Original kurator id disimpan agar bisa kembali. */
+  impersonate: (targetUserId: string) => boolean;
+  /** Kembali ke akun kurator semula. */
+  stopImpersonation: () => boolean;
   refresh: () => void;
 }
 
@@ -116,11 +145,15 @@ function reconcileLocalUser(api: ApiAuthUser): AnyUser {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AnyUser | null>(null);
   const [ready, setReady] = useState(false);
+  const [impersonatedFromId, setImpersonatedFromId] = useState<string | null>(
+    () => readImpersonation()?.originalUserId ?? null,
+  );
   // Versi state auth — dinaikkan setiap kali login/logout terjadi supaya
   // hidrasi awal yang lambat tidak menimpa state baru.
   const stateVersionRef = useRef(0);
 
-  // Hidrasi awal: cek sesi server.
+  // Hidrasi awal: cek sesi server. Jika impersonation aktif & user asli adalah
+  // kurator, restore user impersonasi setelah cocokkan kurator dari API.
   useEffect(() => {
     let cancelled = false;
     const initialVersion = stateVersionRef.current;
@@ -129,14 +162,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const me = await authApi.me();
         if (cancelled || stateVersionRef.current !== initialVersion) return;
         const local = reconcileLocalUser(me);
+        const imp = readImpersonation();
+        if (imp && imp.originalUserId === local.id && local.role === "kurator") {
+          const target = load().users.find((u) => u.id === imp.impersonatedUserId);
+          if (target) {
+            localStorage.setItem(SESSION_KEY, target.id);
+            setUser(target);
+            setImpersonatedFromId(local.id);
+            return;
+          }
+          // Target hilang — bersihkan impersonation.
+          writeImpersonation(null);
+          setImpersonatedFromId(null);
+        }
         localStorage.setItem(SESSION_KEY, local.id);
         setUser(local);
+        if (imp && imp.originalUserId !== local.id) {
+          // Impersonation ditinggalkan oleh user lain — bersihkan.
+          writeImpersonation(null);
+          setImpersonatedFromId(null);
+        }
       } catch (err) {
         if (cancelled || stateVersionRef.current !== initialVersion) return;
         if (!(err instanceof ApiError) || err.status !== 401) {
           console.warn("auth.me gagal", err);
         }
         localStorage.removeItem(SESSION_KEY);
+        writeImpersonation(null);
+        setImpersonatedFromId(null);
         setUser(null);
       } finally {
         if (!cancelled) setReady(true);
@@ -162,6 +215,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Naikkan versi state supaya hidrasi awal me() yang lambat tidak
       // menimpa hasil login ini bila baru kembali setelahnya.
       stateVersionRef.current += 1;
+      // Login baru → bersihkan impersonation lama (mencegah stale state).
+      writeImpersonation(null);
+      setImpersonatedFromId(null);
       const local = reconcileLocalUser(api);
       localStorage.setItem(SESSION_KEY, local.id);
       setUser(local);
@@ -181,6 +237,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try { await authApi.logout(); } catch { /* abaikan */ }
     stateVersionRef.current += 1;
     localStorage.removeItem(SESSION_KEY);
+    writeImpersonation(null);
+    setImpersonatedFromId(null);
     setUser(null);
   };
 
@@ -189,13 +247,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(u);
   };
 
+  const impersonate = (targetUserId: string): boolean => {
+    // Hanya kurator (atau yang sedang impersonate dari kurator) yang boleh.
+    const originalId = impersonatedFromId ?? user?.id ?? null;
+    if (!originalId) return false;
+    const db = load();
+    const original = db.users.find((u) => u.id === originalId);
+    if (!original || original.role !== "kurator") return false;
+    if (targetUserId === originalId) {
+      // Diminta "impersonate diri sendiri" — sama seperti stop.
+      return stopImpersonation();
+    }
+    const target = db.users.find((u) => u.id === targetUserId);
+    if (!target) return false;
+    writeImpersonation({ originalUserId: originalId, impersonatedUserId: targetUserId });
+    localStorage.setItem(SESSION_KEY, target.id);
+    setImpersonatedFromId(originalId);
+    setUser(target);
+    logActivity(originalId, "kurator", "impersonate-start", { targetId: targetUserId, targetRole: target.role });
+    return true;
+  };
+
+  const stopImpersonation = (): boolean => {
+    if (!impersonatedFromId) return false;
+    const original = load().users.find((u) => u.id === impersonatedFromId);
+    if (!original) {
+      writeImpersonation(null);
+      setImpersonatedFromId(null);
+      return false;
+    }
+    logActivity(original.id, "kurator", "impersonate-stop", { fromUserId: user?.id ?? null });
+    writeImpersonation(null);
+    localStorage.setItem(SESSION_KEY, original.id);
+    setImpersonatedFromId(null);
+    setUser(original);
+    return true;
+  };
+
   const refresh = () => {
     const id = localStorage.getItem(SESSION_KEY);
     setUser(id ? load().users.find((u) => u.id === id) ?? null : null);
   };
 
   return (
-    <Ctx.Provider value={{ user, ready, login, logout, setSession, refresh }}>
+    <Ctx.Provider value={{ user, ready, impersonatedFromId, login, logout, setSession, impersonate, stopImpersonation, refresh }}>
       {children}
     </Ctx.Provider>
   );

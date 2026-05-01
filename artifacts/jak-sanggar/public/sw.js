@@ -1,13 +1,14 @@
 // Jak Sanggar service worker — minimal cache-first untuk app shell.
 // Tujuan utama: memenuhi syarat installability PWA + offline shell sederhana.
 
-const CACHE_NAME = "jak-sanggar-shell-v1";
+const CACHE_NAME = "jak-sanggar-shell-v2";
 const APP_SHELL = [
   "./",
   "./manifest.webmanifest",
   "./favicon.svg",
-  "./icon-512.svg",
-  "./icon-maskable.svg",
+  "./icon-192.png",
+  "./icon-512.png",
+  "./icon-maskable-512.png",
 ];
 
 self.addEventListener("install", (event) => {
