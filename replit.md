@@ -33,9 +33,11 @@ Aplikasi web Bahasa Indonesia untuk mengelola sanggar kesenian Jakarta secara te
 
 ## Struktur
 - `src/lib/{types,store,auth}.ts(x)` — model data, DB lokal, AuthProvider
+- `src/lib/kerjasama.ts` — alur kerjasama antar-sanggar + katalog (sanggar/sdm/aset/sarpras)
+- `src/lib/sewa-flow.ts` — alur Pemesanan Sewa Jasa (penyewa eksternal → sanggar → SDM): `createPemesanan`, `terimaPemesanan`, `tolakPemesanan`, `batalkanPemesanan`, `konfirmasiSdm`, `tandaTangan` (auto-promosi ke `kontrak_aktif` ketika semua pihak setuju), `terbitkanInvoice`, `uploadBuktiBayar`, `verifikasiPembayaran`, `finalkanBast`. Item Sanggar/Aset/Sarpras butuh 2 TTD (penyewa+sanggar); item SDM butuh 3 TTD (penyewa+sanggar+SDM).
 - `src/components/layout/{AppShell,PageHeader,BackButton}.tsx`
-- `src/pages/{auth,sanggar,pelatih,seniman,juri,admin,kurator,sewa}/`
-- `src/App.tsx` — semua route + Guard per peran
+- `src/pages/{auth,sanggar,pelatih,seniman,juri,admin,kurator,sewa,sdm}/`
+- `src/App.tsx` — semua route + Guard per peran. Untuk sewa: `/sewa/item/:id` (form pesan), `/sewa/pesanan[/:id]`. Untuk sanggar penyedia: `/sanggar/permintaan-sewa[/:id]`. Untuk SDM yang ditugaskan: `/{pelatih|seniman}/penugasan-sewa[/:id]`.
 
 ## Identitas Visual (Redesign Apr 2026)
 - Tagline: **"Budaya Naik Kelas, Digital Tanpa Batas."** (tampil di hero login + header dasbor).

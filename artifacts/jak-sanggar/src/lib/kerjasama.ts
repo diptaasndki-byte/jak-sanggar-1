@@ -2,6 +2,7 @@ import type {
   AnyUser, SanggarUser, PelatihUser, SenimanUser,
   Aset, Sarpras, Kerjasama, KerjasamaKategori, KerjasamaSumber,
   KerjasamaStatus, SatuanHarga, Role, Invoice, Payment, Bast, JenisKesenian,
+  AkomodasiMode,
 } from "./types";
 import { load, save, uid, logActivity, pushKas } from "./store";
 
@@ -23,6 +24,9 @@ export interface KatalogItem {
   jenisKesenian: JenisKesenian[];
   // Nama orang untuk SDM (untuk filter "nama seniman / pelatih").
   namaSdm?: string;
+  // Akomodasi PP default dari sumber. Penyewa boleh override saat pesan.
+  akomodasiPP: AkomodasiMode;
+  biayaAkomodasi: number;
 }
 
 const ROLE_TO_HONOR_LABEL: Record<string, number> = {
@@ -82,6 +86,8 @@ export function buildKatalog(): KatalogItem[] {
         fotoDataUrl: p.fotoProfileDataUrl,
         jenisKesenian: [p.jenisKesenian],
         namaSdm: p.nama,
+        akomodasiPP: p.akomodasiPP ?? "diluar",
+        biayaAkomodasi: p.biayaAkomodasi ?? 0,
       });
     } else if (u.role === "seniman") {
       const s = u as SenimanUser;
@@ -100,6 +106,8 @@ export function buildKatalog(): KatalogItem[] {
         fotoDataUrl: s.fotoProfileDataUrl,
         jenisKesenian: [s.jenisKesenian],
         namaSdm: s.nama,
+        akomodasiPP: s.akomodasiPP ?? "diluar",
+        biayaAkomodasi: s.biayaAkomodasi ?? 0,
       });
     }
     // Juri tidak masuk katalog kerjasama antar-sanggar: juri adalah aset
@@ -121,6 +129,8 @@ export function buildKatalog(): KatalogItem[] {
       satuanHarga: a.satuanHarga,
       fotoDataUrl: a.fotoDataUrl,
       jenisKesenian: sg.jenisKesenian,
+      akomodasiPP: a.akomodasiPP ?? "diluar",
+      biayaAkomodasi: a.biayaAkomodasi ?? 0,
     });
   }
   for (const s of db.sarpras) {
@@ -138,6 +148,8 @@ export function buildKatalog(): KatalogItem[] {
       satuanHarga: s.satuanHarga,
       fotoDataUrl: s.fotoDataUrl,
       jenisKesenian: sg.jenisKesenian,
+      akomodasiPP: s.akomodasiPP ?? "termasuk",
+      biayaAkomodasi: s.biayaAkomodasi ?? 0,
     });
   }
   return items;

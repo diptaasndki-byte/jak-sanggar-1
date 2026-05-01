@@ -36,6 +36,9 @@ import JuriProfile from "@/pages/juri/Profile";
 import { AdminHome, AdminBerita, AdminBanner, AdminSlider } from "@/pages/admin/AdminPages";
 import { KuratorHome, KuratorAccounts, KuratorMatriks, KuratorAssign, KuratorStaff, KuratorAppearance, KuratorWaktu } from "@/pages/kurator/KuratorPages";
 import { SewaHome, SewaKatalog } from "@/pages/sewa/SewaPages";
+import { SewaItemDetail, SewaPesananList, SewaPesananDetail } from "@/pages/sewa/SewaPemesanan";
+import { PermintaanSewaMasuk, PermintaanSewaDetail } from "@/pages/sanggar/PermintaanSewa";
+import { PenugasanSewaInbox, PenugasanSewaDetail } from "@/pages/sdm/PenugasanSewa";
 import KuratorKerjasama from "@/pages/kurator/KuratorKerjasama";
 import { KuratorManajemenData } from "@/pages/kurator/KuratorManajemenData";
 import InfoBudayaManager from "@/pages/shared/InfoBudayaManager";
@@ -99,6 +102,7 @@ const sanggarNav = [
       { label: "Permintaan", href: "/sanggar/kerjasama/permintaan", icon: <Inbox className="h-4 w-4" /> },
     ],
   },
+  { label: "Sewa Jasa Masuk", href: "/sanggar/permintaan-sewa", icon: <ShoppingBag className="h-4 w-4" /> },
   { label: "Buku Kas", href: "/sanggar/buku-kas", icon: <Wallet className="h-4 w-4" /> },
 ];
 const pelatihNav = [
@@ -108,6 +112,7 @@ const pelatihNav = [
   { label: "Arsip E-Slip", href: "/pelatih/slip", icon: <FileText className="h-4 w-4" /> },
   { label: "Honor Proyek", href: "/pelatih/honor-proyek", icon: <Wallet className="h-4 w-4" /> },
   { label: "Permintaan SDM", href: "/pelatih/permintaan-sdm", icon: <Handshake className="h-4 w-4" /> },
+  { label: "Penugasan Sewa", href: "/pelatih/penugasan-sewa", icon: <ShoppingBag className="h-4 w-4" /> },
   { label: "Sertifikat", href: "/pelatih/sertifikat", icon: <Award className="h-4 w-4" /> },
 ];
 const senimanNav = [
@@ -123,6 +128,7 @@ const senimanNav = [
     ],
   },
   { label: "Permintaan SDM", href: "/seniman/permintaan-sdm", icon: <Handshake className="h-4 w-4" /> },
+  { label: "Penugasan Sewa", href: "/seniman/penugasan-sewa", icon: <ShoppingBag className="h-4 w-4" /> },
   { label: "Riwayat", href: "/seniman/riwayat", icon: <ScrollText className="h-4 w-4" /> },
   { label: "Sertifikat", href: "/seniman/sertifikat", icon: <Award className="h-4 w-4" /> },
 ];
@@ -150,6 +156,7 @@ const sewaNav = [
   { label: "Perlengkapan", href: "/sewa/katalog/perlengkapan", icon: <Package className="h-4 w-4" /> },
   { label: "Kostum", href: "/sewa/katalog/kostum", icon: <ShoppingBag className="h-4 w-4" /> },
   { label: "Tempat Latihan", href: "/sewa/katalog/tempat", icon: <Landmark className="h-4 w-4" /> },
+  { label: "Pesanan Saya", href: "/sewa/pesanan", icon: <Receipt className="h-4 w-4" /> },
 ];
 const kuratorNav = [
   { label: "Dasbor", href: "/kurator", icon: <LayoutDashboard className="h-4 w-4" /> },
@@ -187,6 +194,8 @@ function Router() {
       <Route path="/sanggar/kerjasama" >{() => <Guard role="sanggar"><AppShell nav={sanggarNav}><KatalogKerjasama /></AppShell></Guard>}</Route>
       <Route path="/sanggar/kerjasama/permintaan" >{() => <Guard role="sanggar"><AppShell nav={sanggarNav}><PermintaanKerjasama /></AppShell></Guard>}</Route>
       <Route path="/sanggar/kerjasama/:id" >{() => <Guard role="sanggar"><AppShell nav={sanggarNav}><KerjasamaDetail /></AppShell></Guard>}</Route>
+      <Route path="/sanggar/permintaan-sewa" >{() => <Guard role="sanggar"><AppShell nav={sanggarNav}><PermintaanSewaMasuk /></AppShell></Guard>}</Route>
+      <Route path="/sanggar/permintaan-sewa/:id" >{() => <Guard role="sanggar"><AppShell nav={sanggarNav}><PermintaanSewaDetail /></AppShell></Guard>}</Route>
       <Route path="/sanggar/buku-kas" >{() => <Guard role="sanggar"><AppShell nav={sanggarNav}><BukuKas /></AppShell></Guard>}</Route>
 
       <Route path="/pelatih" >{() => <Guard role="pelatih"><AppShell nav={pelatihNav}><PelatihHome /></AppShell></Guard>}</Route>
@@ -195,6 +204,8 @@ function Router() {
       <Route path="/pelatih/slip" >{() => <Guard role="pelatih"><AppShell nav={pelatihNav}><PelatihSlip /></AppShell></Guard>}</Route>
       <Route path="/pelatih/honor-proyek" >{() => <Guard role="pelatih"><AppShell nav={pelatihNav}><PelatihDistribusi /></AppShell></Guard>}</Route>
       <Route path="/pelatih/permintaan-sdm" >{() => <Guard role="pelatih"><AppShell nav={pelatihNav}><PermintaanSdmReadOnly /></AppShell></Guard>}</Route>
+      <Route path="/pelatih/penugasan-sewa" >{() => <Guard role="pelatih"><AppShell nav={pelatihNav}><PenugasanSewaInbox /></AppShell></Guard>}</Route>
+      <Route path="/pelatih/penugasan-sewa/:id" >{() => <Guard role="pelatih"><AppShell nav={pelatihNav}><PenugasanSewaDetail /></AppShell></Guard>}</Route>
       <Route path="/pelatih/sertifikat" >{() => <Guard role="pelatih"><AppShell nav={pelatihNav}><PelatihSertif /></AppShell></Guard>}</Route>
 
       <Route path="/seniman" >{() => <Guard role="seniman"><AppShell nav={senimanNav}><SenimanHome /></AppShell></Guard>}</Route>
@@ -204,6 +215,8 @@ function Router() {
       <Route path="/seniman/honor-komersial" >{() => <Guard role="seniman"><AppShell nav={senimanNav}><PelatihDistribusi /></AppShell></Guard>}</Route>
       <Route path="/seniman/riwayat" >{() => <Guard role="seniman"><AppShell nav={senimanNav}><SenimanRiwayat /></AppShell></Guard>}</Route>
       <Route path="/seniman/permintaan-sdm" >{() => <Guard role="seniman"><AppShell nav={senimanNav}><PermintaanSdmReadOnly /></AppShell></Guard>}</Route>
+      <Route path="/seniman/penugasan-sewa" >{() => <Guard role="seniman"><AppShell nav={senimanNav}><PenugasanSewaInbox /></AppShell></Guard>}</Route>
+      <Route path="/seniman/penugasan-sewa/:id" >{() => <Guard role="seniman"><AppShell nav={senimanNav}><PenugasanSewaDetail /></AppShell></Guard>}</Route>
       <Route path="/seniman/sertifikat" >{() => <Guard role="seniman"><AppShell nav={senimanNav}><PelatihSertif /></AppShell></Guard>}</Route>
 
       <Route path="/juri" >{() => <Guard role="juri"><AppShell nav={juriNav}><JuriHome /></AppShell></Guard>}</Route>
@@ -229,6 +242,9 @@ function Router() {
 
       <Route path="/sewa" >{() => <Guard role="sewa"><AppShell nav={sewaNav}><SewaHome /></AppShell></Guard>}</Route>
       <Route path="/sewa/katalog/:kategori" >{() => <Guard role="sewa"><AppShell nav={sewaNav}><SewaKatalog /></AppShell></Guard>}</Route>
+      <Route path="/sewa/item/:id" >{() => <Guard role="sewa"><AppShell nav={sewaNav}><SewaItemDetail /></AppShell></Guard>}</Route>
+      <Route path="/sewa/pesanan" >{() => <Guard role="sewa"><AppShell nav={sewaNav}><SewaPesananList /></AppShell></Guard>}</Route>
+      <Route path="/sewa/pesanan/:id" >{() => <Guard role="sewa"><AppShell nav={sewaNav}><SewaPesananDetail /></AppShell></Guard>}</Route>
 
       <Route component={NotFound} />
     </Switch>

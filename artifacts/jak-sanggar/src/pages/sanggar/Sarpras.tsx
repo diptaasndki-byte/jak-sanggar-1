@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { Sarpras, JenisTempat, SanggarUser, SatuanHarga } from "@/lib/types";
+import type { Sarpras, JenisTempat, SanggarUser, SatuanHarga, AkomodasiMode } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Building2 } from "lucide-react";
 
@@ -25,6 +25,7 @@ function SarprasForm({ sg, item, onClose }: { sg: SanggarUser; item?: Sarpras; o
     id: uid(), sanggarId: sg.id, namaTempat: "", jenisTempat: "tempat_latihan",
     kapasitas: 20, fasilitas: "", alamat: sg.alamat,
     hargaSewa: 0, satuanHarga: "per_jam", statusPublish: true, createdAt: Date.now(),
+    akomodasiPP: "termasuk", biayaAkomodasi: 0,
   });
   return (
     <div className="space-y-3">
@@ -59,6 +60,25 @@ function SarprasForm({ sg, item, onClose }: { sg: SanggarUser; item?: Sarpras; o
           </Select>
         </div>
       </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label>Akomodasi PP (default)</Label>
+          <Select value={f.akomodasiPP ?? "termasuk"} onValueChange={v => setF({ ...f, akomodasiPP: v as AkomodasiMode })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="termasuk">Termasuk akomodasi PP</SelectItem>
+              <SelectItem value="diluar">Di luar akomodasi PP</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Biaya Akomodasi (Rp)</Label>
+          <Input type="number" min={0} value={f.biayaAkomodasi ?? 0}
+            disabled={(f.akomodasiPP ?? "termasuk") === "termasuk"}
+            onChange={e => setF({ ...f, biayaAkomodasi: Number(e.target.value) })} />
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground -mt-1">Tempat fisik biasanya tidak butuh akomodasi PP. Setel jika sanggar perlu mengantar/mengelola alat di lokasi acara.</p>
       <div>
         <Label>Foto (opsional)</Label>
         <Input type="file" accept="image/*" onChange={async e => {

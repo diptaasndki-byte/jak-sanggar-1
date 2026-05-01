@@ -72,6 +72,10 @@ export interface SanggarUser extends BaseUser {
   npwp?: string;
 }
 
+// Apakah harga dasar item katalog sudah termasuk akomodasi pulang-pergi
+// (transport ke lokasi acara) atau belum. Default: "diluar".
+export type AkomodasiMode = "termasuk" | "diluar";
+
 export interface PelatihUser extends BaseUser {
   role: "pelatih";
   nama: string;
@@ -88,6 +92,10 @@ export interface PelatihUser extends BaseUser {
   alamat?: string;
   wilayah?: AlamatTerstruktur;
   npwp?: string;
+  // Default akomodasi pulang-pergi yang berlaku saat sanggar memublikasikan
+  // pelatih ini ke katalog sewa. Penyewa boleh override saat memesan.
+  akomodasiPP?: AkomodasiMode;
+  biayaAkomodasi?: number;
 }
 
 export interface SenimanUser extends BaseUser {
@@ -108,6 +116,8 @@ export interface SenimanUser extends BaseUser {
   jenisKelamin?: "Laki-laki" | "Perempuan";
   tanggalLahir?: string;
   npwp?: string;
+  akomodasiPP?: AkomodasiMode;
+  biayaAkomodasi?: number;
 }
 
 export interface JuriUser extends BaseUser {
@@ -362,6 +372,8 @@ export interface Aset {
   satuanHarga: SatuanHarga;
   statusPublish: boolean;
   createdAt: number;
+  akomodasiPP?: AkomodasiMode;
+  biayaAkomodasi?: number;
 }
 
 export type JenisTempat = "tempat_latihan" | "aula" | "studio";
@@ -379,6 +391,8 @@ export interface Sarpras {
   satuanHarga: SatuanHarga;
   statusPublish: boolean;
   createdAt: number;
+  akomodasiPP?: AkomodasiMode;
+  biayaAkomodasi?: number;
 }
 
 export type KerjasamaKategori = "sdm" | "alat_musik" | "kostum" | "tempat_latihan";
@@ -482,6 +496,79 @@ export interface Rating {
   rating: 1 | 2 | 3 | 4 | 5;
   ulasan: string;
   createdAt: number;
+}
+
+// ===================== PEMESANAN SEWA JASA =====================
+//
+// Alur pemesanan oleh akun "sewa" terhadap item katalog milik sanggar.
+// Berbeda dengan Kerjasama (antar sanggar): di sini peminjam adalah
+// SewaUser (penyewa eksternal), penyedia adalah SanggarUser, dan untuk
+// kategori SDM ada pihak ke-3 yaitu seniman/pelatih yang ditugaskan.
+//
+// Status flow:
+//   menunggu_sanggar  -> sanggar menerima/menolak / menugaskan SDM
+//   menunggu_sdm      -> seniman/pelatih harus konfirmasi (hanya SDM)
+//   menunggu_ttd      -> menunggu semua pihak klik "Setuju" di kontrak
+//   kontrak_aktif     -> semua tanda tangan lengkap; sanggar menerbitkan
+//                        invoice
+//   menunggu_bayar    -> invoice terbit, penyewa upload bukti bayar
+//   lunas             -> bayar diverifikasi, menunggu pelaksanaan & BAST
+//   selesai           -> BAST final, kerjasama tuntas
+//   ditolak / batal   -> alur dihentikan
+export type PemesananSewaStatus =
+  | "menunggu_sanggar"
+  | "menunggu_sdm"
+  | "menunggu_ttd"
+  | "kontrak_aktif"
+  | "menunggu_bayar"
+  | "lunas"
+  | "selesai"
+  | "ditolak"
+  | "batal";
+
+export type PihakSewa = "sewa" | "sanggar" | "sdm";
+
+export interface TandaTanganSewa {
+  pihak: PihakSewa;
+  // user id yang menandatangani (sewaId / sanggarId / pelatihId|senimanId)
+  userId: string;
+  nama: string;
+  ts: number;
+}
+
+export interface PemesananSewa {
+  id: string;
+  nomor: string;                    // NOMOR pesanan, mis. SEWA/2026/0001
+  // Sumber katalog yang dipesan
+  katalogItemId: string;            // id KatalogItem (mis. "sdm-seniman-..." / "aset-..." / "sarpras-...")
+  sumberType: KerjasamaSumber;      // sdm-pelatih | sdm-seniman | aset | sarpras
+  sumberId: string;                 // id sumber (pelatih/seniman/aset/sarpras)
+  // Pihak terlibat
+  sewaId: string;                   // SewaUser.id (penyewa)
+  sanggarId: string;                // SanggarUser.id (penyedia)
+  sdmUserId?: string;               // pelatih/seniman id (untuk SDM); diisi sanggar saat assign
+  // Detail pemesanan
+  judul: string;                    // judul item katalog (snapshot)
+  kategori: KerjasamaKategori;
+  tanggalMulai: string;             // YYYY-MM-DD
+  tanggalSelesai: string;           // YYYY-MM-DD
+  lokasi: string;                   // alamat acara
+  jumlah: number;
+  satuanHarga: SatuanHarga;
+  catatan: string;
+  // Harga
+  hargaDasar: number;               // harga dari katalog (snapshot)
+  akomodasiPP: AkomodasiMode;       // pilihan final dari penyewa
+  biayaAkomodasi: number;           // tambahan biaya akomodasi (Rp)
+  nilaiTotal: number;               // (hargaDasar * jumlah) + (akomodasiPP=="termasuk" ? 0 : biayaAkomodasi)
+  // Lifecycle
+  status: PemesananSewaStatus;
+  alasanTolak?: string;             // alasan kalau ditolak/batal
+  ttd: TandaTanganSewa[];           // daftar tanda tangan
+  invoiceId?: string;               // refer ke Invoice
+  bastId?: string;                  // refer ke Bast
+  createdAt: number;
+  updatedAt: number;
 }
 
 export type ThemeMode = "light" | "dark" | "luxury";

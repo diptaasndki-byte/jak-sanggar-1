@@ -5,7 +5,7 @@ import type {
   Sertifikat, ActivityLog, JamPembinaan, AbsensiPembinaan, PendaftaranPembinaan,
   AppearanceSettings, Role,
   Aset, Sarpras, Kerjasama, ChatMessage, Negosiasi, Invoice, Payment,
-  Contract, Bast, Rating, InfoBudaya,
+  Contract, Bast, Rating, InfoBudaya, PemesananSewa,
 } from "./types";
 
 const KEY = "jaksanggar_v1";
@@ -43,6 +43,9 @@ export interface DBShape {
   contracts: Contract[];
   bast: Bast[];
   ratings: Rating[];
+  // Pemesanan oleh akun "sewa" terhadap katalog sanggar (terpisah dari
+  // kerjasama antar-sanggar di atas).
+  pemesananSewa: PemesananSewa[];
   // Informasi Kebudayaan (replaces "Berita Sanggar Aktif" on Sanggar dashboard)
   infoBudaya: InfoBudaya[];
 }
@@ -326,6 +329,7 @@ function seed(): DBShape {
     honorPerSesiDefault: 250_000,
     aset, sarpras, kerjasama: [], chatMessages: [], negosiasi: [], invoices: [],
     payments: [], contracts: [], bast: [], ratings: [],
+    pemesananSewa: [],
     infoBudaya,
   };
 }
@@ -342,6 +346,7 @@ function migrate(db: DBShape): DBShape {
   db.contracts ||= [];
   db.bast ||= [];
   db.ratings ||= [];
+  db.pemesananSewa ||= [];
   db.infoBudaya ||= [];
   // Backfill kelolaInfoBudaya permission untuk admin yang sudah ada
   for (const u of db.users) {

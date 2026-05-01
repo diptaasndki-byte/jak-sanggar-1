@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { Aset, AsetKategori, KondisiAset, SanggarUser, SatuanHarga } from "@/lib/types";
+import type { Aset, AsetKategori, KondisiAset, SanggarUser, SatuanHarga, AkomodasiMode } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Music2, Shirt } from "lucide-react";
 
@@ -27,6 +27,7 @@ function AsetForm({ sg, item, onClose }: { sg: SanggarUser; item?: Aset; onClose
     id: uid(), sanggarId: sg.id, kategori: "alat_musik", nama: "", jenis: "",
     jumlahTotal: 1, jumlahTersedia: 1, kondisi: "baik", hargaSewa: 0,
     satuanHarga: "per_event", statusPublish: true, createdAt: Date.now(),
+    akomodasiPP: "diluar", biayaAkomodasi: 0,
   });
   return (
     <div className="space-y-3">
@@ -72,6 +73,25 @@ function AsetForm({ sg, item, onClose }: { sg: SanggarUser; item?: Aset; onClose
           </Select>
         </div>
       </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label>Akomodasi PP (default)</Label>
+          <Select value={f.akomodasiPP ?? "diluar"} onValueChange={v => setF({ ...f, akomodasiPP: v as AkomodasiMode })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="termasuk">Termasuk akomodasi PP</SelectItem>
+              <SelectItem value="diluar">Di luar akomodasi PP</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Biaya Akomodasi (Rp)</Label>
+          <Input type="number" min={0} value={f.biayaAkomodasi ?? 0}
+            disabled={(f.akomodasiPP ?? "diluar") === "termasuk"}
+            onChange={e => setF({ ...f, biayaAkomodasi: Number(e.target.value) })} />
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground -mt-1">Bila "Termasuk", harga sewa sudah mencakup akomodasi PP. Bila "Di luar", penyewa membayar tambahan biaya akomodasi.</p>
       <div>
         <Label>Foto (opsional)</Label>
         <Input type="file" accept="image/*" onChange={async e => {

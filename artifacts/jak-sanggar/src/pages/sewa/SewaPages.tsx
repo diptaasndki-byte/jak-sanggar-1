@@ -3,6 +3,7 @@ import { Link, useLocation, useRoute } from "wouter";
 import { useAuth, useDb } from "@/lib/auth";
 import { fmtRp } from "@/lib/store";
 import { buildKatalog, SATUAN_LABEL, type KatalogItem } from "@/lib/kerjasama";
+import { AKOMODASI_LABEL } from "@/lib/sewa-flow";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -90,8 +91,8 @@ export function SewaHome() {
           <div className="text-sm">
             <div className="font-medium">Mode penyewa jasa</div>
             <p className="text-muted-foreground mt-0.5">
-              Anda dapat mencari, memfilter, dan melihat detail layanan. Untuk memesan,
-              silakan hubungi sanggar lewat kontak yang tertera atau koordinasikan lewat kurator.
+              Telusuri katalog, klik item yang Anda butuhkan, lalu kirim permintaan langsung ke sanggar.
+              Pantau alur (TTD → invoice → bayar → BAST) di menu <Link href="/sewa/pesanan" className="underline font-medium">Pesanan Saya</Link>.
             </p>
           </div>
         </div>
@@ -317,38 +318,56 @@ function ItemGrid({ items }: { items: KatalogItem[] }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       {items.map(item => (
-        <Card key={item.id} className="overflow-hidden flex flex-col" data-testid={`card-item-${item.id}`}>
-          {item.fotoDataUrl ? (
-            <img src={item.fotoDataUrl} className="h-36 w-full object-cover" alt="" />
-          ) : (
-            <div className="h-36 w-full bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center text-primary/40">
-              {item.kategori === "sdm" ? <UsersIcon className="h-8 w-8" />
-                : item.kategori === "alat_musik" ? <Music2 className="h-8 w-8" />
-                : item.kategori === "kostum" ? <Shirt className="h-8 w-8" />
-                : <MapPin className="h-8 w-8" />}
-            </div>
-          )}
-          <div className="p-3 flex-1 flex flex-col">
-            <div className="flex items-start justify-between gap-2">
-              <div className="font-medium text-sm leading-tight">{item.judul}</div>
-              <div className="flex flex-wrap gap-1 justify-end">
-                {item.jenisKesenian.slice(0, 2).map(k => (
-                  <Badge key={k} variant="secondary" className="text-[10px]">{k}</Badge>
-                ))}
+        <Link key={item.id} href={`/sewa/item/${item.id}`}>
+          <Card
+            className="overflow-hidden flex flex-col cursor-pointer hover-elevate active-elevate-2 transition-all h-full"
+            data-testid={`card-item-${item.id}`}
+          >
+            {item.fotoDataUrl ? (
+              <img src={item.fotoDataUrl} className="h-36 w-full object-cover" alt="" />
+            ) : (
+              <div className="h-36 w-full bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center text-primary/40">
+                {item.kategori === "sdm" ? <UsersIcon className="h-8 w-8" />
+                  : item.kategori === "alat_musik" ? <Music2 className="h-8 w-8" />
+                  : item.kategori === "kostum" ? <Shirt className="h-8 w-8" />
+                  : <MapPin className="h-8 w-8" />}
+              </div>
+            )}
+            <div className="p-3 flex-1 flex flex-col">
+              <div className="flex items-start justify-between gap-2">
+                <div className="font-medium text-sm leading-tight">{item.judul}</div>
+                <div className="flex flex-wrap gap-1 justify-end">
+                  {item.jenisKesenian.slice(0, 2).map(k => (
+                    <Badge key={k} variant="secondary" className="text-[10px]">{k}</Badge>
+                  ))}
+                </div>
+              </div>
+              <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                <Building2 className="h-3 w-3" /> {item.sanggarNama}
+              </div>
+              <div className="text-xs mt-2 flex-1 line-clamp-2 text-muted-foreground">{item.deskripsi}</div>
+              <div className="mt-2">
+                <Badge
+                  variant="outline"
+                  className={`text-[10px] ${item.akomodasiPP === "termasuk" ? "border-emerald-300 text-emerald-700" : "border-amber-300 text-amber-700"}`}
+                  data-testid={`badge-akomodasi-${item.id}`}
+                >
+                  {AKOMODASI_LABEL[item.akomodasiPP]}
+                  {item.akomodasiPP === "diluar" && item.biayaAkomodasi > 0 && ` (+${fmtRp(item.biayaAkomodasi)})`}
+                </Badge>
+              </div>
+              <div className="mt-3 pt-2 border-t flex items-center justify-between">
+                <div className="text-base font-semibold text-primary">
+                  {fmtRp(item.hargaSewa)}{" "}
+                  <span className="text-xs text-muted-foreground font-normal">{SATUAN_LABEL[item.satuanHarga]}</span>
+                </div>
+                <span className="text-xs text-primary font-medium flex items-center">
+                  Pesan <ArrowRight className="h-3 w-3 ml-1" />
+                </span>
               </div>
             </div>
-            <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-              <Building2 className="h-3 w-3" /> {item.sanggarNama}
-            </div>
-            <div className="text-xs mt-2 flex-1 line-clamp-2 text-muted-foreground">{item.deskripsi}</div>
-            <div className="mt-3 pt-2 border-t flex items-center justify-between">
-              <div className="text-base font-semibold text-primary">
-                {fmtRp(item.hargaSewa)}{" "}
-                <span className="text-xs text-muted-foreground font-normal">{SATUAN_LABEL[item.satuanHarga]}</span>
-              </div>
-            </div>
-          </div>
-        </Card>
+          </Card>
+        </Link>
       ))}
     </div>
   );
