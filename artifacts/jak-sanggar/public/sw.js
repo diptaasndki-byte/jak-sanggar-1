@@ -1,79 +1,120 @@
 // Jak Sanggar service worker — minimal cache-first untuk app shell.
 // Tujuan utama: memenuhi syarat installability PWA + offline shell sederhana.
 
-const CACHE_NAME = "jak-sanggar-shell-v2";
-const APP_SHELL = [
-  "./",
-  "./manifest.webmanifest",
-  "./favicon.svg",
-  "./icon-192.png",
-  "./icon-512.png",
-  "./icon-maskable-512.png",
-];
+// ---------- DEV KILL SWITCH ----------
+// Pratinjau Replit (`*.replit.dev`) atau localhost = environment dev.
+// SW di dev menyebabkan halaman lama tetap tersaji walau kode sudah berubah
+// (misal pilihan "Sewa Jasa" di /daftar tidak muncul karena halaman ter-cache).
+// Maka: kalau dev, SW ini langsung *self-destruct* — unregister diri sendiri
+// dan hapus semua cache, lalu lewati semua handler fetch.
+const HOST = self.location.hostname;
+const IS_DEV =
+  HOST === "localhost" ||
+  HOST === "127.0.0.1" ||
+  HOST.endsWith(".replit.dev") ||
+  HOST.endsWith(".repl.co") ||
+  HOST.endsWith(".kirk.replit.dev");
 
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) =>
-      cache.addAll(APP_SHELL).catch(() => {
-        // Beberapa entry mungkin gagal di dev — biarkan saja.
-      }),
-    ),
-  );
-  self.skipWaiting();
-});
-
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches
-      .keys()
-      .then((keys) =>
-        Promise.all(
-          keys
-            .filter((k) => k !== CACHE_NAME)
-            .map((k) => caches.delete(k)),
-        ),
-      )
-      .then(() => self.clients.claim()),
-  );
-});
-
-self.addEventListener("fetch", (event) => {
-  const req = event.request;
-  if (req.method !== "GET") return;
-
-  const url = new URL(req.url);
-  // Hanya tangani request same-origin.
-  if (url.origin !== self.location.origin) return;
-
-  // Untuk navigasi (SPA), pakai network-first lalu fallback ke shell yang dicache.
-  if (req.mode === "navigate") {
-    event.respondWith(
-      fetch(req)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE_NAME).then((c) => c.put(req, copy)).catch(() => {});
-          return res;
-        })
-        .catch(() =>
-          caches.match(req).then((cached) => cached || caches.match("./")),
-        ),
+if (IS_DEV) {
+  self.addEventListener("install", () => {
+    self.skipWaiting();
+  });
+  self.addEventListener("activate", (event) => {
+    event.waitUntil(
+      (async () => {
+        try {
+          const keys = await caches.keys();
+          await Promise.all(keys.map((k) => caches.delete(k)));
+        } catch {}
+        try {
+          await self.registration.unregister();
+        } catch {}
+        // Reload semua tab agar mendapatkan respon langsung dari network.
+        try {
+          const clientsList = await self.clients.matchAll({ type: "window" });
+          for (const client of clientsList) {
+            try {
+              client.navigate(client.url);
+            } catch {}
+          }
+        } catch {}
+      })(),
     );
-    return;
-  }
+  });
+  // JANGAN respond ke fetch — biarkan browser ambil dari network langsung.
+} else {
+  // ---------- PRODUCTION ----------
+  const CACHE_NAME = "jak-sanggar-shell-v3";
+  const APP_SHELL = [
+    "./",
+    "./manifest.webmanifest",
+    "./favicon.svg",
+    "./icon-192.png",
+    "./icon-512.png",
+    "./icon-maskable-512.png",
+  ];
 
-  // Asset statis: cache-first, lalu network.
-  event.respondWith(
-    caches.match(req).then((cached) => {
-      if (cached) return cached;
-      return fetch(req)
-        .then((res) => {
-          if (res.ok && (res.type === "basic" || res.type === "default")) {
+  self.addEventListener("install", (event) => {
+    event.waitUntil(
+      caches.open(CACHE_NAME).then((cache) =>
+        cache.addAll(APP_SHELL).catch(() => {
+          // Beberapa entry mungkin gagal — biarkan saja.
+        }),
+      ),
+    );
+    self.skipWaiting();
+  });
+
+  self.addEventListener("activate", (event) => {
+    event.waitUntil(
+      caches
+        .keys()
+        .then((keys) =>
+          Promise.all(
+            keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)),
+          ),
+        )
+        .then(() => self.clients.claim()),
+    );
+  });
+
+  self.addEventListener("fetch", (event) => {
+    const req = event.request;
+    if (req.method !== "GET") return;
+
+    const url = new URL(req.url);
+    if (url.origin !== self.location.origin) return;
+
+    // Navigasi (SPA): network-first, fallback ke shell yang dicache.
+    if (req.mode === "navigate") {
+      event.respondWith(
+        fetch(req)
+          .then((res) => {
             const copy = res.clone();
             caches.open(CACHE_NAME).then((c) => c.put(req, copy)).catch(() => {});
-          }
-          return res;
-        })
-        .catch(() => cached);
-    }),
-  );
-});
+            return res;
+          })
+          .catch(() =>
+            caches.match(req).then((cached) => cached || caches.match("./")),
+          ),
+      );
+      return;
+    }
+
+    // Asset statis: cache-first, lalu network.
+    event.respondWith(
+      caches.match(req).then((cached) => {
+        if (cached) return cached;
+        return fetch(req)
+          .then((res) => {
+            if (res.ok && (res.type === "basic" || res.type === "default")) {
+              const copy = res.clone();
+              caches.open(CACHE_NAME).then((c) => c.put(req, copy)).catch(() => {});
+            }
+            return res;
+          })
+          .catch(() => cached);
+      }),
+    );
+  });
+}
