@@ -11,7 +11,7 @@ import { BackButton } from "@/components/layout/BackButton";
 import { useDb, save, useAuth } from "@/lib/auth";
 import { uid, logActivity } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
-import type { JenisKesenian, Bank, Legalitas, SanggarUser, PelatihUser, SenimanUser } from "@/lib/types";
+import type { JenisKesenian, Bank, Legalitas, SanggarUser, PelatihUser, SenimanUser, SewaUser } from "@/lib/types";
 import { MapPin } from "lucide-react";
 
 const KESENIAN: JenisKesenian[] = ["Tari", "Musik", "Teater", "Rupa", "Sastra", "Silat"];

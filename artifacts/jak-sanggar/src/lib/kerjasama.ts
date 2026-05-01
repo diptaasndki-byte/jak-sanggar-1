@@ -1,7 +1,7 @@
 import type {
   AnyUser, SanggarUser, PelatihUser, SenimanUser,
   Aset, Sarpras, Kerjasama, KerjasamaKategori, KerjasamaSumber,
-  KerjasamaStatus, SatuanHarga, Role, Invoice, Payment, Bast,
+  KerjasamaStatus, SatuanHarga, Role, Invoice, Payment, Bast, JenisKesenian,
 } from "./types";
 import { load, save, uid, logActivity, pushKas } from "./store";
 
@@ -17,6 +17,12 @@ export interface KatalogItem {
   hargaSewa: number;
   satuanHarga: SatuanHarga;
   fotoDataUrl?: string;
+  // Jenis kesenian terkait (untuk filter di Katalog Sewa Jasa).
+  // - SDM: jenisKesenian milik orang itu (1 nilai)
+  // - Aset / Sarpras: ambil dari sanggar pemilik (bisa beberapa)
+  jenisKesenian: JenisKesenian[];
+  // Nama orang untuk SDM (untuk filter "nama seniman / pelatih").
+  namaSdm?: string;
 }
 
 const ROLE_TO_HONOR_LABEL: Record<string, number> = {
@@ -74,6 +80,8 @@ export function buildKatalog(): KatalogItem[] {
         hargaSewa: p.honorPerSesi || ROLE_TO_HONOR_LABEL.pelatih,
         satuanHarga: "per_event",
         fotoDataUrl: p.fotoProfileDataUrl,
+        jenisKesenian: [p.jenisKesenian],
+        namaSdm: p.nama,
       });
     } else if (u.role === "seniman") {
       const s = u as SenimanUser;
@@ -90,6 +98,8 @@ export function buildKatalog(): KatalogItem[] {
         hargaSewa: ROLE_TO_HONOR_LABEL.seniman,
         satuanHarga: "per_event",
         fotoDataUrl: s.fotoProfileDataUrl,
+        jenisKesenian: [s.jenisKesenian],
+        namaSdm: s.nama,
       });
     }
     // Juri tidak masuk katalog kerjasama antar-sanggar: juri adalah aset
@@ -110,6 +120,7 @@ export function buildKatalog(): KatalogItem[] {
       hargaSewa: a.hargaSewa,
       satuanHarga: a.satuanHarga,
       fotoDataUrl: a.fotoDataUrl,
+      jenisKesenian: sg.jenisKesenian,
     });
   }
   for (const s of db.sarpras) {
@@ -126,6 +137,7 @@ export function buildKatalog(): KatalogItem[] {
       hargaSewa: s.hargaSewa,
       satuanHarga: s.satuanHarga,
       fotoDataUrl: s.fotoDataUrl,
+      jenisKesenian: sg.jenisKesenian,
     });
   }
   return items;

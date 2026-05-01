@@ -1,4 +1,4 @@
-export type Role = "kurator" | "admin" | "sanggar" | "pelatih" | "seniman" | "juri";
+export type Role = "kurator" | "admin" | "sanggar" | "pelatih" | "seniman" | "juri" | "sewa";
 
 export type JenisKesenian = "Tari" | "Musik" | "Teater" | "Rupa" | "Sastra" | "Silat";
 export type Bank = "BCA" | "Mandiri" | "DKI" | "BRI" | "BNI" | "BSI" | "CIMB";
@@ -110,8 +110,18 @@ export interface JuriUser extends BaseUser {
   npwp?: string;
 }
 
+// Akun penyewa jasa (umum / EO / korporat) — hanya bisa menelusuri katalog
+// dan mengirim permintaan. Tidak punya sanggar / aset / saldo.
+export interface SewaUser extends BaseUser {
+  role: "sewa";
+  nama: string;            // nama pemesan / institusi
+  alamat?: string;
+  jenisInstansi?: "Pribadi" | "Komunitas" | "Sekolah" | "Korporat" | "Pemerintah";
+  fotoProfileDataUrl?: string;
+}
+
 export type AnyUser =
-  | KuratorUser | AdminUser | SanggarUser | PelatihUser | SenimanUser | JuriUser;
+  | KuratorUser | AdminUser | SanggarUser | PelatihUser | SenimanUser | JuriUser | SewaUser;
 
 export interface News {
   id: string;

@@ -135,6 +135,14 @@ function reconcileLocalUser(api: ApiAuthUser): AnyUser {
         rekening: { bank: "BCA", nomor: "-", atasNama: "-" },
       } as AnyUser;
       break;
+    case "sewa":
+      nu = {
+        ...base,
+        role: "sewa",
+        nama: String(profile["nama"] ?? api.username),
+        alamat: typeof profile["alamat"] === "string" ? (profile["alamat"] as string) : undefined,
+      } as AnyUser;
+      break;
     default:
       nu = { ...base, role: "kurator" } as AnyUser;
   }
