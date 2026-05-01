@@ -6,4 +6,20 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./apiError";
+export * from "./authUser";
+export * from "./authUserProfile";
+export * from "./authUserRole";
+export * from "./badRequestResponse";
+export * from "./createUploadBody";
+export * from "./createUserRequest";
+export * from "./createUserRequestProfile";
+export * from "./createUserRequestRole";
+export * from "./forbiddenResponse";
 export * from "./healthStatus";
+export * from "./loginRequest";
+export * from "./notFoundResponse";
+export * from "./unauthorizedResponse";
+export * from "./updateUserRequest";
+export * from "./updateUserRequestProfile";
+export * from "./upload";

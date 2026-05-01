@@ -1,2 +1,19 @@
 export * from "./generated/api";
-export * from "./generated/types";
+export type {
+  ApiError,
+  AuthUser,
+  AuthUserProfile,
+  AuthUserRole,
+  BadRequestResponse,
+  CreateUserRequest,
+  CreateUserRequestProfile,
+  CreateUserRequestRole,
+  ForbiddenResponse,
+  HealthStatus,
+  LoginRequest,
+  NotFoundResponse,
+  UnauthorizedResponse,
+  UpdateUserRequest,
+  UpdateUserRequestProfile,
+  Upload,
+} from "./generated/types";

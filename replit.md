@@ -3,7 +3,15 @@
 Aplikasi web Bahasa Indonesia untuk mengelola sanggar kesenian Jakarta secara terpadu — meliputi keanggotaan, latihan, buku kas, pembinaan, dan kurasi sanggar.
 
 ## Artefak
-- `artifacts/jak-sanggar` — React + Vite, frontend-only, persistensi `localStorage` (key `jaksanggar_v1`), routing wouter, UI shadcn, ikon lucide-react.
+- `artifacts/jak-sanggar` — React + Vite, frontend, routing wouter, UI shadcn, ikon lucide-react. Sebagian besar entitas masih persist di `localStorage` (key `jaksanggar_v1`); **auth (login/logout/me) sudah dipindahkan ke API server (Tahap 1)**.
+- `artifacts/api-server` — Express 5 + Drizzle ORM. Endpoint: `/api/healthz`, `/api/auth/{login,logout,me}`, `/api/users` CRUD (kurator/admin), `/api/uploads` (multipart). Sesi via cookie HttpOnly `jak_session`. Storage berkas via MinIO/S3 (env `S3_*`) dengan fallback dev `/tmp/jak-uploads/`.
+- `lib/db` — Drizzle schema (`users`, `sessions`, `uploads`).
+- `lib/api-spec` + `lib/api-zod` + `lib/api-client-react` — kontrak OpenAPI + codegen (Zod schemas + React Query hooks).
+
+## Tahap Migrasi Backend
+- **Tahap 1 (selesai):** fondasi — DB schema, auth (bcrypt + cookie), endpoint users + uploads, frontend `useAuth` pakai API.
+- **Tahap 2+ (berikutnya):** pindahkan modul lain (sanggar profile, latihan, kas, kurasi, dst.) dari localStorage ke API.
+- **Tahap 6:** deploy ke VPS Bizznet — lihat `artifacts/jak-sanggar/deploy/BACKEND.md`.
 
 ## Peran Pengguna (6)
 1. Kurator (super admin, kredensial tetap `Penguasa jak1` / `ayamayaman`)

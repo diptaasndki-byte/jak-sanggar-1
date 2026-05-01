@@ -48,7 +48,14 @@ import {
 const queryClient = new QueryClient();
 
 function Guard({ role, children }: { role: string; children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, ready } = useAuth();
+  if (!ready) {
+    return (
+      <div className="min-h-screen grid place-items-center text-muted-foreground text-sm">
+        Memuat sesi…
+      </div>
+    );
+  }
   if (!user) return <Redirect to="/" />;
   if (user.role !== role) return <Redirect to={`/${user.role}`} />;
   return <>{children}</>;

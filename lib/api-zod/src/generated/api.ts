@@ -8,9 +8,189 @@
 import * as zod from "zod";
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
+});
+
+/**
+ * @summary Login dengan username + password
+ */
+
+export const AuthLoginBody = zod.object({
+  username: zod.string().min(1),
+  password: zod.string().min(1),
+});
+
+export const AuthLoginResponse = zod
+  .object({
+    id: zod.string().uuid(),
+    username: zod.string(),
+    role: zod.enum([
+      "kurator",
+      "admin",
+      "juri",
+      "sanggar",
+      "pelatih",
+      "seniman",
+    ]),
+    status: zod.string(),
+    profile: zod
+      .record(zod.string(), zod.unknown())
+      .describe("Field tambahan per peran (mis. namaSanggar, sanggarId, dll)"),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  })
+  .describe("User profile (tanpa password hash).");
+
+/**
+ * @summary User aktif berdasarkan cookie sesi
+ */
+export const AuthMeResponse = zod
+  .object({
+    id: zod.string().uuid(),
+    username: zod.string(),
+    role: zod.enum([
+      "kurator",
+      "admin",
+      "juri",
+      "sanggar",
+      "pelatih",
+      "seniman",
+    ]),
+    status: zod.string(),
+    profile: zod
+      .record(zod.string(), zod.unknown())
+      .describe("Field tambahan per peran (mis. namaSanggar, sanggarId, dll)"),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  })
+  .describe("User profile (tanpa password hash).");
+
+/**
+ * @summary Daftar semua user (kurator/admin only)
+ */
+export const ListUsersResponseItem = zod
+  .object({
+    id: zod.string().uuid(),
+    username: zod.string(),
+    role: zod.enum([
+      "kurator",
+      "admin",
+      "juri",
+      "sanggar",
+      "pelatih",
+      "seniman",
+    ]),
+    status: zod.string(),
+    profile: zod
+      .record(zod.string(), zod.unknown())
+      .describe("Field tambahan per peran (mis. namaSanggar, sanggarId, dll)"),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  })
+  .describe("User profile (tanpa password hash).");
+export const ListUsersResponse = zod.array(ListUsersResponseItem);
+
+/**
+ * @summary Buat user baru (kurator/admin only)
+ */
+export const createUserBodyUsernameMin = 3;
+
+export const createUserBodyPasswordMin = 6;
+
+export const createUserBodyStatusDefault = `aktif`;
+
+export const CreateUserBody = zod.object({
+  username: zod.string().min(createUserBodyUsernameMin),
+  password: zod.string().min(createUserBodyPasswordMin),
+  role: zod.enum(["kurator", "admin", "juri", "sanggar", "pelatih", "seniman"]),
+  status: zod.string().default(createUserBodyStatusDefault),
+  profile: zod.record(zod.string(), zod.unknown()).optional(),
+});
+
+export const GetUserParams = zod.object({
+  id: zod.coerce.string().uuid(),
+});
+
+export const GetUserResponse = zod
+  .object({
+    id: zod.string().uuid(),
+    username: zod.string(),
+    role: zod.enum([
+      "kurator",
+      "admin",
+      "juri",
+      "sanggar",
+      "pelatih",
+      "seniman",
+    ]),
+    status: zod.string(),
+    profile: zod
+      .record(zod.string(), zod.unknown())
+      .describe("Field tambahan per peran (mis. namaSanggar, sanggarId, dll)"),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  })
+  .describe("User profile (tanpa password hash).");
+
+export const UpdateUserParams = zod.object({
+  id: zod.coerce.string().uuid(),
+});
+
+export const updateUserBodyPasswordMin = 6;
+
+export const UpdateUserBody = zod.object({
+  password: zod.string().min(updateUserBodyPasswordMin).nullish(),
+  status: zod.string().optional(),
+  profile: zod.record(zod.string(), zod.unknown()).optional(),
+});
+
+export const UpdateUserResponse = zod
+  .object({
+    id: zod.string().uuid(),
+    username: zod.string(),
+    role: zod.enum([
+      "kurator",
+      "admin",
+      "juri",
+      "sanggar",
+      "pelatih",
+      "seniman",
+    ]),
+    status: zod.string(),
+    profile: zod
+      .record(zod.string(), zod.unknown())
+      .describe("Field tambahan per peran (mis. namaSanggar, sanggarId, dll)"),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  })
+  .describe("User profile (tanpa password hash).");
+
+export const DeleteUserParams = zod.object({
+  id: zod.coerce.string().uuid(),
+});
+
+/**
+ * @summary Unggah berkas (multipart/form-data, field "file")
+ */
+export const CreateUploadBody = zod.object({
+  file: zod.instanceof(File),
+});
+
+/**
+ * @summary Metadata + URL unduh berkas (perlu sesi login)
+ */
+export const GetUploadParams = zod.object({
+  id: zod.coerce.string().uuid(),
+});
+
+export const GetUploadResponse = zod.object({
+  id: zod.string().uuid(),
+  url: zod.string().describe("URL unduh berkas"),
+  contentType: zod.string(),
+  sizeBytes: zod.number(),
+  originalName: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
 });

@@ -9,14 +9,15 @@ servers:
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+  - name: auth
+  - name: users
+  - name: uploads
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +25,282 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/login:
+    post:
+      operationId: authLogin
+      tags: [auth]
+      summary: Login dengan username + password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Berhasil login
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthUser" }
+        "401":
+          description: Kredensial salah
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiError" }
+
+  /auth/logout:
+    post:
+      operationId: authLogout
+      tags: [auth]
+      summary: Logout sesi aktif
+      responses:
+        "204":
+          description: OK
+
+  /auth/me:
+    get:
+      operationId: authMe
+      tags: [auth]
+      summary: User aktif berdasarkan cookie sesi
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthUser" }
+        "401":
+          description: Belum login
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiError" }
+
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: Daftar semua user (kurator/admin only)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AuthUser" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      operationId: createUser
+      tags: [users]
+      summary: Buat user baru (kurator/admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateUserRequest" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthUser" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409":
+          description: Username sudah dipakai
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiError" }
+
+  /users/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getUser
+      tags: [users]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthUser" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      operationId: updateUser
+      tags: [users]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateUserRequest" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthUser" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      operationId: deleteUser
+      tags: [users]
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /uploads:
+    post:
+      operationId: createUpload
+      tags: [uploads]
+      summary: Unggah berkas (multipart/form-data, field "file")
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required: [file]
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Upload" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "413":
+          description: Berkas terlalu besar
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiError" }
+
+  /uploads/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getUpload
+      tags: [uploads]
+      summary: Metadata + URL unduh berkas (perlu sesi login)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Upload" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
 components:
+  responses:
+    BadRequest:
+      description: Permintaan tidak valid
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiError" }
+    Unauthorized:
+      description: Belum login
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiError" }
+    Forbidden:
+      description: Tidak punya akses
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiError" }
+    NotFound:
+      description: Tidak ditemukan
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiError" }
+
   schemas:
     HealthStatus:
       type: object
       properties:
-        status:
-          type: string
-      required:
-        - status
+        status: { type: string }
+      required: [status]
 
+    ApiError:
+      type: object
+      properties:
+        error: { type: string }
+      required: [error]
+
+    AuthUser:
+      type: object
+      description: User profile (tanpa password hash).
+      properties:
+        id: { type: string, format: uuid }
+        username: { type: string }
+        role:
+          type: string
+          enum: [kurator, admin, juri, sanggar, pelatih, seniman]
+        status: { type: string }
+        profile:
+          type: object
+          additionalProperties: true
+          description: Field tambahan per peran (mis. namaSanggar, sanggarId, dll)
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+      required: [id, username, role, status, profile, createdAt, updatedAt]
+
+    LoginRequest:
+      type: object
+      properties:
+        username: { type: string, minLength: 1 }
+        password: { type: string, minLength: 1 }
+      required: [username, password]
+
+    CreateUserRequest:
+      type: object
+      properties:
+        username: { type: string, minLength: 3 }
+        password: { type: string, minLength: 6 }
+        role:
+          type: string
+          enum: [kurator, admin, juri, sanggar, pelatih, seniman]
+        status: { type: string, default: aktif }
+        profile:
+          type: object
+          additionalProperties: true
+      required: [username, password, role]
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        password:
+          type: ["string", "null"]
+          minLength: 6
+        status: { type: string }
+        profile:
+          type: object
+          additionalProperties: true
+      additionalProperties: false
+
+    Upload:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        url: { type: string, description: URL unduh berkas }
+        contentType: { type: string }
+        sizeBytes: { type: integer }
+        originalName:
+          type: ["string", "null"]
+        createdAt: { type: string, format: date-time }
+      required: [id, url, contentType, sizeBytes, createdAt]

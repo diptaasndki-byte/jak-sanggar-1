@@ -28,20 +28,24 @@ export default function Login() {
   const t = useT();
   const studio = db.appearance.studio;
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (busy) return;
     setBusy(true);
-    setTimeout(() => {
-      const u = login(username.trim(), password);
+    try {
+      const u = await login(username.trim(), password);
       if (!u) {
-        setBusy(false);
         toast({ title: t("Gagal masuk"), description: t("Username atau password tidak cocok."), variant: "destructive" });
         return;
       }
       toast({ title: `${t("Selamat Datang Kembali")}, ${(u as any).nama || (u as any).namaSanggar || u.username}` });
       navigate(`/${u.role}`);
-    }, 380);
+    } catch (err) {
+      console.error("Login error", err);
+      toast({ title: t("Gagal masuk"), description: t("Server tidak dapat dihubungi."), variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (

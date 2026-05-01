@@ -8,3 +8,115 @@
 export interface HealthStatus {
   status: string;
 }
+
+export interface ApiError {
+  error: string;
+}
+
+export type AuthUserRole = (typeof AuthUserRole)[keyof typeof AuthUserRole];
+
+export const AuthUserRole = {
+  kurator: "kurator",
+  admin: "admin",
+  juri: "juri",
+  sanggar: "sanggar",
+  pelatih: "pelatih",
+  seniman: "seniman",
+} as const;
+
+/**
+ * Field tambahan per peran (mis. namaSanggar, sanggarId, dll)
+ */
+export type AuthUserProfile = { [key: string]: unknown };
+
+/**
+ * User profile (tanpa password hash).
+ */
+export interface AuthUser {
+  id: string;
+  username: string;
+  role: AuthUserRole;
+  status: string;
+  /** Field tambahan per peran (mis. namaSanggar, sanggarId, dll) */
+  profile: AuthUserProfile;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LoginRequest {
+  /** @minLength 1 */
+  username: string;
+  /** @minLength 1 */
+  password: string;
+}
+
+export type CreateUserRequestRole =
+  (typeof CreateUserRequestRole)[keyof typeof CreateUserRequestRole];
+
+export const CreateUserRequestRole = {
+  kurator: "kurator",
+  admin: "admin",
+  juri: "juri",
+  sanggar: "sanggar",
+  pelatih: "pelatih",
+  seniman: "seniman",
+} as const;
+
+export type CreateUserRequestProfile = { [key: string]: unknown };
+
+export interface CreateUserRequest {
+  /** @minLength 3 */
+  username: string;
+  /** @minLength 6 */
+  password: string;
+  role: CreateUserRequestRole;
+  status?: string;
+  profile?: CreateUserRequestProfile;
+}
+
+export type UpdateUserRequestProfile = { [key: string]: unknown };
+
+export interface UpdateUserRequest {
+  /**
+   * @minLength 6
+   * @nullable
+   */
+  password?: string | null;
+  status?: string;
+  profile?: UpdateUserRequestProfile;
+}
+
+export interface Upload {
+  id: string;
+  /** URL unduh berkas */
+  url: string;
+  contentType: string;
+  sizeBytes: number;
+  /** @nullable */
+  originalName?: string | null;
+  createdAt: string;
+}
+
+/**
+ * Permintaan tidak valid
+ */
+export type BadRequestResponse = ApiError;
+
+/**
+ * Belum login
+ */
+export type UnauthorizedResponse = ApiError;
+
+/**
+ * Tidak punya akses
+ */
+export type ForbiddenResponse = ApiError;
+
+/**
+ * Tidak ditemukan
+ */
+export type NotFoundResponse = ApiError;
+
+export type CreateUploadBody = {
+  file: Blob;
+};
