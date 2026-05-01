@@ -35,24 +35,31 @@ export function setupPwa() {
     window.dispatchEvent(new Event("jaksanggar:appinstalled"));
   });
 
-  // Daftarkan service worker setelah load (hanya non-dev untuk menghindari HMR konflik).
+  // Service worker:
+  //  - PRODUCTION: register agar PWA installable & shell offline tersedia.
+  //  - DEV: JANGAN register (HMR + cache shell sering bertabrakan → 404 hantu
+  //    setelah navigasi kedua). Jika browser masih punya registrasi lama
+  //    dari sesi sebelumnya, unregister + bersihkan cache supaya dev clean.
   if ("serviceWorker" in navigator) {
-    const isLocalhost =
-      location.hostname === "localhost" || location.hostname === "127.0.0.1";
-    // Dev pakai HMR — SW bisa cache yang stale. Skip di dev kalau dirasa
-    // mengganggu, tapi banyak Replit preview butuh SW agar installable.
-    // Kompromi: tetap register, tapi pakai updateViaCache: 'none'.
-    const swUrl = `${import.meta.env.BASE_URL}sw.js`;
-    const scope = import.meta.env.BASE_URL;
-    window.addEventListener("load", () => {
-      navigator.serviceWorker
-        .register(swUrl, { scope, updateViaCache: "none" })
-        .catch((err) => {
-          // Jangan crash app kalau SW gagal (misal sandbox iframe).
-          console.warn("[Jak Sanggar] SW register gagal:", err);
-        });
-      void isLocalhost;
-    });
+    if (import.meta.env.PROD) {
+      const swUrl = `${import.meta.env.BASE_URL}sw.js`;
+      const scope = import.meta.env.BASE_URL;
+      window.addEventListener("load", () => {
+        navigator.serviceWorker
+          .register(swUrl, { scope, updateViaCache: "none" })
+          .catch((err) => {
+            console.warn("[Jak Sanggar] SW register gagal:", err);
+          });
+      });
+    } else {
+      // DEV: pastikan tidak ada SW stale.
+      navigator.serviceWorker.getRegistrations().then((regs) => {
+        for (const r of regs) r.unregister().catch(() => {});
+      }).catch(() => {});
+      if ("caches" in window) {
+        caches.keys().then((keys) => keys.forEach((k) => caches.delete(k))).catch(() => {});
+      }
+    }
   }
 }
 

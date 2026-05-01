@@ -1,4 +1,4 @@
-modules = ["nodejs-24", "python-3.11"]
+modules = ["nodejs-24", "python-3.11", "postgresql-16"]
 
 [deployment]
 router = "application"
@@ -85,3 +85,6 @@ externalPort = 3000
 
 [objectStorage]
 defaultBucketID = "replit-objstore-a77adbc9-b2d1-487f-8535-c71f3540650c"
+
+[nix]
+channel = "stable-25_05"
