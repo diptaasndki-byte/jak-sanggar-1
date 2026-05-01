@@ -51,7 +51,7 @@ Aplikasi web Bahasa Indonesia untuk mengelola sanggar kesenian Jakarta secara te
 
 ## Fitur Utama
 - Dasbor per peran dengan sidebar navy + active gold-bar dan watermark batik halus.
-- Sanggar: profil (lock edit 2x/bulan), keanggotaan (3 tab + mutasi/promosi/dismiss-PDF), latihan (kalender + GPS kamera + PDF laporan), buku kas (validasi iuran & honor + ekspor CSV/PDF + bagi hasil job), pembinaan (kartu registrasi pseudo-barcode + absensi 3 slot + sertifikasi), kurasi (3 tahap + sertifikat printable), regenerasi (timeline + ekspor PDF).
+- Sanggar: profil (edit bebas tanpa batas + field NPWP + unduh PDF terkunci), keanggotaan (3 tab + mutasi/promosi/dismiss-PDF), latihan (kalender + GPS kamera + PDF laporan), buku kas (validasi iuran & honor + ekspor CSV/PDF + bagi hasil job), pembinaan (kartu registrasi pseudo-barcode + absensi 3 slot + sertifikasi), kurasi (3 tahap + sertifikat printable), regenerasi (timeline + ekspor PDF).
 - Pelatih: daftar latih, pengajuan honor, e-slip, honor proyek, sertifikat.
 - Seniman: tagihan (upload bukti), riwayat, honor komersial, sertifikat.
 - Juri: penilaian dengan NA live + final-lock.

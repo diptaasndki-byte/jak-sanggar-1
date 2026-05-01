@@ -57,6 +57,7 @@ export interface SanggarUser extends BaseUser {
   tahunBerdiri?: number;
   website?: string;
   instagram?: string;
+  npwp?: string;
 }
 
 export interface PelatihUser extends BaseUser {
@@ -73,6 +74,7 @@ export interface PelatihUser extends BaseUser {
   fotoGaleri?: FotoGaleriItem[];
   bio?: string;
   alamat?: string;
+  npwp?: string;
 }
 
 export interface SenimanUser extends BaseUser {
@@ -91,6 +93,7 @@ export interface SenimanUser extends BaseUser {
   alamat?: string;
   jenisKelamin?: "Laki-laki" | "Perempuan";
   tanggalLahir?: string;
+  npwp?: string;
 }
 
 export interface JuriUser extends BaseUser {
@@ -104,6 +107,7 @@ export interface JuriUser extends BaseUser {
   pendidikan?: string;
   pengalaman?: string;
   alamat?: string;
+  npwp?: string;
 }
 
 export type AnyUser =

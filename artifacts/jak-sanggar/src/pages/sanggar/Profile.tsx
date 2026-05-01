@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth, useDb } from "@/lib/auth";
-import { save, fmtDate, logActivity } from "@/lib/store";
+import { save, logActivity, load as loadDb } from "@/lib/store";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,12 +10,11 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import type { SanggarUser, FotoGaleriItem, Rekening } from "@/lib/types";
-import { Lock } from "lucide-react";
+import { Download } from "lucide-react";
 import { ProfilePhotoUploader } from "@/components/profile/ProfilePhotoUploader";
 import { GaleriUploader } from "@/components/profile/GaleriUploader";
 import { RekeningEditor } from "@/components/profile/RekeningEditor";
-
-const MS_MONTH = 30 * 86400000;
+import { downloadLockedPdf } from "@/lib/pdf";
 
 export default function SanggarProfile() {
   const { user } = useAuth();
@@ -35,21 +34,18 @@ export default function SanggarProfile() {
     tahunBerdiri: String(sg.tahunBerdiri ?? ""),
     website: sg.website ?? "",
     instagram: sg.instagram ?? "",
+    npwp: sg.npwp ?? "",
     fotoProfileDataUrl: sg.fotoProfileDataUrl,
     fotoGaleri: galeri,
     rekening: { ...sg.rekening } as Rekening,
   });
 
-  const periodEnded = Date.now() - sg.editPeriodStart > MS_MONTH;
-  const effectiveCount = periodEnded ? 0 : sg.editCount;
-  const canEdit = effectiveCount < 2;
   const aktif = db.users.filter(u => (u.role === "seniman" || u.role === "pelatih") && (u as any).sanggarId === sg.id && (u as any).status === "aktif").length;
 
   const submit = () => {
     save(d => {
       const u = d.users.find(x => x.id === sg.id) as SanggarUser | undefined;
       if (!u) return;
-      if (Date.now() - u.editPeriodStart > MS_MONTH) { u.editCount = 0; u.editPeriodStart = Date.now(); }
       u.namaKetua = draft.namaKetua;
       u.alamat = draft.alamat;
       u.noHp = draft.noHp;
@@ -58,10 +54,10 @@ export default function SanggarProfile() {
       u.tahunBerdiri = draft.tahunBerdiri ? Number(draft.tahunBerdiri) : undefined;
       u.website = draft.website || undefined;
       u.instagram = draft.instagram || undefined;
+      u.npwp = draft.npwp.trim() || undefined;
       u.fotoProfileDataUrl = draft.fotoProfileDataUrl;
       u.fotoGaleri = draft.fotoGaleri;
       u.rekening = draft.rekening;
-      u.editCount += 1;
     });
     logActivity(sg.id, "sanggar", "profile-edit");
     setEdit(false);
@@ -78,6 +74,7 @@ export default function SanggarProfile() {
       tahunBerdiri: String(sg.tahunBerdiri ?? ""),
       website: sg.website ?? "",
       instagram: sg.instagram ?? "",
+      npwp: sg.npwp ?? "",
       fotoProfileDataUrl: sg.fotoProfileDataUrl,
       fotoGaleri: galeri,
       rekening: { ...sg.rekening },
@@ -85,20 +82,55 @@ export default function SanggarProfile() {
     setEdit(false);
   };
 
+  const downloadPdf = () => {
+    const ownerPwd = loadDb().exportPassword || "kurator123";
+    const safeName = sg.namaSanggar.replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "_");
+    downloadLockedPdf({
+      filename: `Profil_${safeName || "Sanggar"}.pdf`,
+      title: `Profil Sanggar — ${sg.namaSanggar}`,
+      subtitle: `Dicetak ${new Date().toLocaleString("id-ID")} · Jak Sanggar`,
+      ownerPassword: ownerPwd,
+      sections: [
+        { heading: "Identitas Sanggar", body:
+            `Nama Sanggar: ${sg.namaSanggar}\n` +
+            `Nama Ketua: ${sg.namaKetua}\n` +
+            `Legalitas: ${sg.legalitas}${sg.namaBadanHukum ? ` — ${sg.namaBadanHukum}` : ""}\n` +
+            `Tahun Berdiri: ${sg.tahunBerdiri ?? "-"}\n` +
+            `Jenis Kesenian: ${sg.jenisKesenian.join(", ")}\n` +
+            `Anggota Aktif: ${aktif} orang\n` +
+            `NPWP: ${sg.npwp ?? "-"}` },
+        { heading: "Kontak & Profil Publik", body:
+            `Email: ${sg.email ?? "-"}\n` +
+            `No. HP: ${sg.noHp ?? "-"}\n` +
+            `Website: ${sg.website ?? "-"}\n` +
+            `Instagram: ${sg.instagram ?? "-"}\n` +
+            `Alamat: ${sg.alamat}` },
+        ...(sg.deskripsi ? [{ heading: "Deskripsi Sanggar", body: sg.deskripsi }] : []),
+        { heading: "Rekening Bank", body:
+            `Bank: ${sg.rekening.bank}\n` +
+            `No. Rekening: ${sg.rekening.nomor}\n` +
+            `Atas Nama: ${sg.rekening.atasNama}` },
+      ],
+    });
+    toast({ title: "PDF profil diunduh" });
+  };
+
   return (
     <div>
       <PageHeader
         title="Profil Sanggar"
         subtitle="Identitas Sanggar yang sinkron dengan seluruh sistem."
-        actions={canEdit && !editMode ? <Button onClick={() => setEdit(true)} data-testid="button-edit">Edit Profil</Button> : null}
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={downloadPdf} data-testid="button-download-pdf">
+              <Download className="h-4 w-4 mr-1" /> Unduh PDF
+            </Button>
+            {!editMode && (
+              <Button onClick={() => setEdit(true)} data-testid="button-edit">Edit Profil</Button>
+            )}
+          </div>
+        }
       />
-
-      {!canEdit && (
-        <div className="mb-4 p-3 rounded-md bg-muted text-sm flex items-center gap-2">
-          <Lock className="h-4 w-4 text-muted-foreground" />
-          Tombol Edit dinonaktifkan (sudah digunakan {effectiveCount}× bulan ini). Aktif kembali setelah {fmtDate(sg.editPeriodStart + MS_MONTH)}.
-        </div>
-      )}
 
       <Card className="p-6 mb-6">
         <h3 className="font-serif text-lg mb-4">Identitas & Foto Profil</h3>
@@ -131,6 +163,7 @@ export default function SanggarProfile() {
               <Edit label="No. HP" v={draft.noHp} on={v => setDraft({ ...draft, noHp: v })} />
               <Edit label="Website" v={draft.website} on={v => setDraft({ ...draft, website: v })} />
               <Edit label="Instagram" v={draft.instagram} on={v => setDraft({ ...draft, instagram: v })} />
+              <Edit label="NPWP" v={draft.npwp} on={v => setDraft({ ...draft, npwp: v.replace(/[^\d.\-]/g, "").slice(0, 25) })} />
               <div className="sm:col-span-2 space-y-1.5">
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground">Alamat</Label>
                 <Textarea rows={2} value={draft.alamat} onChange={e => setDraft({ ...draft, alamat: e.target.value })} />
@@ -148,6 +181,7 @@ export default function SanggarProfile() {
               <Field label="No. HP" value={sg.noHp ?? "-"} />
               <Field label="Website" value={sg.website ?? "-"} />
               <Field label="Instagram" value={sg.instagram ?? "-"} />
+              <Field label="NPWP" value={sg.npwp ?? "-"} />
               <div className="sm:col-span-2"><Field label="Alamat" value={sg.alamat} /></div>
               <div className="sm:col-span-2"><Field label="Deskripsi Sanggar" value={sg.deskripsi ?? "-"} long /></div>
             </>
@@ -163,11 +197,6 @@ export default function SanggarProfile() {
       <Card className="p-6 mb-6">
         <h3 className="font-serif text-lg mb-4">Galeri Karya & Dokumentasi</h3>
         <GaleriUploader items={editMode ? draft.fotoGaleri : galeri} onChange={items => editMode && setDraft({ ...draft, fotoGaleri: items })} editable={editMode} />
-      </Card>
-
-      <Card className="p-4 text-sm text-muted-foreground flex items-center justify-between">
-        <span>Edit terpakai bulan ini</span>
-        <Badge variant={effectiveCount >= 2 ? "destructive" : "secondary"}>{effectiveCount}/2</Badge>
       </Card>
 
       {editMode && (

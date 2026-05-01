@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
-import { save, logActivity } from "@/lib/store";
+import { save, logActivity, load as loadDb } from "@/lib/store";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,9 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useToast } from "@/hooks/use-toast";
 import type { JuriUser, Rekening, FotoGaleriItem } from "@/lib/types";
+import { Download } from "lucide-react";
 import { ProfilePhotoUploader } from "@/components/profile/ProfilePhotoUploader";
 import { GaleriUploader } from "@/components/profile/GaleriUploader";
 import { RekeningEditor } from "@/components/profile/RekeningEditor";
+import { downloadLockedPdf } from "@/lib/pdf";
 
 const DEFAULT_REK: Rekening = { bank: "BCA", nomor: "", atasNama: "" };
 
@@ -32,6 +34,7 @@ export default function JuriProfile() {
     alamat: j.alamat ?? "",
     email: j.email ?? "",
     noHp: j.noHp ?? "",
+    npwp: j.npwp ?? "",
     fotoProfileDataUrl: j.fotoProfileDataUrl,
     fotoGaleri: galeri,
     rekening: { ...(j.rekening ?? DEFAULT_REK) } as Rekening,
@@ -49,6 +52,7 @@ export default function JuriProfile() {
       u.alamat = draft.alamat || undefined;
       u.email = draft.email || undefined;
       u.noHp = draft.noHp || undefined;
+      u.npwp = draft.npwp.trim() || undefined;
       u.fotoProfileDataUrl = draft.fotoProfileDataUrl;
       u.fotoGaleri = draft.fotoGaleri;
       u.rekening = draft.rekening;
@@ -58,12 +62,49 @@ export default function JuriProfile() {
     setEdit(false);
   };
 
+  const downloadPdf = () => {
+    const ownerPwd = loadDb().exportPassword || "kurator123";
+    const safeName = j.nama.replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "_");
+    const rek = j.rekening ?? DEFAULT_REK;
+    downloadLockedPdf({
+      filename: `Profil_Juri_${safeName || j.id}.pdf`,
+      title: `Profil Juri — ${j.nama}`,
+      subtitle: `Dicetak ${new Date().toLocaleString("id-ID")} · Jak Sanggar`,
+      ownerPassword: ownerPwd,
+      sections: [
+        { heading: "Identitas & Keahlian", body:
+            `Nama Lengkap: ${j.nama}\n` +
+            `Bidang Keahlian: ${j.keahlian}\n` +
+            `Pendidikan Terakhir: ${j.pendidikan ?? "-"}\n` +
+            `Pengalaman: ${j.pengalaman ?? "-"}\n` +
+            `NPWP: ${j.npwp ?? "-"}` },
+        { heading: "Kontak", body:
+            `Email: ${j.email ?? "-"}\n` +
+            `No. HP: ${j.noHp ?? "-"}\n` +
+            `Alamat: ${j.alamat ?? "-"}` },
+        ...(j.bio ? [{ heading: "Bio", body: j.bio }] : []),
+        { heading: "Rekening Bank Honor", body:
+            `Bank: ${rek.bank}\n` +
+            `No. Rekening: ${rek.nomor || "-"}\n` +
+            `Atas Nama: ${rek.atasNama || "-"}` },
+      ],
+    });
+    toast({ title: "PDF profil diunduh" });
+  };
+
   return (
     <div>
       <PageHeader
         title="Profil Saya"
         subtitle="Identitas, keahlian, kontak, rekening honor, dan galeri portofolio Juri."
-        actions={!editMode ? <Button onClick={() => setEdit(true)}>Edit Profil</Button> : null}
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={downloadPdf} data-testid="button-download-pdf">
+              <Download className="h-4 w-4 mr-1" /> Unduh PDF
+            </Button>
+            {!editMode && <Button onClick={() => setEdit(true)}>Edit Profil</Button>}
+          </div>
+        }
       />
 
       <Card className="p-6 mb-6">
@@ -101,6 +142,7 @@ export default function JuriProfile() {
             <>
               <FieldEdit label="Email" v={draft.email} on={v => setDraft({ ...draft, email: v })} />
               <FieldEdit label="No. HP" v={draft.noHp} on={v => setDraft({ ...draft, noHp: v })} />
+              <FieldEdit label="NPWP" v={draft.npwp} on={v => setDraft({ ...draft, npwp: v.replace(/[^\d.\-]/g, "").slice(0, 25) })} />
               <div className="sm:col-span-2 space-y-1.5">
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground">Alamat</Label>
                 <Textarea rows={2} value={draft.alamat} onChange={e => setDraft({ ...draft, alamat: e.target.value })} />
@@ -114,6 +156,7 @@ export default function JuriProfile() {
             <>
               <Field label="Email" value={j.email ?? "-"} />
               <Field label="No. HP" value={j.noHp ?? "-"} />
+              <Field label="NPWP" value={j.npwp ?? "-"} />
               <div className="sm:col-span-2"><Field label="Alamat" value={j.alamat ?? "-"} long /></div>
               <div className="sm:col-span-2"><Field label="Bio / Profil Singkat" value={j.bio ?? "-"} long /></div>
             </>

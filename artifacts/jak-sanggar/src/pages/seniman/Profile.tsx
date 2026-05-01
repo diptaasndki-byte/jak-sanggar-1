@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth, useDb } from "@/lib/auth";
-import { save, logActivity } from "@/lib/store";
+import { save, logActivity, load as loadDb } from "@/lib/store";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,9 +11,11 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import type { SenimanUser, JenisKesenian, FotoGaleriItem, Rekening } from "@/lib/types";
+import { Download } from "lucide-react";
 import { ProfilePhotoUploader } from "@/components/profile/ProfilePhotoUploader";
 import { GaleriUploader } from "@/components/profile/GaleriUploader";
 import { RekeningEditor } from "@/components/profile/RekeningEditor";
+import { downloadLockedPdf } from "@/lib/pdf";
 
 const KESENIAN: JenisKesenian[] = ["Tari", "Musik", "Teater", "Rupa", "Sastra"];
 
@@ -39,6 +41,7 @@ export default function SenimanProfile() {
     alamat: s.alamat ?? "",
     jenisKelamin: s.jenisKelamin ?? "",
     tanggalLahir: s.tanggalLahir ?? "",
+    npwp: s.npwp ?? "",
     fotoProfileDataUrl: s.fotoProfileDataUrl,
     fotoGaleri: galeri,
     rekening: { ...s.rekening } as Rekening,
@@ -59,6 +62,7 @@ export default function SenimanProfile() {
       u.alamat = draft.alamat || undefined;
       u.jenisKelamin = (draft.jenisKelamin as any) || undefined;
       u.tanggalLahir = draft.tanggalLahir || undefined;
+      u.npwp = draft.npwp.trim() || undefined;
       u.fotoProfileDataUrl = draft.fotoProfileDataUrl;
       u.fotoGaleri = draft.fotoGaleri;
       u.rekening = draft.rekening;
@@ -68,12 +72,52 @@ export default function SenimanProfile() {
     setEdit(false);
   };
 
+  const downloadPdf = () => {
+    const ownerPwd = loadDb().exportPassword || "kurator123";
+    const safeName = s.nama.replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "_");
+    downloadLockedPdf({
+      filename: `Profil_Seniman_${safeName || s.id}.pdf`,
+      title: `Profil Seniman — ${s.nama}`,
+      subtitle: `Dicetak ${new Date().toLocaleString("id-ID")} · Jak Sanggar`,
+      ownerPassword: ownerPwd,
+      sections: [
+        { heading: "Identitas", body:
+            `Nama Lengkap: ${s.nama}\n` +
+            `Usia: ${s.usia}\n` +
+            `Jenis Kelamin: ${s.jenisKelamin ?? "-"}\n` +
+            `Tanggal Lahir: ${s.tanggalLahir ?? "-"}\n` +
+            `Pendidikan Terakhir: ${s.pendidikan}\n` +
+            `Profesi: ${s.profesi ?? "-"}\n` +
+            `Jenis Kesenian: ${s.jenisKesenian}\n` +
+            `Sanggar: ${(sanggar as any)?.namaSanggar ?? "-"} (${s.status})\n` +
+            `NPWP: ${s.npwp ?? "-"}` },
+        { heading: "Kontak", body:
+            `Email: ${s.email ?? "-"}\n` +
+            `No. HP: ${s.noHp ?? "-"}\n` +
+            `Alamat: ${s.alamat ?? "-"}` },
+        ...(s.bio ? [{ heading: "Bio", body: s.bio }] : []),
+        { heading: "Rekening Bank", body:
+            `Bank: ${s.rekening.bank}\n` +
+            `No. Rekening: ${s.rekening.nomor}\n` +
+            `Atas Nama: ${s.rekening.atasNama}` },
+      ],
+    });
+    toast({ title: "PDF profil diunduh" });
+  };
+
   return (
     <div>
       <PageHeader
         title="Profil Saya"
         subtitle="Lengkapi data identitas, kontak, rekening, dan galeri karya."
-        actions={!editMode ? <Button onClick={() => setEdit(true)}>Edit Profil</Button> : null}
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={downloadPdf} data-testid="button-download-pdf">
+              <Download className="h-4 w-4 mr-1" /> Unduh PDF
+            </Button>
+            {!editMode && <Button onClick={() => setEdit(true)}>Edit Profil</Button>}
+          </div>
+        }
       />
 
       <Card className="p-6 mb-6">
@@ -140,6 +184,7 @@ export default function SenimanProfile() {
             <>
               <FieldEdit label="Email" v={draft.email} on={v => setDraft({ ...draft, email: v })} />
               <FieldEdit label="No. HP" v={draft.noHp} on={v => setDraft({ ...draft, noHp: v })} />
+              <FieldEdit label="NPWP" v={draft.npwp} on={v => setDraft({ ...draft, npwp: v.replace(/[^\d.\-]/g, "").slice(0, 25) })} />
               <div className="sm:col-span-2 space-y-1.5">
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground">Alamat</Label>
                 <Textarea rows={2} value={draft.alamat} onChange={e => setDraft({ ...draft, alamat: e.target.value })} />
@@ -153,6 +198,7 @@ export default function SenimanProfile() {
             <>
               <Field label="Email" value={s.email ?? "-"} />
               <Field label="No. HP" value={s.noHp ?? "-"} />
+              <Field label="NPWP" value={s.npwp ?? "-"} />
               <div className="sm:col-span-2"><Field label="Alamat" value={s.alamat ?? "-"} long /></div>
               <div className="sm:col-span-2"><Field label="Bio Singkat" value={s.bio ?? "-"} long /></div>
             </>
