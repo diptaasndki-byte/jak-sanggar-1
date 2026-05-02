@@ -167,7 +167,7 @@ function RegisterMember({ kind }: { kind: "pelatih" | "seniman" }) {
   const [, navigate] = useLocation();
   const sanggarList = db.users.filter(u => u.role === "sanggar") as SanggarUser[];
   const [f, setF] = useState({
-    nama: "", username: "", email: "", password: "", noHp: "",
+    nama: "", nikKtp: "", username: "", email: "", password: "", noHp: "",
     usia: 25, pendidikan: "S1", jenisKesenian: "Tari" as JenisKesenian,
     sanggarId: sanggarList[0]?.id ?? "",
     alamatDetail: "",
@@ -177,8 +177,20 @@ function RegisterMember({ kind }: { kind: "pelatih" | "seniman" }) {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    const nikKtp = f.nikKtp.replace(/\D/g, "");
     if (db.users.some(u => u.username.toLowerCase() === f.username.toLowerCase())) {
       toast({ title: "Username sudah digunakan", variant: "destructive" }); return;
+    }
+    if (kind === "seniman") {
+      if (!/^\d{16}$/.test(nikKtp)) {
+        toast({ title: "NIK KTP tidak valid", description: "NIK KTP wajib berisi tepat 16 angka.", variant: "destructive" }); return;
+      }
+      const alreadyRegistered = db.users.some(u =>
+        u.role === "seniman" && (u as SenimanUser).nikKtp === nikKtp && u.status !== "ditolak" && u.status !== "keluar"
+      );
+      if (alreadyRegistered) {
+        toast({ title: "NIK KTP sudah terdaftar", description: "Seniman tidak dapat mendaftarkan diri di lebih dari 1 sanggar.", variant: "destructive" }); return;
+      }
     }
     if (!isWilayahLengkap(f.wilayah)) {
       toast({ title: "Lengkapi alamat wilayah", description: "Pilih kota, kecamatan, dan kelurahan.", variant: "destructive" }); return;
@@ -195,7 +207,7 @@ function RegisterMember({ kind }: { kind: "pelatih" | "seniman" }) {
     };
     const newUser = kind === "pelatih"
       ? ({ ...base, role: "pelatih", honorPerSesi: db.honorPerSesiDefault } as PelatihUser)
-      : ({ ...base, role: "seniman" } as SenimanUser);
+      : ({ ...base, role: "seniman", nikKtp } as SenimanUser);
     save(d => { d.users.push(newUser); });
     logActivity(newUser.id, kind, "register");
     setSession(newUser);
@@ -214,6 +226,17 @@ function RegisterMember({ kind }: { kind: "pelatih" | "seniman" }) {
           <form onSubmit={submit} className="space-y-8">
             <Section title="Identitas">
               <Field label="Nama Lengkap" required value={f.nama} onChange={v => setF({ ...f, nama: v })} />
+              {kind === "seniman" && (
+                <Field
+                  label="NIK KTP (16 angka)"
+                  required
+                  inputMode="numeric"
+                  maxLength={16}
+                  pattern="\d{16}"
+                  value={f.nikKtp}
+                  onChange={v => setF({ ...f, nikKtp: v.replace(/\D/g, "").slice(0, 16) })}
+                />
+              )}
               <Field label="Usia" type="number" required value={String(f.usia)} onChange={v => setF({ ...f, usia: Number(v) })} />
               <div className="space-y-1.5">
                 <Label>Pendidikan Terakhir</Label>
@@ -398,13 +421,13 @@ export function RegisterSewa() {
   );
 }
 
-function Field({ label, value, onChange, required, type = "text" }: {
-  label: string; value: string; onChange: (v: string) => void; required?: boolean; type?: string;
+function Field({ label, value, onChange, required, type = "text", inputMode, maxLength, pattern }: {
+  label: string; value: string; onChange: (v: string) => void; required?: boolean; type?: string; inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"]; maxLength?: number; pattern?: string;
 }) {
   return (
     <div className="space-y-1.5">
       <Label>{label} {required && <span className="text-destructive">*</span>}</Label>
-      <Input type={type} value={value} onChange={(e) => onChange(e.target.value)} required={required} />
+      <Input type={type} inputMode={inputMode} maxLength={maxLength} pattern={pattern} value={value} onChange={(e) => onChange(e.target.value)} required={required} />
     </div>
   );
 }
