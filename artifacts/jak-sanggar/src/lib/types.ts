@@ -101,6 +101,7 @@ export interface PelatihUser extends BaseUser {
 export interface SenimanUser extends BaseUser {
   role: "seniman";
   nama: string;
+  nikKtp: string;
   usia: number;
   pendidikan: string;
   profesi?: string;
