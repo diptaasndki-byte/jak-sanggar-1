@@ -22,8 +22,9 @@ import { Loader2 } from "lucide-react";
 interface Props {
   /**
    * "all-id"   : pilih provinsi bebas seluruh Indonesia.
-   * "dki-only" : provinsi dikunci ke DKI Jakarta (auto-fill), user hanya
-   *              memilih kota / kecamatan / kelurahan.
+   * "dki-only" : sebelumnya provinsi dikunci ke DKI Jakarta. Sekarang tetap
+   *              dibuka agar user dapat memilih provinsi / kota / kecamatan /
+   *              kelurahan secara manual.
    */
   mode: "all-id" | "dki-only";
   value: AlamatWilayah;
@@ -56,8 +57,10 @@ export function RegionSelector({ mode, value, onChange, required }: Props) {
   // 1) Provinces — dipicu hanya saat `mode` berubah.
   useEffect(() => {
     const ctrl = new AbortController();
-    if (mode === "dki-only") {
-      // Kunci provinsi DKI tanpa hit network.
+
+    // Mode dki-only tidak lagi mengunci provinsi. Daftar provinsi tetap dimuat
+    // agar user dapat memilih wilayah secara manual.
+    if (false && mode === "dki-only") {
       const dki: Wilayah = { id: DKI_PROVINCE_ID, name: DKI_PROVINCE_NAME };
       setProvinces([dki]);
       if (valueRef.current.provinsiId !== DKI_PROVINCE_ID) {
@@ -74,6 +77,7 @@ export function RegionSelector({ mode, value, onChange, required }: Props) {
       }
       return () => ctrl.abort();
     }
+
     setLoading((s) => ({ ...s, prov: true }));
     fetchProvinces(ctrl.signal)
       .then((rows) => {
@@ -151,7 +155,7 @@ export function RegionSelector({ mode, value, onChange, required }: Props) {
     return () => ctrl.abort();
   }, [value.kecamatanId]);
 
-  const isProvinceLocked = mode === "dki-only";
+  const isProvinceLocked = false;
 
   const star = required ? <span className="text-destructive">*</span> : null;
 
@@ -167,7 +171,7 @@ export function RegionSelector({ mode, value, onChange, required }: Props) {
         <Label>Provinsi {star}</Label>
         <Select
           value={value.provinsiId ?? ""}
-          disabled={isProvinceLocked || loading.prov}
+          disabled={loading.prov}
           onValueChange={(id) => {
             const p = provinces.find((x) => x.id === id);
             onChange({
