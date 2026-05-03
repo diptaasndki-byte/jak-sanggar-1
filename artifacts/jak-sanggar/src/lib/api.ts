@@ -56,11 +56,23 @@ export interface ApiAuthUser {
   updatedAt: string;
 }
 
+export interface RegisterApiUserBody {
+  username: string;
+  password: string;
+  role: "sanggar" | "pelatih" | "seniman";
+  profile: Record<string, unknown>;
+}
+
 export const authApi = {
   login: (username: string, password: string) =>
     apiFetch<ApiAuthUser>("/api/auth/login", {
       method: "POST",
       body: JSON.stringify({ username, password }),
+    }),
+  register: (body: RegisterApiUserBody) =>
+    apiFetch<ApiAuthUser>("/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify(body),
     }),
   logout: () =>
     apiFetch<null>("/api/auth/logout", { method: "POST" }),
