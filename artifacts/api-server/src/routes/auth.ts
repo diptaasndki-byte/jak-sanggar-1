@@ -13,10 +13,14 @@ import { requireAuth } from "../middlewares/auth";
 
 const router: IRouter = Router();
 
+// VPS saat ini diakses lewat http://IP, belum HTTPS.
+// Cookie dengan secure=true tidak akan disimpan/dikirim browser di HTTP,
+// akibatnya setelah refresh user keluar ke halaman login.
+// Kalau nanti sudah pakai HTTPS/domain SSL, set FORCE_SECURE_COOKIES=true.
 const SESSION_COOKIE_OPTS = {
   httpOnly: true,
   sameSite: "lax" as const,
-  secure: process.env["NODE_ENV"] === "production",
+  secure: process.env["FORCE_SECURE_COOKIES"] === "true",
   path: "/",
 };
 
