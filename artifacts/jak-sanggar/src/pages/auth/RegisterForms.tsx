@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { BackButton } from "@/components/layout/BackButton";
 import { useDb, save, useAuth } from "@/lib/auth";
-import { uid, logActivity } from "@/lib/store";
+import { uid, logActivity, refreshFromServer } from "@/lib/store";
+import { authApi, type RegisterApiUserBody } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import type { JenisKesenian, Bank, Legalitas, SanggarUser, PelatihUser, SenimanUser, SewaUser, JenisInstansiSewa, AlamatTerstruktur } from "@/lib/types";
 import { MapPin } from "lucide-react";
@@ -60,20 +61,43 @@ export function RegisterSanggar() {
       toast({ title: "Lengkapi alamat wilayah", description: "Pilih kota, kecamatan, dan kelurahan.", variant: "destructive" }); return;
     }
     const alamatGabungan = formatAlamatWilayah(f.wilayah, f.alamat);
-    const newUser: SanggarUser = {
-      id: uid(), role: "sanggar", username: f.username, password: f.password, email: f.email, noHp: f.noHp,
-      namaSanggar: f.namaSanggar, namaKetua: f.namaKetua,
-      legalitas: f.legalitas, namaBadanHukum: f.legalitas !== "Non-Badan Hukum" ? f.namaBadanHukum : undefined,
-      jenisKesenian: f.jenisKesenian, alamat: alamatGabungan, wilayah: f.wilayah,
-      lat: f.lat || -6.2, lng: f.lng || 106.8,
-      rekening: { bank: f.bank, nomor: f.nomor, atasNama: f.atasNama },
-      saldo: 0, editCount: 0, editPeriodStart: Date.now(), createdAt: Date.now(),
-    };
-    save(d => { d.users.push(newUser); });
-    logActivity(newUser.id, "sanggar", "register-sanggar");
-    setSession(newUser);
-    toast({ title: "Pendaftaran berhasil", description: `Selamat datang, ${newUser.namaSanggar}` });
-    navigate("/sanggar");
+    // Registrasi via API server
+    (async () => {
+      try {
+        const body: RegisterApiUserBody = {
+          username: f.username,
+          password: f.password,
+          role: "sanggar",
+          profile: {
+            namaSanggar: f.namaSanggar, namaKetua: f.namaKetua,
+            legalitas: f.legalitas, namaBadanHukum: f.legalitas !== "Non-Badan Hukum" ? f.namaBadanHukum : undefined,
+            jenisKesenian: f.jenisKesenian, alamat: alamatGabungan, wilayah: f.wilayah,
+            email: f.email, noHp: f.noHp,
+            lat: f.lat || -6.2, lng: f.lng || 106.8,
+            rekening: { bank: f.bank, nomor: f.nomor, atasNama: f.atasNama },
+            saldo: 0, editCount: 0, editPeriodStart: Date.now(),
+          },
+        };
+        const apiUser = await authApi.register(body);
+        await refreshFromServer();
+        const localUser: SanggarUser = {
+          id: apiUser.id, role: "sanggar", username: apiUser.username, password: "***api***",
+          email: f.email, noHp: f.noHp,
+          namaSanggar: f.namaSanggar, namaKetua: f.namaKetua,
+          legalitas: f.legalitas, namaBadanHukum: f.legalitas !== "Non-Badan Hukum" ? f.namaBadanHukum : undefined,
+          jenisKesenian: f.jenisKesenian, alamat: alamatGabungan, wilayah: f.wilayah,
+          lat: f.lat || -6.2, lng: f.lng || 106.8,
+          rekening: { bank: f.bank, nomor: f.nomor, atasNama: f.atasNama },
+          saldo: 0, editCount: 0, editPeriodStart: Date.now(), createdAt: Date.now(),
+        };
+        setSession(localUser);
+        logActivity(localUser.id, "sanggar", "register-sanggar");
+        toast({ title: "Pendaftaran berhasil", description: `Selamat datang, ${localUser.namaSanggar}` });
+        navigate("/sanggar");
+      } catch (err: any) {
+        toast({ title: "Gagal mendaftar", description: err.message ?? "Terjadi kesalahan", variant: "destructive" });
+      }
+    })();
   };
 
   return (
@@ -205,14 +229,36 @@ function RegisterMember({ kind }: { kind: "pelatih" | "seniman" }) {
       rekening: { bank: f.bank, nomor: f.nomor, atasNama: f.atasNama },
       createdAt: Date.now(),
     };
-    const newUser = kind === "pelatih"
-      ? ({ ...base, role: "pelatih", honorPerSesi: db.honorPerSesiDefault } as PelatihUser)
-      : ({ ...base, role: "seniman", nikKtp } as SenimanUser);
-    save(d => { d.users.push(newUser); });
-    logActivity(newUser.id, kind, "register");
-    setSession(newUser);
-    toast({ title: "Pendaftaran terkirim", description: "Permohonan gabung dikirim ke Sanggar." });
-    navigate(`/${kind}`);
+    // Registrasi via API server
+    (async () => {
+      try {
+        const profileData: Record<string, unknown> = {
+          nama: f.nama, usia: Number(f.usia), pendidikan: f.pendidikan,
+          jenisKesenian: f.jenisKesenian, sanggarId: f.sanggarId,
+          alamat: alamatGabungan, wilayah: f.wilayah,
+          email: f.email, noHp: f.noHp,
+          rekening: { bank: f.bank, nomor: f.nomor, atasNama: f.atasNama },
+          status: "pending",
+        };
+        if (kind === "pelatih") profileData.honorPerSesi = db.honorPerSesiDefault;
+        if (kind === "seniman") profileData.nikKtp = nikKtp;
+        const body: RegisterApiUserBody = {
+          username: f.username, password: f.password,
+          role: kind, profile: profileData,
+        };
+        const apiUser = await authApi.register(body);
+        await refreshFromServer();
+        const newUser = kind === "pelatih"
+          ? ({ ...base, id: apiUser.id, role: "pelatih", honorPerSesi: db.honorPerSesiDefault } as PelatihUser)
+          : ({ ...base, id: apiUser.id, role: "seniman", nikKtp } as SenimanUser);
+        setSession(newUser);
+        logActivity(newUser.id, kind, "register");
+        toast({ title: "Pendaftaran terkirim", description: "Permohonan gabung dikirim ke Sanggar." });
+        navigate(`/${kind}`);
+      } catch (err: any) {
+        toast({ title: "Gagal mendaftar", description: err.message ?? "Terjadi kesalahan", variant: "destructive" });
+      }
+    })();
   };
 
   const title = kind === "pelatih" ? "Pendaftaran Pelatih" : "Pendaftaran Seniman";
@@ -344,24 +390,32 @@ export function RegisterSewa() {
       toast({ title: "Lengkapi alamat wilayah", description: "Pilih provinsi, kota, kecamatan, dan kelurahan.", variant: "destructive" }); return;
     }
     const alamatGabungan = formatAlamatWilayah(f.wilayah, f.alamatDetail);
-    const newUser: SewaUser = {
-      id: uid(),
-      role: "sewa",
-      username: f.username.trim(),
-      password: f.password,
-      email: f.email.trim() || undefined,
-      noHp: f.noHp.trim() || undefined,
-      nama: f.nama.trim(),
-      alamat: alamatGabungan || undefined,
-      wilayah: f.wilayah,
-      jenisInstansi: f.jenisInstansi,
-      createdAt: Date.now(),
-    };
-    save(d => { d.users.push(newUser); });
-    logActivity(newUser.id, "sewa", "register");
-    setSession(newUser);
-    toast({ title: "Akun siap pakai", description: "Telusuri katalog jasa kesenian sekarang." });
-    navigate("/sewa");
+    // Registrasi sewa — tetap lokal karena role sewa belum didukung API auth
+    // Tapi juga push ke server untuk persistensi
+    (async () => {
+      try {
+        const newUser: SewaUser = {
+          id: uid(),
+          role: "sewa",
+          username: f.username.trim(),
+          password: f.password,
+          email: f.email.trim() || undefined,
+          noHp: f.noHp.trim() || undefined,
+          nama: f.nama.trim(),
+          alamat: alamatGabungan || undefined,
+          wilayah: f.wilayah,
+          jenisInstansi: f.jenisInstansi,
+          createdAt: Date.now(),
+        };
+        save(d => { d.users.push(newUser); });
+        logActivity(newUser.id, "sewa", "register");
+        setSession(newUser);
+        toast({ title: "Akun siap pakai", description: "Telusuri katalog jasa kesenian sekarang." });
+        navigate("/sewa");
+      } catch (err: any) {
+        toast({ title: "Gagal mendaftar", description: err.message ?? "Terjadi kesalahan", variant: "destructive" });
+      }
+    })();
   };
 
   return (

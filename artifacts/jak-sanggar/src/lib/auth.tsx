@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { load, save, subscribe, logActivity } from "./store";
+import { load, save, subscribe, logActivity, initStore, refreshFromServer } from "./store";
 import type { AnyUser, Role } from "./types";
-import { authApi, ApiError, type ApiAuthUser } from "./api";
+import { authApi, ApiError, type ApiAuthUser, usersApi } from "./api";
 
 const SESSION_KEY = "jaksanggar_session_v1";
 const IMPERSONATION_KEY = "jaksanggar_impersonation_v1";
@@ -31,42 +31,36 @@ function writeImpersonation(s: ImpersonationState | null) {
 interface AuthCtx {
   user: AnyUser | null;
   ready: boolean;
-  /** ID asli kurator saat sedang impersonate; null kalau tidak impersonate. */
   impersonatedFromId: string | null;
   login: (username: string, password: string) => Promise<AnyUser | null>;
   logout: () => Promise<void>;
   setSession: (u: AnyUser) => void;
-  /** Switch UI to act as another user. Original kurator id disimpan agar bisa kembali. */
   impersonate: (targetUserId: string) => boolean;
-  /** Kembali ke akun kurator semula. */
   stopImpersonation: () => boolean;
   refresh: () => void;
 }
 
 const Ctx = createContext<AuthCtx | null>(null);
 
-// Cocokkan user yang dikembalikan API ke entry user di local store.
-// PENTING: id user di localStorage TIDAK diubah supaya seluruh foreign-key
-// di store (latihan, iuran, kas, kurasi, pengajuan honor, distribusi, dll)
-// tetap utuh. Sesi otentikasi sepenuhnya server-side (cookie HttpOnly),
-// jadi `api.id` hanya dipakai server. Local id tetap jadi kunci UI.
-// Bila user belum ada di local store (mis. dibuat via API), buat entry
-// minimal — Tahap 2+ akan menangani semua modul dari server.
-function reconcileLocalUser(api: ApiAuthUser): AnyUser {
+/**
+ * Cocokkan user API ke entry user di store (sekarang dari server).
+ * Jika user belum ada di cache, buat entry minimal.
+ */
+function reconcileUser(api: ApiAuthUser): AnyUser {
   const db = load();
+  // Cari berdasarkan server id
+  const byId = db.users.find((u: any) => u.id === api.id);
+  if (byId) return byId;
+  // Cari berdasarkan username
   const byUsername = db.users.find(
     (u) => u.username.toLowerCase() === api.username.toLowerCase(),
   );
-  if (byUsername) {
-    return byUsername;
-  }
-  // Buat entry minimal sesuai role. Pakai id baru lokal supaya tidak bentrok
-  // dengan id lama; relasi store akan menyusul saat user mengisi modul-modul
-  // yang relevan.
+  if (byUsername) return byUsername;
+
+  // Buat entry minimal dari data API
   const profile = api.profile ?? {};
-  const localId = `u_api_${api.id}`;
   const base = {
-    id: localId,
+    id: api.id,
     username: api.username,
     password: "***api***",
     createdAt: Date.now(),
@@ -78,8 +72,7 @@ function reconcileLocalUser(api: ApiAuthUser): AnyUser {
       break;
     case "admin":
       nu = {
-        ...base,
-        role: "admin",
+        ...base, role: "admin",
         nama: String(profile["nama"] ?? api.username),
         permissions: {
           kelolaBerita: true, kelolaBanner: true, kelolaSlider: true,
@@ -89,35 +82,28 @@ function reconcileLocalUser(api: ApiAuthUser): AnyUser {
       break;
     case "juri":
       nu = {
-        ...base,
-        role: "juri",
+        ...base, role: "juri",
         nama: String(profile["nama"] ?? api.username),
         keahlian: String(profile["keahlian"] ?? "Umum"),
       } as AnyUser;
       break;
     case "sanggar":
       nu = {
-        ...base,
-        role: "sanggar",
+        ...base, role: "sanggar",
         namaSanggar: String(profile["namaSanggar"] ?? api.username),
         namaKetua: String(profile["namaKetua"] ?? "-"),
         legalitas: "Non-Badan Hukum",
         jenisKesenian: ["Tari"],
         alamat: String(profile["alamat"] ?? "-"),
         rekening: { bank: "BCA", nomor: "-", atasNama: "-" },
-        saldo: 0,
-        editCount: 0,
-        editPeriodStart: Date.now(),
+        saldo: 0, editCount: 0, editPeriodStart: Date.now(),
       } as AnyUser;
       break;
     case "pelatih":
       nu = {
-        ...base,
-        role: "pelatih",
+        ...base, role: "pelatih",
         nama: String(profile["nama"] ?? api.username),
-        usia: 30,
-        pendidikan: "-",
-        jenisKesenian: "Tari",
+        usia: 30, pendidikan: "-", jenisKesenian: "Tari",
         status: "aktif",
         rekening: { bank: "BCA", nomor: "-", atasNama: "-" },
         honorPerSesi: 0,
@@ -125,20 +111,16 @@ function reconcileLocalUser(api: ApiAuthUser): AnyUser {
       break;
     case "seniman":
       nu = {
-        ...base,
-        role: "seniman",
+        ...base, role: "seniman",
         nama: String(profile["nama"] ?? api.username),
-        usia: 25,
-        pendidikan: "-",
-        jenisKesenian: "Tari",
+        usia: 25, pendidikan: "-", jenisKesenian: "Tari",
         status: "aktif",
         rekening: { bank: "BCA", nomor: "-", atasNama: "-" },
       } as AnyUser;
       break;
     case "sewa":
       nu = {
-        ...base,
-        role: "sewa",
+        ...base, role: "sewa",
         nama: String(profile["nama"] ?? api.username),
         alamat: typeof profile["alamat"] === "string" ? (profile["alamat"] as string) : undefined,
       } as AnyUser;
@@ -146,7 +128,8 @@ function reconcileLocalUser(api: ApiAuthUser): AnyUser {
     default:
       nu = { ...base, role: "kurator" } as AnyUser;
   }
-  save((d) => { d.users.push(nu); });
+  // Tambah ke cache
+  load().users.push(nu);
   return nu;
 }
 
@@ -156,20 +139,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [impersonatedFromId, setImpersonatedFromId] = useState<string | null>(
     () => readImpersonation()?.originalUserId ?? null,
   );
-  // Versi state auth — dinaikkan setiap kali login/logout terjadi supaya
-  // hidrasi awal yang lambat tidak menimpa state baru.
   const stateVersionRef = useRef(0);
 
-  // Hidrasi awal: cek sesi server. Jika impersonation aktif & user asli adalah
-  // kurator, restore user impersonasi setelah cocokkan kurator dari API.
+  // Hidrasi awal: init store dari API, lalu cek sesi server.
   useEffect(() => {
     let cancelled = false;
     const initialVersion = stateVersionRef.current;
     (async () => {
+      // Inisialisasi store dari API server
+      await initStore();
       try {
         const me = await authApi.me();
         if (cancelled || stateVersionRef.current !== initialVersion) return;
-        const local = reconcileLocalUser(me);
+        const local = reconcileUser(me);
         const imp = readImpersonation();
         if (imp && imp.originalUserId === local.id && local.role === "kurator") {
           const target = load().users.find((u) => u.id === imp.impersonatedUserId);
@@ -179,14 +161,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setImpersonatedFromId(local.id);
             return;
           }
-          // Target hilang — bersihkan impersonation.
           writeImpersonation(null);
           setImpersonatedFromId(null);
         }
         localStorage.setItem(SESSION_KEY, local.id);
         setUser(local);
         if (imp && imp.originalUserId !== local.id) {
-          // Impersonation ditinggalkan oleh user lain — bersihkan.
           writeImpersonation(null);
           setImpersonatedFromId(null);
         }
@@ -195,9 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!(err instanceof ApiError) || err.status !== 401) {
           console.warn("auth.me gagal", err);
         }
-        // Sebelum menghapus sesi, periksa apakah sesi lokal milik akun "sewa"
-        // (akun lokal-saja yang tidak dikenal API server). Jika ya, pertahankan
-        // agar tetap login setelah refresh.
+        // Sesi tidak valid — cek akun sewa lokal
         const sid = localStorage.getItem(SESSION_KEY);
         const localUser = sid ? load().users.find((u) => u.id === sid) ?? null : null;
         if (localUser && localUser.role === "sewa") {
@@ -215,7 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => { cancelled = true; };
   }, []);
 
-  // Sinkronkan user ketika store berubah (mis. profil di-update di tab lain).
+  // Sinkronkan user ketika store berubah
   useEffect(() => {
     const unsub = subscribe(() => {
       const id = localStorage.getItem(SESSION_KEY);
@@ -228,8 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (username: string, password: string) => {
     const uname = username.trim();
-    // Helper: login lokal HANYA untuk role "sewa" (akun client-side yang
-    // tidak dikenal API server). Cegah bypass auth server untuk role lain.
+    // Helper: login lokal HANYA untuk role "sewa"
     const tryLocalSewaLogin = (): AnyUser | null => {
       const db = load();
       const found = db.users.find(
@@ -254,7 +231,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       stateVersionRef.current += 1;
       writeImpersonation(null);
       setImpersonatedFromId(null);
-      const local = reconcileLocalUser(api);
+      // Refresh store dari server setelah login
+      await refreshFromServer();
+      const local = reconcileUser(api);
       localStorage.setItem(SESSION_KEY, local.id);
       setUser(local);
       setReady(true);
@@ -262,10 +241,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return local;
     } catch (err) {
       if (err instanceof ApiError && (err.status === 401 || err.status === 400)) {
-        // API tolak — coba sebagai akun "sewa" lokal saja.
         return tryLocalSewaLogin();
       }
-      // Jaringan/error lain: izinkan login sewa offline supaya tidak terblokir.
       const localOk = tryLocalSewaLogin();
       if (localOk) return localOk;
       throw err;
@@ -288,14 +265,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const impersonate = (targetUserId: string): boolean => {
-    // Hanya kurator (atau yang sedang impersonate dari kurator) yang boleh.
     const originalId = impersonatedFromId ?? user?.id ?? null;
     if (!originalId) return false;
     const db = load();
     const original = db.users.find((u) => u.id === originalId);
     if (!original || original.role !== "kurator") return false;
     if (targetUserId === originalId) {
-      // Diminta "impersonate diri sendiri" — sama seperti stop.
       return stopImpersonation();
     }
     const target = db.users.find((u) => u.id === targetUserId);
