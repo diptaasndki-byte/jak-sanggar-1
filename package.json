@@ -1,6 +1,6 @@
 {
   "name": "jak-sanggar-1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Aplikasi administrasi sanggar seni JAK SANGGAR",
   "main": "server.js",
   "scripts": {
@@ -16,6 +16,7 @@
     "bcrypt": "^5.1.1",
     "body-parser": "^1.20.3",
     "express": "^4.19.2",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.11.3"
   }
 }
