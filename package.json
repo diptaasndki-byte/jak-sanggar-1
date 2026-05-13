@@ -1,10 +1,16 @@
 {
   "name": "jak-sanggar-1",
   "version": "1.0.0",
-  "description": "Jak Sanggar backend",
+  "description": "Aplikasi administrasi sanggar seni JAK SANGGAR",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "NODE_ENV=development node server.js",
+    "prod": "NODE_ENV=production node server.js",
+    "health": "node -e \"fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/health').then(r=>r.json()).then(console.log).catch(console.error)\""
+  },
+  "engines": {
+    "node": ">=18"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
