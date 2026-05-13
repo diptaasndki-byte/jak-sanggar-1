@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>JAK SANGGAR</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#061027;color:#fff}button,input,select,textarea{font:inherit}.hidden{display:none!important}.app{min-height:100vh;display:grid;grid-template-columns:280px 1fr}.side{background:#020617;border-right:1px solid #1e293b;padding:24px;position:sticky;top:0;height:100vh}.brand{font-size:30px;font-weight:900;line-height:.95;margin-bottom:22px}.blue{color:#38bdf8}.orange{color:#fb923c}.nav button{display:block;width:100%;text-align:left;margin:8px 0;padding:13px;border:1px solid #1e293b;background:#0f172a;color:#dbeafe;border-radius:14px;cursor:pointer;font-weight:700}.nav button.active,.primary{background:linear-gradient(135deg,#2563eb,#fb923c)!important;color:#fff!important;border:0!important}.main{padding:26px}.top{display:flex;justify-content:space-between;gap:15px;align-items:center;margin-bottom:20px}.panel{background:#0f172a;border:1px solid #1e293b;border-radius:22px;padding:22px;margin-bottom:18px;box-shadow:0 18px 40px rgba(0,0,0,.22)}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.card{background:#020617;border:1px solid #23324a;border-radius:18px;padding:18px}.num{font-size:34px;font-weight:900}.muted{color:#94a3b8}.auth{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(circle at top left,#1d4ed8,#020617 45%)}.authbox{width:100%;max-width:980px;display:grid;grid-template-columns:1.1fr .9fr;gap:22px}.hero,.box{background:rgba(15,23,42,.94);border:1px solid rgba(255,255,255,.12);border-radius:26px;padding:30px}.hero h1{font-size:60px;line-height:.9;margin:16px 0}.tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;background:#020617;padding:7px;border-radius:16px}.tabs button{padding:12px;border-radius:12px;border:0;background:transparent;color:#cbd5e1;font-weight:900;cursor:pointer}.tabs .active{background:#2563eb;color:white}label{display:block;margin:12px 0 7px;font-size:13px;color:#cbd5e1;font-weight:800}input,select,textarea{width:100%;padding:13px;border-radius:14px;border:1px solid #334155;background:#020617;color:#fff}textarea{min-height:110px}.btn{padding:13px 16px;border-radius:14px;border:1px solid #334155;background:#0f172a;color:#fff;cursor:pointer;font-weight:900}.full{width:100%;margin-top:14px}.msg{margin-top:14px;border-radius:14px;padding:12px;display:none}.ok{display:block;background:rgba(34,197,94,.16);color:#86efac}.err{display:block;background:rgba(239,68,68,.16);color:#fecaca}table{width:100%;border-collapse:collapse}td,th{border-bottom:1px solid #1e293b;padding:10px;text-align:left;vertical-align:top}th{color:#93c5fd}.pill{display:inline-block;border:1px solid #334155;border-radius:999px;padding:6px 10px;color:#cbd5e1}.actions{display:flex;gap:10px;flex-wrap:wrap}.docout{white-space:pre-wrap;background:#020617;border:1px solid #334155;border-radius:14px;padding:14px;min-height:130px}@media(max-width:900px){.app{grid-template-columns:1fr}.side{position:relative;height:auto}.grid,.grid2,.authbox{grid-template-columns:1fr}.hero h1{font-size:42px}.top{display:block}}
+  </style>
+</head>
+<body>
+  <div id="authPage" class="auth">
+    <div class="authbox">
+      <section class="hero">
+        <span class="pill">Sistem Administrasi Sanggar</span>
+        <h1><span class="blue">JAK</span><br><span class="orange">SANGGAR</span></h1>
+        <p class="muted">Login, profil sanggar, penyusunan AD/ART, SK, berita acara, kurasi, dan log aktivitas dalam satu aplikasi.</p>
+        <div class="actions"><button class="btn" onclick="cekServer()">Cek Server</button><button class="btn" onclick="demoIsi()">Demo Isi Otomatis</button></div>
+      </section>
+      <section class="box">
+        <div class="tabs"><button id="tabLogin" class="active" onclick="setMode('login')">Login</button><button id="tabRegister" onclick="setMode('register')">Register</button></div>
+        <form id="authForm">
+          <label>Username</label><input id="username" required placeholder="admin">
+          <label>Password</label><input id="password" type="password" required placeholder="minimal 6 karakter">
+          <div id="roleWrap" class="hidden"><label>Role</label><select id="role"><option value="admin">Admin</option><option value="operator">Operator</option><option value="kurator">Kurator</option><option value="sanggar">Sanggar</option><option value="user">User</option></select></div>
+          <button id="authBtn" class="btn primary full">Masuk</button>
+        </form>
+        <div id="authMsg" class="msg"></div>
+      </section>
+    </div>
+  </div>
+
+  <div id="appPage" class="app hidden">
+    <aside class="side">
+      <div class="brand"><span class="blue">JAK</span><br><span class="orange">SANGGAR</span></div>
+      <p id="userInfo" class="muted"></p>
+      <nav class="nav">
+        <button onclick="showPage('dashboard')" id="nav-dashboard" class="active">Dashboard</button>
+        <button onclick="showPage('profil')" id="nav-profil">Profil Sanggar</button>
+        <button onclick="showPage('dokumen')" id="nav-dokumen">Dokumen AD/ART/SK</button>
+        <button onclick="showPage('kurasi')" id="nav-kurasi">Kurasi</button>
+        <button onclick="showPage('log')" id="nav-log">Log Aktivitas</button>
+        <button onclick="exportData()">Export JSON</button>
+        <button onclick="logout()">Keluar</button>
+      </nav>
+    </aside>
+    <main class="main">
+      <div class="top"><div><h2 id="pageTitle">Dashboard</h2><p class="muted">[ &lt; Kembali ] Navigasi tersedia di menu kiri.</p></div><button class="btn" onclick="loadAll()">Refresh</button></div>
+
+      <section id="page-dashboard" class="page panel">
+        <div class="grid">
+          <div class="card"><div class="num" id="sumUsers">0</div><div class="muted">User</div></div>
+          <div class="card"><div class="num" id="sumProfiles">0</div><div class="muted">Profil Sanggar</div></div>
+          <div class="card"><div class="num" id="sumDocs">0</div><div class="muted">Dokumen</div></div>
+          <div class="card"><div class="num" id="sumCur">0</div><div class="muted">Kurasi</div></div>
+        </div>
+      </section>
+
+      <section id="page-profil" class="page panel hidden">
+        <h3>Form Profil Sanggar</h3>
+        <div class="grid2">
+          <div><label>Nama Sanggar</label><input id="pNama" placeholder="Sanggar Seni ..."></div>
+          <div><label>Ketua Sanggar</label><input id="pKetua"></div>
+          <div><label>Jenis Kesenian</label><input id="pJenis" placeholder="Tari, Musik, Teater, dll"></div>
+          <div><label>Kedudukan</label><select id="pKedudukan"><option>Komunitas/Sanggar Mandiri</option><option>Unit di bawah Komunitas</option><option>Unit di bawah Yayasan</option><option>Unit di bawah Perkumpulan</option><option>Unit Usaha/Badan Usaha</option></select></div>
+          <div><label>No HP</label><input id="pHp"></div>
+          <div><label>Bank</label><input id="pBank"></div>
+          <div><label>Rekening</label><input id="pRek"></div>
+          <div><label>Status Administrasi</label><select id="pStatus"><option>Draft</option><option>Lengkap</option><option>Perlu Perbaikan</option><option>Terverifikasi</option></select></div>
+        </div>
+        <label>Alamat</label><textarea id="pAlamat"></textarea>
+        <button class="btn primary" onclick="simpanProfil()">Simpan Profil</button>
+        <h3>Daftar Profil</h3><div id="profilList"></div>
+      </section>
+
+      <section id="page-dokumen" class="page panel hidden">
+        <h3>Generator Dokumen</h3>
+        <div class="grid2">
+          <div><label>Jenis Dokumen</label><select id="dJenis"><option>Berita Acara</option><option>SK Pembentukan</option><option>Anggaran Dasar</option><option>Anggaran Rumah Tangga</option></select></div>
+          <div><label>Nama Sanggar</label><input id="dNama"></div>
+          <div><label>Status</label><select id="dStatus"><option>Draft</option><option>Diperiksa</option><option>Final</option></select></div>
+        </div>
+        <label>Isi Dokumen / Catatan</label><textarea id="dIsi" placeholder="Kosongkan untuk dibuat otomatis"></textarea>
+        <div class="actions"><button class="btn primary" onclick="simpanDokumen()">Simpan Dokumen</button><button class="btn" onclick="salinDokumen()">Salin Output</button></div>
+        <h3>Output</h3><div id="docOut" class="docout"></div>
+        <h3>Daftar Dokumen</h3><div id="dokumenList"></div>
+      </section>
+
+      <section id="page-kurasi" class="page panel hidden">
+        <h3>Form Kurasi</h3>
+        <div class="grid2">
+          <div><label>Nama Sanggar</label><input id="kNama"></div>
+          <div><label>Status</label><select id="kStatus"><option>Menunggu Pemeriksaan</option><option>Perlu Perbaikan</option><option>Layak</option><option>Tidak Layak</option></select></div>
+          <div><label>Skor Administrasi</label><input id="kAdm" type="number" min="0" max="100" value="0"></div>
+          <div><label>Skor Aktivitas</label><input id="kAkt" type="number" min="0" max="100" value="0"></div>
+          <div><label>Skor SDM</label><input id="kSdm" type="number" min="0" max="100" value="0"></div>
+        </div>
+        <label>Catatan Kurator</label><textarea id="kCatatan"></textarea>
+        <button class="btn primary" onclick="simpanKurasi()">Simpan Kurasi</button>
+        <h3>Daftar Kurasi</h3><div id="kurasiList"></div>
+      </section>
+
+      <section id="page-log" class="page panel hidden"><h3>Log Aktivitas</h3><div id="logList"></div></section>
+    </main>
+  </div>
+
+<script>
+let mode='login';let token=localStorage.getItem('jak_token');let user=JSON.parse(localStorage.getItem('jak_user')||'null');
+const api=(url,opt={})=>fetch(url,{...opt,headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,...(opt.headers||{})}});
+function setMode(m){mode=m;tabLogin.classList.toggle('active',m==='login');tabRegister.classList.toggle('active',m==='register');roleWrap.classList.toggle('hidden',m!=='register');authBtn.textContent=m==='login'?'Masuk':'Daftar Akun';authMsg.className='msg';authMsg.textContent=''}
+function msg(t,ok=true){authMsg.textContent=t;authMsg.className='msg '+(ok?'ok':'err')}
+async function cekServer(){try{const r=await fetch('/health');const d=await r.json();msg('Server normal. User: '+d.users+', profil: '+d.profiles,true)}catch(e){msg('Server tidak dapat dihubungi.',false)}}
+function demoIsi(){username.value='admin';password.value='123456';role.value='admin'}
+authForm.onsubmit=async e=>{e.preventDefault();const body={username:username.value.trim(),password:password.value};if(mode==='register')body.role=role.value;try{const r=await fetch('/'+mode,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)return msg(d.message||'Gagal',false);if(mode==='register'){msg('Akun dibuat. Silakan login.',true);setMode('login');return}token=d.token;user=d.user;localStorage.setItem('jak_token',token);localStorage.setItem('jak_user',JSON.stringify(user));openApp()}catch(err){msg('Server tidak dapat dihubungi. Cek PM2/port/domain.',false)}};
+function openApp(){authPage.classList.add('hidden');appPage.classList.remove('hidden');userInfo.textContent=user.username+' | '+user.role;loadAll()}
+function logout(){localStorage.clear();location.reload()}
+function showPage(p){document.querySelectorAll('.page').forEach(x=>x.classList.add('hidden'));document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));document.getElementById('page-'+p).classList.remove('hidden');const n=document.getElementById('nav-'+p);if(n)n.classList.add('active');pageTitle.textContent={dashboard:'Dashboard',profil:'Profil Sanggar',dokumen:'Dokumen AD/ART/SK',kurasi:'Kurasi',log:'Log Aktivitas'}[p]||p}
+async function loadAll(){if(!token)return;try{const s=await (await api('/api/summary')).json();sumUsers.textContent=s.users;sumProfiles.textContent=s.profiles;sumDocs.textContent=s.documents;sumCur.textContent=s.curations;await loadProfiles();await loadDocs();await loadCurations();await loadLogs()}catch(e){logout()}}
+function table(rows,cols){if(!rows.length)return '<p class="muted">Belum ada data.</p>';return '<table><thead><tr>'+cols.map(c=>'<th>'+c[0]+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+cols.map(c=>'<td>'+(r[c[1]]??'')+'</td>').join('')+'</tr>').join('')+'</tbody></table>'}
+async function simpanProfil(){const body={namaSanggar:pNama.value,ketua:pKetua.value,jenisKesenian:pJenis.value,kedudukan:pKedudukan.value,noHp:pHp.value,bank:pBank.value,rekening:pRek.value,statusAdministrasi:pStatus.value,alamat:pAlamat.value};const d=await (await api('/api/profiles',{method:'POST',body:JSON.stringify(body)})).json();alert(d.message);loadAll()}
+async function loadProfiles(){const d=await (await api('/api/profiles')).json();profilList.innerHTML=table(d,[['Nama Sanggar','namaSanggar'],['Ketua','ketua'],['Jenis','jenisKesenian'],['Status','statusAdministrasi'],['Update','updatedAt']])}
+async function simpanDokumen(){const body={jenisDokumen:dJenis.value,namaSanggar:dNama.value,status:dStatus.value,isi:dIsi.value};const r=await api('/api/documents',{method:'POST',body:JSON.stringify(body)});const d=await r.json();docOut.textContent=d.document?d.document.isi:d.message;loadAll()}
+async function loadDocs(){const d=await (await api('/api/documents')).json();dokumenList.innerHTML=table(d,[['Jenis','jenisDokumen'],['Nama Sanggar','namaSanggar'],['Status','status'],['Update','updatedAt']])}
+function salinDokumen(){navigator.clipboard.writeText(docOut.textContent||'');alert('Output disalin')}
+async function simpanKurasi(){const body={namaSanggar:kNama.value,status:kStatus.value,skorAdministrasi:kAdm.value,skorAktivitas:kAkt.value,skorSDM:kSdm.value,catatan:kCatatan.value};const d=await (await api('/api/curations',{method:'POST',body:JSON.stringify(body)})).json();alert(d.message);loadAll()}
+async function loadCurations(){const d=await (await api('/api/curations')).json();kurasiList.innerHTML=table(d,[['Nama Sanggar','namaSanggar'],['Status','status'],['Administrasi','skorAdministrasi'],['Aktivitas','skorAktivitas'],['SDM','skorSDM'],['Catatan','catatan']])}
+async function loadLogs(){const d=await (await api('/api/logs')).json();logList.innerHTML=table(d,[['Waktu','createdAt'],['Aktor','actor'],['Aksi','action'],['Detail','detail']])}
+async function exportData(){const d=await (await api('/api/export')).json();const blob=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='jak-sanggar-export.json';a.click()}
+if(token&&user)openApp();
+</script>
+</body>
+</html>
