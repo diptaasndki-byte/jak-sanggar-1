@@ -9,114 +9,44 @@
   </style>
 </head>
 <body>
-  <div id="authPage" class="auth">
-    <div class="authbox">
-      <section class="hero">
-        <span class="muted">Sistem Administrasi Sanggar</span>
-        <h1><span class="blue">JAK</span><br><span class="orange">SANGGAR</span></h1>
-        <p class="muted">Login, profil sanggar, penyusunan AD/ART, SK, berita acara, kurasi, dan log aktivitas.</p>
-        <p class="muted">Register mandiri hanya untuk akun sanggar/user. Akun admin, operator, dan kurator dibuat oleh master kurator.</p>
-        <button class="btn" onclick="cekServer()">Cek Server</button>
-      </section>
-      <section class="box">
-        <div class="tabs"><button id="tabLogin" class="active" onclick="setMode('login')">Login</button><button id="tabRegister" onclick="setMode('register')">Register Sanggar</button></div>
-        <form id="authForm">
-          <label>Username</label><input id="username" required>
-          <label>Password</label><input id="password" type="password" required>
-          <div id="roleWrap" class="hidden"><label>Jenis Akun</label><select id="role"><option value="sanggar">Sanggar</option><option value="user">User</option></select></div>
-          <button id="authBtn" class="btn primary full">Masuk</button>
-        </form>
-        <div id="authMsg" class="msg"></div>
-      </section>
-    </div>
-  </div>
+  <div id="authPage" class="auth"><div class="authbox"><section class="hero"><span class="muted">Sistem Administrasi Sanggar</span><h1><span class="blue">JAK</span><br><span class="orange">SANGGAR</span></h1><p class="muted">Login, profil, dokumen, kurasi, dan log aktivitas.</p><p class="muted">Daftar mandiri: Sanggar, Seniman, Juri, dan Jasa Sewa. Akun lain dibuat oleh kurator/master kurator.</p><button class="btn" onclick="cekServer()">Cek Server</button></section><section class="box"><div class="tabs"><button id="tabLogin" class="active" onclick="setMode('login')">Login</button><button id="tabRegister" onclick="setMode('register')">Daftar Mandiri</button></div><form id="authForm"><label>Username</label><input id="username" required><label>Password</label><input id="password" type="password" required><div id="roleWrap" class="hidden"><label>Jenis Akun</label><select id="role"><option value="sanggar">Sanggar</option><option value="seniman">Seniman</option><option value="juri">Juri</option><option value="jasa_sewa">Jasa Sewa</option></select></div><button id="authBtn" class="btn primary full">Masuk</button></form><div id="authMsg" class="msg"></div></section></div></div>
 
-  <div id="appPage" class="app hidden">
-    <aside class="side">
-      <div class="brand"><span class="blue">JAK</span><br><span class="orange">SANGGAR</span></div>
-      <p id="userInfo" class="muted"></p>
-      <nav class="nav">
-        <button class="btn" onclick="showPage('dashboard')" id="nav-dashboard">Dashboard</button>
-        <button class="btn hidden" onclick="showPage('users')" id="nav-users">Manajemen Akun</button>
-        <button class="btn" onclick="showPage('profil')" id="nav-profil">Profil Sanggar</button>
-        <button class="btn" onclick="showPage('dokumen')" id="nav-dokumen">Dokumen AD/ART/SK</button>
-        <button class="btn" onclick="showPage('kurasi')" id="nav-kurasi">Kurasi</button>
-        <button class="btn" onclick="showPage('log')" id="nav-log">Log Aktivitas</button>
-        <button class="btn" id="btnExport" onclick="exportData()">Export JSON</button>
-        <button class="btn" onclick="logout()">Keluar</button>
-      </nav>
-    </aside>
-    <main class="main">
-      <div class="top"><div><h2 id="pageTitle">Dashboard</h2><button class="btn" onclick="showPage('dashboard')">&lt; Kembali</button></div><button class="btn" onclick="loadAll()">Refresh</button></div>
+  <div id="appPage" class="app hidden"><aside class="side"><div class="brand"><span class="blue">JAK</span><br><span class="orange">SANGGAR</span></div><p id="userInfo" class="muted"></p><nav class="nav"><button class="btn" onclick="showPage('dashboard')" id="nav-dashboard">Dashboard</button><button class="btn hidden" onclick="showPage('users')" id="nav-users">Manajemen Akun</button><button class="btn" onclick="showPage('profil')" id="nav-profil">Profil</button><button class="btn" onclick="showPage('dokumen')" id="nav-dokumen">Dokumen AD/ART/SK</button><button class="btn" onclick="showPage('kurasi')" id="nav-kurasi">Kurasi</button><button class="btn" onclick="showPage('log')" id="nav-log">Log Aktivitas</button><button class="btn" id="btnExport" onclick="exportData()">Export JSON</button><button class="btn" onclick="logout()">Keluar</button></nav></aside><main class="main"><div class="top"><div><h2 id="pageTitle">Dashboard</h2><button class="btn" onclick="showPage('dashboard')">&lt; Kembali</button></div><button class="btn" onclick="loadAll()">Refresh</button></div>
 
-      <section id="page-dashboard" class="page panel">
-        <div class="grid">
-          <div class="card"><div class="num" id="sumUsers">0</div><div class="muted">User</div></div>
-          <div class="card"><div class="num" id="sumProfiles">0</div><div class="muted">Profil Sanggar</div></div>
-          <div class="card"><div class="num" id="sumDocs">0</div><div class="muted">Dokumen</div></div>
-          <div class="card"><div class="num" id="sumCur">0</div><div class="muted">Kurasi</div></div>
-        </div>
-      </section>
+  <section id="page-dashboard" class="page panel"><div class="grid"><div class="card"><div class="num" id="sumUsers">0</div><div class="muted">User</div></div><div class="card"><div class="num" id="sumProfiles">0</div><div class="muted">Profil</div></div><div class="card"><div class="num" id="sumDocs">0</div><div class="muted">Dokumen</div></div><div class="card"><div class="num" id="sumCur">0</div><div class="muted">Kurasi</div></div></div></section>
 
-      <section id="page-users" class="page panel hidden">
-        <h3>Manajemen Akun Staf</h3>
-        <p class="muted">Hanya master kurator yang dapat membuat admin, operator, dan kurator.</p>
-        <div class="grid2">
-          <div><label>Username</label><input id="uUsername"></div>
-          <div><label>Password</label><input id="uPassword" type="password"></div>
-          <div><label>Role</label><select id="uRole"><option value="admin">Admin</option><option value="operator">Operator</option><option value="kurator">Kurator</option></select></div>
-        </div>
-        <button class="btn primary" onclick="buatAkunStaf()">Buat Akun</button>
-        <div id="usersList"></div>
-      </section>
+  <section id="page-users" class="page panel hidden"><h3>Manajemen Akun Internal</h3><p class="muted">Khusus kurator/master kurator. Buat akun internal yang tidak boleh daftar sendiri.</p><div class="grid2"><div><label>Username</label><input id="uUsername"></div><div><label>Password</label><input id="uPassword" type="password"></div><div><label>Role</label><select id="uRole"><option value="admin">Admin</option><option value="operator">Operator</option><option value="kurator">Kurator</option><option value="verifikator">Verifikator</option><option value="user">User Internal</option></select></div></div><button class="btn primary" onclick="buatAkunStaf()">Buat Akun</button><div id="usersList"></div></section>
 
-      <section id="page-profil" class="page panel hidden">
-        <h3>Form Profil Sanggar</h3>
-        <div class="grid2">
-          <div><label>Nama Sanggar</label><input id="pNama"></div><div><label>Ketua Sanggar</label><input id="pKetua"></div>
-          <div><label>Jenis Kesenian</label><input id="pJenis"></div><div><label>Kedudukan</label><select id="pKedudukan"><option>Sanggar sebagai organisasi mandiri non badan hukum</option><option>Sanggar sebagai unit di bawah komunitas non badan hukum</option><option>Sanggar sebagai unit di bawah yayasan</option><option>Sanggar sebagai unit di bawah perkumpulan berbadan hukum</option><option>Sanggar sebagai unit di bawah badan usaha</option><option>Sanggar sebagai unit kegiatan pada lembaga/organisasi lain</option></select></div>
-          <div><label>No HP</label><input id="pHp"></div><div><label>Bank</label><input id="pBank"></div><div><label>Rekening</label><input id="pRek"></div><div><label>Status Administrasi</label><select id="pStatus"><option>Draft</option><option>Lengkap</option><option>Perlu Perbaikan</option><option>Terverifikasi</option></select></div>
-        </div>
-        <label>Alamat</label><textarea id="pAlamat"></textarea><button class="btn primary" onclick="simpanProfil()">Simpan Profil</button><div id="profilList"></div>
-      </section>
+  <section id="page-profil" class="page panel hidden"><h3>Form Profil</h3><div class="grid2"><div><label>Nama Profil/Sanggar/Jasa/Seniman</label><input id="pNama"></div><div><label>Penanggung Jawab/Ketua</label><input id="pKetua"></div><div><label>Jenis Kesenian/Layanan</label><input id="pJenis"></div><div><label>Kedudukan</label><select id="pKedudukan"><option>Sanggar sebagai organisasi mandiri non badan hukum</option><option>Sanggar sebagai unit di bawah komunitas non badan hukum</option><option>Sanggar sebagai unit di bawah yayasan</option><option>Sanggar sebagai unit di bawah perkumpulan berbadan hukum</option><option>Sanggar sebagai unit di bawah badan usaha</option><option>Seniman perorangan</option><option>Juri/kurator profesional</option><option>Penyedia jasa sewa</option><option>Sanggar sebagai unit kegiatan pada lembaga/organisasi lain</option></select></div><div><label>No HP</label><input id="pHp"></div><div><label>Bank</label><input id="pBank"></div><div><label>Rekening</label><input id="pRek"></div><div><label>Status Administrasi</label><select id="pStatus"><option>Draft</option><option>Lengkap</option><option>Perlu Perbaikan</option><option>Terverifikasi</option></select></div></div><label>Alamat</label><textarea id="pAlamat"></textarea><button class="btn primary" onclick="simpanProfil()">Simpan Profil</button><div id="profilList"></div></section>
 
-      <section id="page-dokumen" class="page panel hidden">
-        <h3>Generator Dokumen</h3>
-        <div class="grid2"><div><label>Jenis Dokumen</label><select id="dJenis"><option>Berita Acara Pembentukan Organisasi</option><option>Berita Acara Pembentukan Sanggar</option><option>SK Pembentukan Sanggar</option><option>SK Pengangkatan Pengurus</option><option>Anggaran Dasar</option><option>Anggaran Rumah Tangga</option></select></div><div><label>Nama Sanggar</label><input id="dNama"></div><div><label>Status</label><select id="dStatus"><option>Draft</option><option>Diperiksa</option><option>Final</option></select></div></div>
-        <label>Isi Dokumen / Catatan</label><textarea id="dIsi" placeholder="Kosongkan untuk dibuat otomatis"></textarea><div class="actions"><button class="btn primary" onclick="simpanDokumen()">Simpan Dokumen</button><button class="btn" onclick="salinDokumen()">Salin Output</button></div><h3>Output</h3><div id="docOut" class="docout"></div><div id="dokumenList"></div>
-      </section>
+  <section id="page-dokumen" class="page panel hidden"><h3>Generator Dokumen</h3><div class="grid2"><div><label>Jenis Dokumen</label><select id="dJenis"><option>Berita Acara Pembentukan Organisasi</option><option>Berita Acara Pembentukan Sanggar</option><option>SK Pembentukan Sanggar</option><option>SK Pengangkatan Pengurus</option><option>Anggaran Dasar</option><option>Anggaran Rumah Tangga</option></select></div><div><label>Nama</label><input id="dNama"></div><div><label>Status</label><select id="dStatus"><option>Draft</option><option>Diperiksa</option><option>Final</option></select></div></div><label>Isi Dokumen / Catatan</label><textarea id="dIsi" placeholder="Kosongkan untuk dibuat otomatis"></textarea><div class="actions"><button class="btn primary" onclick="simpanDokumen()">Simpan Dokumen</button><button class="btn" onclick="salinDokumen()">Salin Output</button></div><h3>Output</h3><div id="docOut" class="docout"></div><div id="dokumenList"></div></section>
 
-      <section id="page-kurasi" class="page panel hidden">
-        <h3>Form Kurasi</h3>
-        <div class="grid2"><div><label>Nama Sanggar</label><input id="kNama"></div><div><label>Status</label><select id="kStatus"><option>Menunggu Pemeriksaan</option><option>Perlu Perbaikan</option><option>Layak</option><option>Tidak Layak</option></select></div><div><label>Skor Administrasi</label><input id="kAdm" type="number" min="0" max="100" value="0"></div><div><label>Skor Aktivitas</label><input id="kAkt" type="number" min="0" max="100" value="0"></div><div><label>Skor SDM</label><input id="kSdm" type="number" min="0" max="100" value="0"></div></div>
-        <label>Catatan Kurator</label><textarea id="kCatatan"></textarea><button class="btn primary" onclick="simpanKurasi()">Simpan Kurasi</button><div id="kurasiList"></div>
-      </section>
+  <section id="page-kurasi" class="page panel hidden"><h3>Form Kurasi</h3><div class="grid2"><div><label>Nama</label><input id="kNama"></div><div><label>Status</label><select id="kStatus"><option>Menunggu Pemeriksaan</option><option>Perlu Perbaikan</option><option>Layak</option><option>Tidak Layak</option></select></div><div><label>Skor Administrasi</label><input id="kAdm" type="number" min="0" max="100" value="0"></div><div><label>Skor Aktivitas</label><input id="kAkt" type="number" min="0" max="100" value="0"></div><div><label>Skor SDM</label><input id="kSdm" type="number" min="0" max="100" value="0"></div></div><label>Catatan Kurator</label><textarea id="kCatatan"></textarea><button class="btn primary" onclick="simpanKurasi()">Simpan Kurasi</button><div id="kurasiList"></div></section>
 
-      <section id="page-log" class="page panel hidden"><h3>Log Aktivitas</h3><div id="logList"></div></section>
-    </main>
-  </div>
+  <section id="page-log" class="page panel hidden"><h3>Log Aktivitas</h3><div id="logList"></div></section></main></div>
 
 <script>
 let mode='login',token=localStorage.getItem('jak_token'),user=JSON.parse(localStorage.getItem('jak_user')||'null');
+const roleLabels={master_kurator:'Master Kurator',admin:'Admin',operator:'Operator',kurator:'Kurator',verifikator:'Verifikator',user:'User Internal',sanggar:'Sanggar',seniman:'Seniman',juri:'Juri',jasa_sewa:'Jasa Sewa'};
 const api=(url,opt={})=>fetch(url,{...opt,headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,...(opt.headers||{})}});
 function setMode(m){mode=m;tabLogin.classList.toggle('active',m==='login');tabRegister.classList.toggle('active',m==='register');roleWrap.classList.toggle('hidden',m!=='register');authBtn.textContent=m==='login'?'Masuk':'Daftar Akun';authMsg.className='msg';authMsg.textContent=''}
 function msg(t,ok=true){authMsg.textContent=t;authMsg.className='msg '+(ok?'ok':'err')}
 async function cekServer(){try{const d=await (await fetch('/health')).json();msg('Server normal. User: '+d.users+', profil: '+d.profiles,true)}catch(e){msg('Server tidak dapat dihubungi.',false)}}
 authForm.onsubmit=async e=>{e.preventDefault();const body={username:username.value.trim(),password:password.value};if(mode==='register')body.role=role.value;try{const r=await fetch('/'+mode,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),d=await r.json();if(!r.ok)return msg(d.message||'Gagal',false);if(mode==='register'){msg('Akun dibuat. Silakan login.',true);setMode('login');return}token=d.token;user=d.user;localStorage.setItem('jak_token',token);localStorage.setItem('jak_user',JSON.stringify(user));openApp()}catch(err){msg('Server tidak dapat dihubungi.',false)}};
-function openApp(){authPage.classList.add('hidden');appPage.classList.remove('hidden');userInfo.textContent=user.username+' | '+user.role;navUsers.classList.toggle('hidden',user.role!=='master_kurator');btnExport.classList.toggle('hidden',!['master_kurator','admin'].includes(user.role));loadAll()}
+function openApp(){authPage.classList.add('hidden');appPage.classList.remove('hidden');userInfo.textContent=user.username+' | '+(user.roleLabel||roleLabels[user.role]||user.role);navUsers.classList.toggle('hidden',user.role!=='master_kurator');btnExport.classList.toggle('hidden',!['master_kurator','admin'].includes(user.role));loadAll()}
 function logout(){localStorage.clear();location.reload()}
-function showPage(p){document.querySelectorAll('.page').forEach(x=>x.classList.add('hidden'));document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));document.getElementById('page-'+p).classList.remove('hidden');const n=document.getElementById('nav-'+p);if(n)n.classList.add('active');pageTitle.textContent={dashboard:'Dashboard',users:'Manajemen Akun',profil:'Profil Sanggar',dokumen:'Dokumen AD/ART/SK',kurasi:'Kurasi',log:'Log Aktivitas'}[p]||p;if(p==='users')loadUsers()}
+function showPage(p){document.querySelectorAll('.page').forEach(x=>x.classList.add('hidden'));document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));document.getElementById('page-'+p).classList.remove('hidden');const n=document.getElementById('nav-'+p);if(n)n.classList.add('active');pageTitle.textContent={dashboard:'Dashboard',users:'Manajemen Akun',profil:'Profil',dokumen:'Dokumen AD/ART/SK',kurasi:'Kurasi',log:'Log Aktivitas'}[p]||p;if(p==='users')loadUsers()}
 async function loadAll(){if(!token)return;try{const s=await (await api('/api/summary')).json();sumUsers.textContent=s.users;sumProfiles.textContent=s.profiles;sumDocs.textContent=s.documents;sumCur.textContent=s.curations;if(user.role==='master_kurator')await loadUsers();await loadProfiles();await loadDocs();await loadCurations();await loadLogs()}catch(e){logout()}}
 function table(rows,cols){if(!Array.isArray(rows)||!rows.length)return '<p class="muted">Belum ada data.</p>';return '<table><thead><tr>'+cols.map(c=>'<th>'+c[0]+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+cols.map(c=>'<td>'+(r[c[1]]??'')+'</td>').join('')+'</tr>').join('')+'</tbody></table>'}
 async function buatAkunStaf(){const r=await api('/api/users',{method:'POST',body:JSON.stringify({username:uUsername.value.trim(),password:uPassword.value,role:uRole.value})}),d=await r.json();alert(d.message||'Selesai');if(r.ok){uUsername.value='';uPassword.value='';loadAll()}}
-async function loadUsers(){if(user.role!=='master_kurator')return;const d=await (await api('/api/users')).json();usersList.innerHTML=table(d,[["Username","username"],["Role","role"],["Dibuat Oleh","createdBy"],["Dibuat","createdAt"]])}
+async function loadUsers(){if(user.role!=='master_kurator')return;const d=await (await api('/api/users')).json();usersList.innerHTML=table(d,[["Username","username"],["Role","roleLabel"],["Dibuat Oleh","createdBy"],["Dibuat","createdAt"]])}
 async function simpanProfil(){const d=await (await api('/api/profiles',{method:'POST',body:JSON.stringify({namaSanggar:pNama.value,ketua:pKetua.value,jenisKesenian:pJenis.value,kedudukan:pKedudukan.value,noHp:pHp.value,bank:pBank.value,rekening:pRek.value,statusAdministrasi:pStatus.value,alamat:pAlamat.value})})).json();alert(d.message);loadAll()}
-async function loadProfiles(){const d=await (await api('/api/profiles')).json();profilList.innerHTML=table(d,[["Nama Sanggar","namaSanggar"],["Ketua","ketua"],["Jenis","jenisKesenian"],["Status","statusAdministrasi"],["Update","updatedAt"]])}
+async function loadProfiles(){const d=await (await api('/api/profiles')).json();profilList.innerHTML=table(d,[["Nama","namaSanggar"],["Penanggung Jawab","ketua"],["Jenis/Layanan","jenisKesenian"],["Status","statusAdministrasi"],["Update","updatedAt"]])}
 async function simpanDokumen(){const r=await api('/api/documents',{method:'POST',body:JSON.stringify({jenisDokumen:dJenis.value,namaSanggar:dNama.value,status:dStatus.value,isi:dIsi.value})}),d=await r.json();docOut.textContent=d.document?d.document.isi:d.message;loadAll()}
-async function loadDocs(){const d=await (await api('/api/documents')).json();dokumenList.innerHTML=table(d,[["Jenis","jenisDokumen"],["Nama Sanggar","namaSanggar"],["Status","status"],["Update","updatedAt"]])}
+async function loadDocs(){const d=await (await api('/api/documents')).json();dokumenList.innerHTML=table(d,[["Jenis","jenisDokumen"],["Nama","namaSanggar"],["Status","status"],["Update","updatedAt"]])}
 function salinDokumen(){navigator.clipboard.writeText(docOut.textContent||'');alert('Output disalin')}
 async function simpanKurasi(){const d=await (await api('/api/curations',{method:'POST',body:JSON.stringify({namaSanggar:kNama.value,status:kStatus.value,skorAdministrasi:kAdm.value,skorAktivitas:kAkt.value,skorSDM:kSdm.value,catatan:kCatatan.value})})).json();alert(d.message);loadAll()}
-async function loadCurations(){const d=await (await api('/api/curations')).json();kurasiList.innerHTML=table(d,[["Nama Sanggar","namaSanggar"],["Status","status"],["Administrasi","skorAdministrasi"],["Aktivitas","skorAktivitas"],["SDM","skorSDM"],["Catatan","catatan"]])}
+async function loadCurations(){const d=await (await api('/api/curations')).json();kurasiList.innerHTML=table(d,[["Nama","namaSanggar"],["Status","status"],["Administrasi","skorAdministrasi"],["Aktivitas","skorAktivitas"],["SDM","skorSDM"],["Catatan","catatan"]])}
 async function loadLogs(){const d=await (await api('/api/logs')).json();logList.innerHTML=table(d,[["Waktu","createdAt"],["Aktor","actor"],["Aksi","action"],["Detail","detail"]])}
 async function exportData(){const r=await api('/api/export'),d=await r.json();if(!r.ok)return alert(d.message||'Tidak boleh export');const blob=new Blob([JSON.stringify(d,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='jak-sanggar-export.json';a.click()}
 if(token&&user)openApp();
