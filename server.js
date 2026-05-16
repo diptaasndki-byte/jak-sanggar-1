@@ -7,16 +7,37 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const SECRET_KEY = process.env.SECRET_KEY || 'ganti_secret_key_ini_di_env';
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+const SECRET_KEY = process.env.SECRET_KEY || (IS_PRODUCTION ? '' : 'dev_secret_key_ganti_saat_produksi');
+if (!SECRET_KEY) throw new Error('SECRET_KEY wajib diisi pada mode production.');
+
 const DATA_DIR = path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 const OLD_USERS_FILE = path.join(__dirname, 'users.json');
 const MASTER_KURATOR_USERNAME = process.env.MASTER_KURATOR_USERNAME || 'kurator';
 const MASTER_KURATOR_PASSWORD = process.env.MASTER_KURATOR_PASSWORD || '123456';
 
-const PUBLIC_REGISTER_ROLES = ['sanggar', 'user'];
-const STAFF_ROLES = ['admin', 'operator', 'kurator'];
-const ALL_ROLES = ['master_kurator', ...STAFF_ROLES, ...PUBLIC_REGISTER_ROLES];
+const PUBLIC_REGISTER_ROLES = ['sanggar', 'seniman', 'juri', 'jasa_sewa'];
+const KURATOR_MANAGED_ROLES = ['admin', 'operator', 'kurator', 'verifikator', 'user'];
+const ALL_ROLES = ['master_kurator', ...KURATOR_MANAGED_ROLES, ...PUBLIC_REGISTER_ROLES];
+const DATA_ACCESS_ROLES = ['master_kurator', 'admin', 'operator', 'kurator', 'verifikator'];
+
+const ROLE_LABELS = {
+  master_kurator: 'Master Kurator',
+  admin: 'Admin',
+  operator: 'Operator',
+  kurator: 'Kurator',
+  verifikator: 'Verifikator',
+  user: 'User Internal',
+  sanggar: 'Sanggar',
+  seniman: 'Seniman',
+  juri: 'Juri',
+  jasa_sewa: 'Jasa Sewa'
+};
+
+function normalizeRole(role) {
+  return String(role || 'sanggar').trim().toLowerCase().replace(/\s+/g, '_');
+}
 
 function ensureDb() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -34,14 +55,7 @@ function ensureMasterKurator() {
   const now = new Date().toISOString();
   if (!existing) {
     const hash = bcrypt.hashSync(MASTER_KURATOR_PASSWORD, 10);
-    db.users.push({
-      username: MASTER_KURATOR_USERNAME,
-      password: hash,
-      role: 'master_kurator',
-      createdBy: 'system',
-      createdAt: now,
-      updatedAt: now
-    });
+    db.users.push({ username: MASTER_KURATOR_USERNAME, password: hash, role: 'master_kurator', createdBy: 'system', createdAt: now, updatedAt: now });
     db.logs = db.logs || [];
     db.logs.unshift({ id: Date.now().toString(), actor: 'system', action: 'INIT_MASTER_KURATOR', detail: `Akun master kurator ${MASTER_KURATOR_USERNAME} dibuat`, createdAt: now });
     fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
@@ -70,13 +84,8 @@ function writeDb(db) {
 }
 
 function sanitizeUser(user) {
-  return {
-    username: user.username,
-    role: user.role || 'user',
-    createdBy: user.createdBy || '',
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt || ''
-  };
+  const role = normalizeRole(user.role || 'user');
+  return { username: user.username, role, roleLabel: ROLE_LABELS[role] || role, createdBy: user.createdBy || '', createdAt: user.createdAt, updatedAt: user.updatedAt || '' };
 }
 
 function addLog(actor, action, detail = '') {
@@ -99,18 +108,17 @@ function auth(req, res, next) {
 }
 
 function requireMasterKurator(req, res, next) {
-  if (req.user?.role !== 'master_kurator') {
-    return res.status(403).json({ message: 'Akses ditolak. Hanya akun master kurator yang dapat mengelola akun admin/operator/kurator.' });
-  }
+  if (req.user?.role !== 'master_kurator') return res.status(403).json({ message: 'Akses ditolak. Hanya akun master kurator/kurator utama yang dapat mengelola akun selain register mandiri.' });
   next();
 }
 
 function canSeeAllData(role) {
-  return ['master_kurator', 'admin', 'operator', 'kurator'].includes(role);
+  return DATA_ACCESS_ROLES.includes(role);
 }
 
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
+  const origin = process.env.CORS_ORIGIN || (IS_PRODUCTION ? '' : '*');
+  if (origin) res.header('Access-Control-Allow-Origin', origin);
   res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.sendStatus(204);
@@ -122,37 +130,26 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/health', (req, res) => {
   const db = readDb();
-  res.json({
-    status: 'ok',
-    app: 'Jak Sanggar',
-    port: Number(PORT),
-    users: db.users.length,
-    profiles: db.profiles.length,
-    documents: db.documents.length,
-    curations: db.curations.length,
-    time: new Date().toISOString()
-  });
+  res.json({ status: 'ok', app: 'Jak Sanggar', port: Number(PORT), users: db.users.length, profiles: db.profiles.length, documents: db.documents.length, curations: db.curations.length, publicRegisterRoles: PUBLIC_REGISTER_ROLES, managedRoles: KURATOR_MANAGED_ROLES, time: new Date().toISOString() });
 });
 
 app.post('/register', async (req, res) => {
   try {
-    const { username, password, role = 'sanggar' } = req.body || {};
+    const { username, password } = req.body || {};
+    const role = normalizeRole(req.body?.role || 'sanggar');
     if (!username || !password) return res.status(400).json({ message: 'Username dan password wajib diisi' });
     if (password.length < 6) return res.status(400).json({ message: 'Password minimal 6 karakter' });
-    if (!PUBLIC_REGISTER_ROLES.includes(role)) {
-      return res.status(403).json({ message: 'Pendaftaran mandiri hanya untuk akun sanggar/user. Akun admin, operator, dan kurator dibuat oleh master kurator.' });
-    }
+    if (!PUBLIC_REGISTER_ROLES.includes(role)) return res.status(403).json({ message: 'Pendaftaran mandiri hanya untuk akun sanggar, seniman, juri, dan jasa sewa. Akun selain itu dibuat oleh akun kurator/master kurator.' });
 
     const db = readDb();
-    if (db.users.find(u => u.username.toLowerCase() === username.toLowerCase())) {
-      return res.status(409).json({ message: 'Username sudah terdaftar' });
-    }
+    if (db.users.find(u => u.username.toLowerCase() === username.toLowerCase())) return res.status(409).json({ message: 'Username sudah terdaftar' });
 
-    const user = { username, password: await bcrypt.hash(password, 10), role, createdBy: 'self_register', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+    const now = new Date().toISOString();
+    const user = { username, password: await bcrypt.hash(password, 10), role, createdBy: 'self_register', createdAt: now, updatedAt: now };
     db.users.push(user);
-    db.logs.unshift({ id: Date.now().toString(), actor: username, action: 'REGISTER_MANDIRI', detail: `Akun role ${role} dibuat mandiri`, createdAt: new Date().toISOString() });
+    db.logs.unshift({ id: Date.now().toString(), actor: username, action: 'REGISTER_MANDIRI', detail: `Akun ${ROLE_LABELS[role] || role} dibuat mandiri`, createdAt: now });
     writeDb(db);
-    res.status(201).json({ message: 'User berhasil didaftarkan', user: sanitizeUser(user) });
+    res.status(201).json({ message: 'Akun berhasil didaftarkan', user: sanitizeUser(user) });
   } catch (error) {
     console.error('Register error:', error);
     res.status(500).json({ message: 'Server gagal memproses register' });
@@ -161,22 +158,21 @@ app.post('/register', async (req, res) => {
 
 app.post('/api/users', auth, requireMasterKurator, async (req, res) => {
   try {
-    const { username, password, role } = req.body || {};
+    const { username, password } = req.body || {};
+    const role = normalizeRole(req.body?.role);
     if (!username || !password || !role) return res.status(400).json({ message: 'Username, password, dan role wajib diisi' });
     if (password.length < 6) return res.status(400).json({ message: 'Password minimal 6 karakter' });
-    if (!STAFF_ROLES.includes(role)) return res.status(400).json({ message: 'Master kurator hanya dapat membuat akun admin, operator, atau kurator.' });
+    if (!KURATOR_MANAGED_ROLES.includes(role)) return res.status(400).json({ message: 'Akun kurator hanya dapat membuat role: admin, operator, kurator, verifikator, atau user internal.' });
 
     const db = readDb();
-    if (db.users.find(u => u.username.toLowerCase() === username.toLowerCase())) {
-      return res.status(409).json({ message: 'Username sudah terdaftar' });
-    }
+    if (db.users.find(u => u.username.toLowerCase() === username.toLowerCase())) return res.status(409).json({ message: 'Username sudah terdaftar' });
 
     const now = new Date().toISOString();
     const user = { username, password: await bcrypt.hash(password, 10), role, createdBy: req.user.username, createdAt: now, updatedAt: now };
     db.users.push(user);
-    db.logs.unshift({ id: Date.now().toString(), actor: req.user.username, action: 'BUAT_AKUN_STAF', detail: `Membuat akun ${username} dengan role ${role}`, createdAt: now });
+    db.logs.unshift({ id: Date.now().toString(), actor: req.user.username, action: 'BUAT_AKUN_INTERNAL', detail: `Membuat akun ${username} sebagai ${ROLE_LABELS[role] || role}`, createdAt: now });
     writeDb(db);
-    res.status(201).json({ message: 'Akun staf berhasil dibuat', user: sanitizeUser(user) });
+    res.status(201).json({ message: 'Akun berhasil dibuat oleh kurator', user: sanitizeUser(user) });
   } catch (error) {
     console.error('Create user error:', error);
     res.status(500).json({ message: 'Server gagal membuat akun' });
@@ -196,16 +192,17 @@ app.post('/login', async (req, res) => {
     const user = db.users.find(u => u.username.toLowerCase() === username.toLowerCase());
     if (!user) return res.status(404).json({ message: 'User belum terdaftar. Silakan register terlebih dahulu.' });
     if (!(await bcrypt.compare(password, user.password))) return res.status(401).json({ message: 'Password salah' });
-    const token = jwt.sign({ username: user.username, role: user.role || 'user' }, SECRET_KEY, { expiresIn: '1d' });
+    const role = normalizeRole(user.role || 'user');
+    const token = jwt.sign({ username: user.username, role }, SECRET_KEY, { expiresIn: '1d' });
     addLog(user.username, 'LOGIN', 'Pengguna berhasil login');
-    res.json({ message: 'Login berhasil', token, user: sanitizeUser(user) });
+    res.json({ message: 'Login berhasil', token, user: sanitizeUser({ ...user, role }) });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ message: 'Server gagal memproses login' });
   }
 });
 
-app.get('/api/me', auth, (req, res) => res.json({ user: req.user }));
+app.get('/api/me', auth, (req, res) => res.json({ user: { ...req.user, roleLabel: ROLE_LABELS[req.user.role] || req.user.role } }));
 
 app.get('/api/summary', auth, (req, res) => {
   const db = readDb();
@@ -231,6 +228,7 @@ app.post('/api/profiles', auth, (req, res) => {
   const profile = {
     id: body.id || Date.now().toString(),
     owner: body.owner && canSeeAllData(req.user.role) ? body.owner : req.user.username,
+    ownerRole: req.user.role,
     namaSanggar: body.namaSanggar,
     jenisKesenian: body.jenisKesenian || '',
     kedudukan: body.kedudukan || 'Komunitas/Sanggar Mandiri',
@@ -248,7 +246,7 @@ app.post('/api/profiles', auth, (req, res) => {
   else db.profiles.push(profile);
   db.logs.unshift({ id: Date.now().toString(), actor: req.user.username, action: 'SIMPAN_PROFIL', detail: profile.namaSanggar, createdAt: new Date().toISOString() });
   writeDb(db);
-  res.json({ message: 'Profil sanggar berhasil disimpan', profile });
+  res.json({ message: 'Profil berhasil disimpan', profile });
 });
 
 app.get('/api/documents', auth, (req, res) => {
@@ -281,8 +279,10 @@ app.post('/api/documents', auth, (req, res) => {
 
 function generateDocumentText(body) {
   const nama = body.namaSanggar || '................................';
-  if (body.jenisDokumen === 'Berita Acara') return `BERITA ACARA PEMBENTUKAN ${nama}\n\nPada hari ini telah dilaksanakan musyawarah pembentukan organisasi sanggar. Peserta rapat menyepakati pembentukan ${nama}, susunan pengurus, tugas dan fungsi, serta kelengkapan administrasi internal sanggar.`;
-  if (body.jenisDokumen === 'SK Pembentukan') return `SURAT KEPUTUSAN\nTENTANG PEMBENTUKAN ORGANISASI DAN PENGANGKATAN PENGURUS ${nama}\n\nMenetapkan pembentukan ${nama} sebagai wadah pembinaan, pelatihan, pengembangan, pelestarian, produksi karya, dan kegiatan kesenian.`;
+  if (body.jenisDokumen === 'Berita Acara Pembentukan Organisasi' || body.jenisDokumen === 'Berita Acara') return `BERITA ACARA PEMBENTUKAN ORGANISASI\n${nama}\n\nPada hari ini telah dilaksanakan musyawarah pembentukan organisasi/sanggar. Peserta rapat menyepakati pembentukan ${nama}, susunan pengurus, tugas dan fungsi, serta kelengkapan administrasi internal.`;
+  if (body.jenisDokumen === 'Berita Acara Pembentukan Sanggar') return `BERITA ACARA PEMBENTUKAN SANGGAR\n${nama}\n\nPara pihak menyepakati pembentukan ${nama} sebagai wadah kegiatan seni, pelatihan, pembinaan, pengembangan, pementasan, dan tata kelola administrasi sanggar.`;
+  if (body.jenisDokumen === 'SK Pembentukan Sanggar' || body.jenisDokumen === 'SK Pembentukan') return `SURAT KEPUTUSAN\nTENTANG PEMBENTUKAN SANGGAR ${nama}\n\nKESATU: Membentuk ${nama} sebagai wadah kegiatan seni dan kebudayaan.\nKEDUA: Menetapkan tugas dan fungsi sanggar sebagaimana diatur dalam lampiran.\nKETIGA: Keputusan ini berlaku sejak tanggal ditetapkan.`;
+  if (body.jenisDokumen === 'SK Pengangkatan Pengurus') return `SURAT KEPUTUSAN\nTENTANG PENGANGKATAN PENGURUS ${nama}\n\nKESATU: Mengangkat pengurus ${nama}.\nKEDUA: Pengurus melaksanakan tugas sesuai struktur dan fungsi.\nKETIGA: Susunan pengurus tercantum dalam lampiran keputusan.`;
   if (body.jenisDokumen === 'Anggaran Dasar') return `ANGGARAN DASAR ${nama}\n\nDokumen ini mengatur nama, kedudukan, asas, tujuan, fungsi, keanggotaan, musyawarah, kepengurusan, keuangan, atribut, dan perubahan anggaran dasar.`;
   if (body.jenisDokumen === 'Anggaran Rumah Tangga') return `ANGGARAN RUMAH TANGGA ${nama}\n\nDokumen ini mengatur tata kerja, mekanisme rapat, administrasi, tugas pengurus, penambahan jenis kesenian, atribut, dan tata kelola internal sanggar.`;
   return `DOKUMEN ${body.jenisDokumen || ''} ${nama}`;
@@ -320,16 +320,12 @@ app.post('/api/curations', auth, (req, res) => {
 
 app.get('/api/logs', auth, (req, res) => {
   const db = readDb();
-  if (req.user.role !== 'master_kurator' && req.user.role !== 'admin') {
-    return res.json(db.logs.filter(l => l.actor === req.user.username).slice(0, 100));
-  }
+  if (req.user.role !== 'master_kurator' && req.user.role !== 'admin') return res.json(db.logs.filter(l => l.actor === req.user.username).slice(0, 100));
   res.json(db.logs.slice(0, 100));
 });
 
 app.get('/api/export', auth, (req, res) => {
-  if (req.user.role !== 'master_kurator' && req.user.role !== 'admin') {
-    return res.status(403).json({ message: 'Export seluruh data hanya untuk master kurator dan admin.' });
-  }
+  if (req.user.role !== 'master_kurator' && req.user.role !== 'admin') return res.status(403).json({ message: 'Export seluruh data hanya untuk master kurator dan admin.' });
   const db = readDb();
   res.json({ exportedAt: new Date().toISOString(), data: db });
 });
